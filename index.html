@@ -3,228 +3,887 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Prince Alex Design University - Login</title>
+  <title>Dashboard - Prince Alex Design University</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
     body, html {
       height: 100%;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4fdf6;
     }
-
-    .container {
-      display: flex;
-      height: 100vh;
-    }
-
-    .left-side {
-      flex: 1;
-      background: url('Myschoolgate.png') no-repeat center center;
-      background-size: cover;
-    }
-
-    .right-side {
-      flex: 1;
+    header {
       background-color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 40px;
-    }
-
-    .logo {
-      width: 120px;
-      margin-bottom: 20px;
-    }
-
-    h2 {
       color: #006400;
-      margin-bottom: 10px;
-    }
-
-    form {
-      width: 100%;
-      max-width: 400px;
+      padding: 10px 20px;
       display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    label {
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      padding: 10px;
-      font-size: 15px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      outline: none;
-      width: 100%;
-    }
-
-    .password-wrapper {
-      position: relative;
-    }
-
-    .toggle-password {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      font-size: 18px;
-    }
-
-    .remember-me {
-      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
+      border-bottom: 1px solid #ccc;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      gap: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
-
-    button {
+    header img {
+      width: 140px;
+    }
+    .greeting {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .logout-btn {
       background-color: #006400;
-      color: white;
-      padding: 10px;
-      font-size: 16px;
       border: none;
+      color: white;
+      padding: 8px 16px;
+      font-size: 14px;
       border-radius: 4px;
       cursor: pointer;
     }
-
-    button:hover {
+    .logout-btn:hover {
       background-color: #004d00;
     }
-
-    .forgot-password {
-      font-size: 13px;
-      color: #006400;
-      text-align: right;
-      text-decoration: underline;
-      cursor: pointer;
+    .container {
+      display: flex;
+      min-height: calc(100vh - 80px);
     }
-
-    .create-account {
-      background-color: transparent;
-      border: 2px solid #006400;
-      color: #006400;
-      padding: 10px;
-      font-size: 15px;
-      margin-top: 10px;
+    .sidebar {
+      width: 250px;
+      background-color: #004d00;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 30px 20px;
+    }
+    .sidebar h3 {
+      margin-bottom: 25px;
+      font-size: 20px;
+      border-bottom: 1px solid #fff;
+      padding-bottom: 12px;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      padding: 12px 10px;
+      font-size: 16px;
+      transition: background 0.3s;
+      cursor: pointer;
       border-radius: 4px;
-      cursor: pointer;
     }
-
-    .create-account:hover {
+    .sidebar a:hover {
+      background-color: #006400;
+    }
+    /* Academics submenu links */
+    #academics-submenu a {
+      display: block;
+      margin: 8px 0;
+      padding: 10px;
+      background-color: #005000;
+      border-radius: 4px;
+      font-size: 15px;
+    }
+    /* Finance submenu links */
+    #finance-submenu a {
+      display: block;
+      margin: 8px 0;
+      padding: 10px;
+      background-color: #005000;
+      border-radius: 4px;
+      font-size: 15px;
+    }
+    #exam-submenu a {
+      display: block;
+      margin: 8px 0;
+      padding: 10px;
+      background-color: #005000;
+      border-radius: 4px;
+      font-size: 15px;
+    }
+    .main {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    .card {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 40px;
+    }
+    .card img {
+      display: block;
+      margin: 0 auto 25px;
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      background-color: #ddd;
+    }
+    .info-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .info-group p {
+      flex: 1 1 45%;
+      font-size: 15px;
+    }
+    .flex-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    .flex-item {
+      flex: 1 1 45%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background-color: #e4f5e9;
+    }
+    button.pay-btn {
       background-color: #006400;
       color: white;
-    }
-
-    .admin-link {
-      font-size: 13px;
-      margin-top: 5px;
-      color: #006400;
-      background: none;
+      padding: 12px 24px;
       border: none;
+      border-radius: 4px;
       cursor: pointer;
-      text-decoration: underline;
+      margin-top: 15px;
+      font-size: 15px;
     }
-
-    footer {
-      margin-top: 30px;
+    button.pay-btn:hover {
+      background-color: #004d00;
+    }
+    .no-records {
+      color: red;
+      font-weight: bold;
       text-align: center;
-      font-size: 12px;
+      margin-top: 15px;
+    }
+    button.red-btn {
+      background-color: #cc0000;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 15px;
+    }
+    button.red-btn:hover {
+      background-color: #990000;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
       color: #666;
     }
 
-    .PAD {
-      color: #006400;
-      font-weight: bold;
+    /* New: Styles for the menu toggle button */
+    .menu-toggle {
+      display: none; /* Hidden by default on desktop */
+      background-color: #006400;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      font-size: 20px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    /* Media Query for screens smaller than 768px */
+    @media (max-width: 768px) {
+      header {
+        flex-wrap: wrap; /* Allow items to wrap */
+        justify-content: space-between; /* Space out items */
+        padding: 10px; /* Adjust padding for mobile */
+      }
+
+      header img {
+        width: 100px; /* Make logo smaller on mobile */
+      }
+
+      .greeting {
+        font-size: 16px; /* Smaller font for greeting */
+        order: 1; /* Place greeting after logo and toggle */
+        flex-grow: 1; /* Allow greeting to take available space */
+        text-align: center; /* Center greeting */
+        margin-top: 5px; /* Add some space above greeting */
+      }
+
+      .logout-btn {
+        margin-left: auto; /* Push logout to the right */
+      }
+
+      .menu-toggle {
+        display: block; /* Show the hamburger icon on small screens */
+        order: -1; /* Place it first in the flex order */
+        margin-right: 10px; /* Space between toggle and logo */
+      }
+
+      .container {
+        flex-direction: column; /* Stack sidebar and main content vertically */
+      }
+
+      .sidebar {
+        width: 100%; /* Full width on mobile */
+        max-height: 0; /* Initially hidden */
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, padding 0.3s ease-out; /* Smooth transition for opening/closing */
+        padding: 0 20px; /* Adjust padding when collapsed */
+      }
+
+      .sidebar.active {
+        max-height: 500px; /* Or a value large enough to show all content */
+        padding: 30px 20px; /* Restore padding when active */
+      }
+
+      .sidebar h3 {
+        margin-bottom: 15px; /* Adjust margin */
+        padding-bottom: 8px; /* Adjust padding */
+      }
+
+      .sidebar a {
+        padding: 10px; /* Adjust link padding for full width */
+        font-size: 15px; /* Adjust font size */
+      }
+
+      #academics-submenu a,
+      #finance-submenu a,
+      #exam-submenu a {
+        padding: 8px; /* Adjust submenu link padding */
+        font-size: 14px; /* Adjust submenu font size */
+      }
+
+      .main {
+        padding: 20px; /* Adjust main content padding for smaller screens */
+      }
+
+      .card {
+        padding: 20px; /* Adjust card padding */
+        margin-bottom: 20px; /* Adjust card margin */
+      }
+
+      .info-group p {
+        flex: 1 1 100%; /* Stack info items vertically on mobile */
+      }
+
+      .flex-grid {
+        flex-direction: column; /* Stack flex items vertically */
+      }
+
+      .flex-item {
+        flex: 1 1 100%; /* Full width for flex items */
+      }
+
+      table, th, td {
+        font-size: 12px; /* Smaller font for tables on mobile */
+      }
+
+      th, td {
+        padding: 8px; /* Smaller padding for table cells */
+      }
+
+      button.pay-btn, button.red-btn {
+        padding: 10px 20px; /* Adjust button padding */
+        font-size: 14px; /* Adjust button font size */
+      }
     }
   </style>
 </head>
 <body>
+  <header>
+    <img src="Myschoollogo.png" alt="University Logo" />
+    <button class="menu-toggle" id="menuToggle">&#9776;</button> <div class="greeting">Welcome, <span id="userName">User</span>!</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </header>
 
   <div class="container">
-    <div class="left-side"></div>
+    <div class="sidebar">
+      <h3>Quick Menu</h3>
+      <a onclick="showSection('home')">🏠 Home</a>
+      <a onclick="showSection('profile')">👤 Personal Profile</a>
+      
+      <a onclick="toggleSubmenu('academics-submenu')">📘 Academics ▾</a>
+      <div id="academics-submenu" style="display: none; padding-left: 15px;">
+        <a onclick="showSection('courseReg')">📄 Course Registration</a>
+        <a onclick="showSection('timetable')">🗓️ Timetable</a>
+        <a onclick="showSection('evaluation')">📝 Course Evaluation</a>
+        <a onclick="showSection('graduation')">🎓 Graduation Request</a>
+        <a onclick="showSection('clearance')">✅ Clearance Request</a>
+      </div>
 
-    <div class="right-side">
-      <img src="MySchoollogo.png" alt="University Logo" class="logo" />
-      <h2>Hi, welcome back</h2>
-      <p>Please fill in your details to log in</p>
+      <a onclick="toggleSubmenu('finance-submenu')">💰 Finance ▾</a>
+      <div id="finance-submenu" style="display: none; padding-left: 15px;">
+        <a onclick="showSection('feesStatement')">💳 Fees Statement</a>
+        <a onclick="showSection('receipts')">🧾 Receipts</a>
+        <a onclick="showSection('examCard')">📋 Exam Card</a>
+      </div>
 
-      <form onsubmit="return loginUser(event)">
-        <label for="email">Email address</label>
-        <input type="text" id="email" placeholder="Enter your email" required />
-
-        <label for="password">Password</label>
-        <div class="password-wrapper">
-          <input type="password" id="password" placeholder="Enter your Password" required />
-          <span class="toggle-password" onclick="togglePassword()">👁</span>
-        </div>
-
-        <div class="remember-me">
-          <input type="checkbox" id="remember" checked />
-          <label for="remember">Remember me</label>
-        </div>
-
-        <button type="submit">Sign In</button>
-        <button type="button" class="admin-link" onclick="goToAdminLogin()">Admin Login</button>
-
-        <p class="forgot-password" onclick="location.href='forgot.html'">Forgot Password?</p>
-
-        <button type="button" class="create-account" onclick="createAccount()">Sign Up</button>
-      </form>
-
-      <footer>
-        <p>2025 © Designed by <span class="PAD">Prince Alex Digital</span></p>
-      </footer>
+      <a onclick="toggleSubmenu('exam-submenu')">📚 Examination ▾</a>
+      <div id="exam-submenu" style="display: none; padding-left: 15px;">
+        <a onclick="showSection('examTimetable')">📊 Timetable</a>
+        <a onclick="showSection('transcripts')">📄 Transcripts</a>
+      </div>
+      <a onclick="showSection('hostelBooking')">🏨 Accommodation</a>
+      <a onclick="showSection('settings')">⚙️ Settings</a>
     </div>
+
+    <div class="main" id="content">
+      </div>
   </div>
 
+  <footer>
+    2025 © Prince Alex Design University. All rights reserved.
+  </footer>
+
   <script>
-    function togglePassword() {
-      const passwordInput = document.getElementById("password");
-      const type = passwordInput.getAttribute("type");
-      passwordInput.setAttribute("type", type === "password" ? "text" : "password");
-    }
+    const userEmail = localStorage.getItem("loggedInEmail") || "User";
+    const name = userEmail.split("@")[0];
+    const properName = name.charAt(0).toUpperCase() + name.slice(1);
+    document.getElementById("userName").innerText = properName;
 
-    function loginUser(event) {
-      event.preventDefault();
+    const isAdmin = (userEmail === "senerwaalex@gmail.com");
 
-      const email = document.getElementById("email").value.trim().toLowerCase();
-      const password = document.getElementById("password").value.trim();
-
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-
-      const matchedUser = users.find(user => user.email === email && user.password === password);
-
-      if (matchedUser) {
-        localStorage.setItem("userLoggedIn", "true");
-        localStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
-        alert("✅ Login successful!");
-        window.location.href = "dashboard.html";
-      } else {
-        alert("❌ Incorrect Email or Password.");
+    function logout() {
+      if (confirm("Are you sure you want to log out?")) {
+        localStorage.removeItem("loggedInEmail");
+        window.location.href = "index.html";
       }
     }
 
-    function createAccount() {
-      window.location.href = "signup.html";
+    function toggleSubmenu(id) {
+      const submenu = document.getElementById(id);
+      submenu.style.display = submenu.style.display === "none" ? "block" : "none";
     }
 
-    function goToAdminLogin() {
-      window.location.href = "admin.html";
+    // New: Toggle sidebar visibility for mobile
+    document.getElementById('menuToggle').addEventListener('click', function() {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.toggle('active');
+    });
+
+    function showSection(section) {
+      const content = document.getElementById("content");
+      content.innerHTML = "";
+
+      if (section === 'home') {
+        content.innerHTML = `<div class="card">
+          <h2>Dashboard Overview</h2>
+          <p>Welcome back, ${properName}</p>
+          <p>Welcome to your student portal. Here you can access all your academic information and university services in one place.</p>
+          <h3>Upcoming Activities</h3>
+          <ul>
+            <li>📅 Semester 2 begins: July 1st, 2025</li>
+            <li>📌 Fee Deadline: June 30th, 2025</li>
+            <li>🧪 Exam Registration Closes: July 10th, 2025</li>
+          </ul>
+        </div>`;
+      }
+      else if (section === 'profile') {
+        content.innerHTML = `<div class="card">
+          <h2>Personal Profile</h2>
+          <img src="avatar.png" alt="Student Avatar">
+          <div class="info-group">
+            <p><strong>Reg. No:</strong> ENG/94/25</p>
+            <p><strong>Name:</strong> Senerwa Alex</p>
+            <p><strong>ID No:</strong> XXXX</p>
+            <p><strong>Gender:</strong> Male</p>
+            <p><strong>Address:</strong> --</p>
+            <p><strong>Email:</strong> senerwaalex@gmail.com</p>
+            <p><strong>Date Of Birth:</strong> 01/01/0001</p>
+            <p><strong>Campus:</strong> 00</p>
+          </div>
+          <hr style="margin: 30px 0">
+          <h3>Academic Information</h3>
+          <div class="info-group">
+            <p><strong>Current Programme:</strong> Bachelor of Arts in xxxx</p>
+            <p><strong>Attempted Units:</strong> 00</p>
+            <p><strong>Registered Units:</strong> 00</p>
+          </div>
+          <hr style="margin: 30px 0">
+          <h3>Fee Payment</h3>
+          <div class="info-group">
+            <p><strong>Total Billed:</strong> 0.00</p>
+            <p><strong>Scholarship Amount:</strong> 0.00</p>
+            <p><strong>Total Paid:</strong> 0.00</p>
+            <p><strong>Fee Balance:</strong> 0.00</p>
+          </div>
+          <button class="pay-btn">Make Payment</button>
+          <hr style="margin: 30px 0">
+          <h3>Important Documents</h3>
+          <table>
+            <thead><tr><th>File Name</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>Transcript.pdf</td><td><button class="pay-btn">Download</button></td></tr>
+              <tr><td>Admission Letter.pdf</td><td><button class="pay-btn">Download</button></td></tr>
+            </tbody>
+          </table>
+        </div>`;
+      }
+      else if (section === 'courseReg') {
+        const registered = JSON.parse(localStorage.getItem("registeredUnits") || "{}");
+
+        const units = {
+          "Semester 1": [
+            { code: "ENG101", name: "Introduction to Writing" },
+            { code: "MAT101", name: "Basic Mathematics" },
+            { code: "CSC101", name: "Introduction to Computing" }
+          ],
+          "Semester 2": [
+            { code: "ENG102", name: "Advanced Composition" },
+            { code: "MAT102", name: "Statistics" },
+            { code: "CSC102", name: "Web Development Basics" }
+          ]
+        };
+
+        content.innerHTML = `
+          <div class="card">
+            <h2>Course Registration</h2>
+            <label for="semesterSelect">Select Semester:</label><br/>
+            <select id="semesterSelect" onchange="renderUnits()" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
+              <option value="">-- Select Semester --</option>
+              <option value="Semester 1">Semester 1</option>
+              <option value="Semester 2">Semester 2</option>
+            </select>
+            <div id="unitFormArea" style="margin-top: 20px;"></div>
+          </div>
+        `;
+
+        window.renderUnits = function () {
+          const semester = document.getElementById("semesterSelect").value;
+          const formArea = document.getElementById("unitFormArea");
+          if (!semester) {
+            formArea.innerHTML = "";
+            return;
+          }
+
+          if (registered[semester]) {
+            formArea.innerHTML = `
+              <p style="color:green;"><strong>✅ You have already registered the following units for ${semester}:</strong></p>
+              <ul>${registered[semester].map(u => `<li>${u.code} - ${u.name}</li>`).join("")}</ul>
+            `;
+            return;
+          }
+
+          const unitOptions = units[semester].map((unit, i) => `
+            <label>
+              <input type="checkbox" name="unit" value="${unit.code}" data-name="${unit.name}" />
+              ${unit.code} - ${unit.name}
+            </label><br/>
+          `).join("");
+
+          formArea.innerHTML = `
+            <form id="unitForm">
+              <h3>Select Units:</h3>
+              ${unitOptions}
+              <button type="submit" class="pay-btn" style="margin-top: 20px;">Submit Registration</button>
+            </form>
+          `;
+
+          document.getElementById("unitForm").onsubmit = function(e) {
+            e.preventDefault();
+            const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
+              code: input.value,
+              name: input.dataset.name
+            }));
+            if (selected.length === 0) {
+              alert("⚠️ Please select at least one unit.");
+              return;
+            }
+            registered[semester] = selected;
+            localStorage.setItem("registeredUnits", JSON.stringify(registered));
+            alert("✅ Units registered successfully for " + semester);
+            renderUnits(); // refresh to lock form
+          };
+        };
+      }
+      else if (section === 'timetable') {
+        content.innerHTML = `<div class="card"><h2>Timetable</h2><div class="no-records">No Records Found</div></div>`;
+      }
+      else if (section === 'evaluation') {
+        content.innerHTML = `<div class="card"><h2>Course Evaluation</h2><table><thead><tr><th>Action</th><th>Unit Code</th><th>Unit Description</th></tr></thead><tbody><tr><td>-</td><td>---</td><td>---</td></tr></tbody></table></div>`;
+      }
+      else if (section === 'graduation') {
+        content.innerHTML = `
+          <div class="card">
+            <h2>Graduation Request</h2>
+            <div class="info-group">
+              <p><strong>Reg No:</strong> ENG/94/25</p>
+              <p><strong>Full Name:</strong> Senerwa Alex</p>
+              <p><strong>Telephone:</strong> 0700000000</p>
+              <p><strong>Email:</strong> senerwaalex@gmail.com</p>
+            </div>
+            <hr style="margin: 30px 0">
+            <h3>Graduation Application Form</h3>
+            <label for="gradType">Graduation Type:</label><br/>
+            <select id="gradType" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
+              <option value="">-- Select --</option>
+              <option value="regular">Regular</option>
+              <option value="special">Special</option>
+              <option value="posthumous">Posthumous</option>
+            </select><br/><br/>
+
+            <label for="gradDate">Proposed Graduation Date:</label><br/>
+            <input type="date" id="gradDate" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+            <label for="disability">Do you have any disability?</label><br/>
+            <select id="disability" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
+              <option value="">-- Select --</option>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select><br/><br/>
+
+            <label><input type="checkbox" id="declaration" style="margin-right:8px;"> I confirm that I have met all academic and financial requirements for graduation.</label><br/><br/>
+
+            <button class="pay-btn" onclick="submitGraduationRequest()">Submit Request</button>
+          </div>
+        `;
+      }
+      else if (section === 'clearance') {
+        const requestStatus = localStorage.getItem("clearanceStatus") || "none";
+
+        if (requestStatus !== "none") {
+          content.innerHTML = `
+            <div class="card">
+              <h2>Clearance Request</h2>
+              <p><strong>Status:</strong> ✅ <span style="color: green;">Request submitted</span></p>
+              <p>Your clearance request is being reviewed. Check back later for updates.</p>
+            </div>
+          `;
+          return;
+        }
+
+        content.innerHTML = `
+          <div class="card">
+            <h2>Clearance Request</h2>
+            <div class="info-group">
+              <p><strong>Reg No:</strong> ENG/94/25</p>
+              <p><strong>Full Name:</strong> Senerwa Alex</p>
+              <p><strong>Email:</strong> senerwaalex@gmail.com</p>
+            </div>
+            <hr style="margin: 30px 0">
+
+            <form id="clearanceForm">
+              <h3>Select Departments for Clearance:</h3>
+              <label><input type="checkbox" name="department" value="Library"> Library</label><br/>
+              <label><input type="checkbox" name="department" value="Finance"> Finance</label><br/>
+              <label><input type="checkbox" name="department" value="Hostel"> Hostel</label><br/>
+              <label><input type="checkbox" name="department" value="Academics"> Academics</label><br/>
+              <label><input type="checkbox" name="department" value="Sports"> Sports</label><br/><br/>
+
+              <label for="uploadFile">Attach Clearance Form (optional):</label><br/>
+              <input type="file" id="uploadFile" accept=".pdf,.jpg,.png" style="margin: 10px 0;" /><br/>
+
+              <label><input type="checkbox" id="clearDeclaration"> I declare that I have no pending issues with selected departments.</label><br/><br/>
+
+              <button type="submit" class="pay-btn">Submit Request</button>
+            </form>
+          </div>
+        `;
+
+        // Handle form submission
+        document.getElementById("clearanceForm").onsubmit = function (e) {
+          e.preventDefault();
+          const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
+            .map(el => el.value);
+          const declaration = document.getElementById("clearDeclaration").checked;
+
+          if (checked.length === 0) {
+            alert("⚠️ Please select at least one department.");
+            return;
+          }
+
+          if (!declaration) {
+            alert("⚠️ Please confirm the declaration.");
+            return;
+          }
+
+          localStorage.setItem("clearanceStatus", "submitted");
+          alert("✅ Clearance Request Submitted!");
+          showSection("clearance");
+        };
+      }
+      else if (section === 'feesStatement') {
+        content.innerHTML = `<div class="card">
+          <h2>Fees Statement</h2>
+          <button class="red-btn" onclick="window.print()">Print Fees Statement</button>
+          <table>
+            <thead>
+              <tr>
+                <th>Posting Date</th>
+                <th>Ref #</th>
+                <th>Description</th>
+                <th>Debit (KES)</th>
+                <th>Credit (KES)</th>
+                <th>Running Balance (KES)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>2025-06-01</td><td>INV001</td><td>Tuition Fee Semester 1</td><td>25,000</td><td>0</td><td>25,000</td></tr>
+              <tr><td>2025-06-03</td><td>INV002</td><td>Hostel Booking</td><td>13,500</td><td>0</td><td>38,500</td></tr>
+              <tr><td>2025-06-07</td><td>RCPT001</td><td>Payment via M-PESA</td><td>0</td><td>20,000</td><td>18,500</td></tr>
+              <tr><td>2025-06-10</td><td>INV003</td><td>Library Fine</td><td>500</td><td>0</td><td>19,000</td></tr>
+              <tr><td>2025-06-15</td><td>INV004</td><td>Exam Fee</td><td>3,000</td><td>0</td><td>22,000</td></tr>
+              <tr><td>2025-06-20</td><td>RCPT002</td><td>Bank Deposit</td><td>0</td><td>10,000</td><td>12,000</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top: 15px; font-weight: bold;">Current Balance: KES 12,000</p>
+        </div>`;
+      }
+      else if (section === 'receipts') {
+        content.innerHTML = `<div class="card">
+          <h2>Receipts</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Receipt No</th>
+                <th>Date</th>
+                <th>Payment Mode</th>
+                <th>Amount</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="5" class="no-records">No Records Found</td></tr>
+            </tbody>
+          </table>
+        </div>`;
+      }
+      else if (section === 'examCard') {
+        const feesBalance = 0; // Simulated from feesStatement
+        const registered = JSON.parse(localStorage.getItem("registeredUnits") || "{}");
+
+        if (feesBalance > 0) {
+          content.innerHTML = `
+            <div class="card">
+              <h2>Exam Card</h2>
+              <p style="color:red;">❌ You cannot generate an Exam Card until you clear your fee balance (KES ${feesBalance}).</p>
+            </div>`;
+          return;
+        }
+
+        const allUnits = Object.values(registered).flat();
+
+        if (allUnits.length === 0) {
+          content.innerHTML = `
+            <div class="card">
+              <h2>Exam Card</h2>
+              <p style="color:red;">❌ You haven't registered any units yet. Please register your units first.</p>
+            </div>`;
+          return;
+        }
+
+        const unitRows = allUnits.map((unit, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${unit.code}</td>
+            <td>${unit.name}</td>
+            <td>Room TBA</td>
+            <td>Time TBA</td>
+          </tr>
+        `).join("");
+
+        content.innerHTML = `
+          <div class="card" id="examCardSection">
+            <h2>📋 Exam Card</h2>
+            <p><strong>Reg No:</strong> ENG/94/25</p>
+            <p><strong>Name:</strong> Senerwa Alex</p>
+            <p><strong>Programme:</strong> Bachelor of Arts in xxxx</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Unit Code</th>
+                  <th>Unit Name</th>
+                  <th>Room</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${unitRows}
+              </tbody>
+            </table>
+            <button class="red-btn" onclick="window.print()">🖨️ Print Exam Card</button>
+          </div>`;
+      }
+      else if (section === 'examTimetable') {
+        content.innerHTML = `
+          <div class="card">
+            <h2>Examination Timetable</h2>
+            <label for="timetableType">Select Timetable Type:</label><br/>
+            <select id="timetableType" name="timetableType" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 250px;">
+              <option value="study">📘 Study Timetable</option>
+              <option value="exam">📝 Exam Timetable</option>
+            </select>
+            <br/>
+            <button class="red-btn" style="margin-top: 20px;">Download</button>
+          </div>`;
+      }
+      else if (section === 'transcripts') {
+        content.innerHTML = `
+          <div class="card">
+            <h2>Student Transcripts</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Unit</th>
+                  <th>Description</th>
+                  <th>CAT</th>
+                  <th>Exam</th>
+                  <th>Grade</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>ENG 101</td><td>Introduction to Writing</td><td>15</td><td>55</td><td>B</td></tr>
+                <tr><td>CS 105</td><td>Intro to Programming</td><td>18</td><td>72</td><td>A</td></tr>
+                </tbody>
+            </table>
+          </div>`;
+      }
+      else if (section === 'hostelBooking') {
+        const savedHostel = localStorage.getItem("hostelBooking") || "";
+        content.innerHTML = `
+          <div class="card">
+            <h2>Hostel Booking</h2>
+            <label for="hostelSelect">Select Hostel:</label><br/>
+            <select id="hostelSelect" name="hostelSelect" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
+              <option value="">Select hostel</option>
+              <option value="hostel1">Greenfields Hostel - KES 15,000</option>
+              <option value="hostel2">Sunrise Hostel - KES 13,500</option>
+              <option value="hostel3">Lakeview Hostel - KES 14,200</option>
+              <option value="hostel4">Hilltop Hostel - KES 16,000</option>
+              <option value="hostel5">Riverbend Hostel - KES 12,800</option>
+              <option value="hostel6">Royal Court Hostel - KES 17,500</option>
+              <option value="hostel7">Safari Hostel - KES 11,700</option>
+              <option value="hostel8">Emerald Residency - KES 14,800</option>
+              <option value="hostel9">Golden Nest Hostel - KES 13,300</option>
+              <option value="hostel10">Maple Heights - KES 15,600</option>
+            </select>
+            <br/>
+            <button class="red-btn" style="margin-top: 20px;" onclick="bookHostel()">Book</button>
+            <div id="hostelBookedMsg" style="margin-top: 15px; font-weight: bold; color: #006400;"></div>
+          </div>`;
+
+        // After rendering, pre-select the booked hostel if already saved
+        if (savedHostel) {
+          document.getElementById("hostelSelect").value = savedHostel;
+          document.getElementById("hostelBookedMsg").innerText = "🏨 You already booked: " + savedHostel;
+          // Disable select and button if already booked
+          document.getElementById("hostelSelect").disabled = true;
+          document.querySelector("button[onclick='bookHostel()']").disabled = true;
+        } 
+      }
+      else if (section === 'settings') {
+        content.innerHTML = `
+          <div class="card">
+            <h2>Change Password</h2>
+            <label for="currentPassword">Current Password:</label><br/>
+            <input type="password" id="currentPassword" placeholder="Enter current password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+            <label for="newPassword">New Password:</label><br/>
+            <input type="password" id="newPassword" placeholder="Enter new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+            <label for="confirmPassword">Confirm New Password:</label><br/>
+            <input type="password" id="confirmPassword" placeholder="Confirm new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+            <button class="red-btn" onclick="changePassword()">Update Password</button>
+
+            ${isAdmin ? `
+              <hr style="margin: 30px 30px">
+              <h3>Admin Controls</h3>
+              <button class="red-btn" onclick="clearAllData()">🧹 Clear All User Data</button>
+            ` : ''}
+          </div>
+        `;
+      }
+      // New: Close sidebar if on mobile after section is shown
+      if (window.innerWidth <= 768) { // Assuming 768px is your mobile breakpoint
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar.classList.contains('active')) {
+          sidebar.classList.remove('active');
+        }
+      }
     }
+
+    function changePassword() {
+      const current = document.getElementById('currentPassword').value;
+      const newPass = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('confirmPassword').value;
+
+      if (!current || !newPass || !confirm) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      if (newPass !== confirm) {
+        alert("New password and confirmation do not match.");
+        return;
+      }
+
+      // Simulate password change success
+      alert("Password updated successfully!");
+      // Reset fields
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+    }
+
+    function bookHostel() {
+      const alreadyBooked = localStorage.getItem("hostelBooking");
+      if (alreadyBooked) {
+        alert("❌ You have already booked: " + alreadyBooked);
+        return;
+      }
+      const selected = document.getElementById("hostelSelect").value;
+      if (selected && selected !== "") {
+        localStorage.setItem("hostelBooking", selected);
+        alert("✅ Hostel booked successfully: " + selected);
+
+        // Disable select and button
+        document.getElementById("hostelSelect").disabled = true;
+        document.querySelector("button[onclick='bookHostel()']").disabled = true;
+        document.getElementById("hostelBookedMsg").innerText = "🏨 You have booked: " + selected;
+      } else {
+        alert("⚠️ Please select a hostel.");
+      }
+    }
+
+    function submitGraduationRequest() {
+      const type = document.getElementById('gradType').value;
+      const date = document.getElementById('gradDate').value;
+      const disability = document.getElementById('disability').value;
+      const confirmed = document.getElementById('declaration').checked;
+
+      if (!type || !date || !disability || !confirmed) {
+        alert("⚠️ Please fill out all fields and confirm declaration.");
+        return;
+      }
+
+      alert("🎓 Graduation Request Submitted Successfully!\n\nWe will review and notify you.");
+    }
+
+    // Initial load: show home section
+    showSection('home');
   </script>
-
 </body>
 </html>
