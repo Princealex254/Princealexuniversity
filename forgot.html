@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forgot Password - Prince Alex Digital</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4fdf6;
+    }
+
+    .split-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .left-side {
+      flex: 1;
+      background: url('Myschoollogo.png') center/cover no-repeat;
+    }
+
+    .right-side {
+      flex: 1;
+      background-color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .form-box {
+      background-color: #006400;
+      padding: 40px;
+      border-radius: 10px;
+      color: white;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-box h2 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .form-box input[type="email"] {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 15px;
+    }
+
+    .form-box button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #33aaff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .form-box button:hover {
+      background-color: #269ed9;
+    }
+
+    .form-box .result {
+      margin-top: 20px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .form-box .back {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #f0f0f0;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .split-container {
+        flex-direction: column;
+      }
+      .left-side {
+        height: 210px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="split-container">
+    <div class="left-side"></div>
+    <div class="right-side">
+      <div class="form-box">
+        <h2>Forgot Password</h2>
+        <input type="email" id="forgotEmail" placeholder="Enter your email" required />
+        <button onclick="recoverPassword()">Recover Password</button>
+        <div class="result" id="resultMsg"></div>
+        <div class="back" onclick="goBack()">← Back to Login</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function recoverPassword() {
+      const email = document.getElementById("forgotEmail").value.trim().toLowerCase();
+      const users = JSON.parse(localStorage.getItem("users")) || {};
+
+      if (users[email]) {
+        document.getElementById("resultMsg").innerText = `✅ Your password is: ${users[email]}`;
+      } else {
+        document.getElementById("resultMsg").innerText = "❌ No account found with that email.";
+      }
+    }
+
+    function goBack() {
+      window.location.href = "index.html";
+    }
+  </script>
+
+</body>
+</html>

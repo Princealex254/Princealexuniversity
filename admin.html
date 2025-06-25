@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - Prince Alex Design University</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f2f2f2;
+    }
+
+    .header {
+      background-color: #006400;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 999;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .logout-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #cc0000;
+    }
+
+    .container {
+      padding: 20px;
+      margin-top: 120px; /* Add space to accommodate fixed header */
+    }
+
+    h2 { color: #006400; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th { background-color: #eee; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    tr:hover { background-color: #e0f5e0; }
+
+    button {
+      padding: 6px 12px;
+      background-color: #006400;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #004d00; }
+
+    .danger { background-color: #cc0000; }
+    .danger:hover { background-color: #990000; }
+
+    .login-box {
+      max-width: 350px;
+      margin: 100px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #006400;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .login-box button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    #searchInput {
+      padding: 8px;
+      width: 100%;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    input.editable {
+      width: 100%;
+      border: none;
+      background: transparent;
+    }
+
+    .user-data-section {
+      margin-top: 40px;
+    }
+
+    select {
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="adminContent">
+    <div class="header">
+      <h1>Admin Dashboard - PADU</h1>
+      <p>Welcome, Admin (<span id="adminName"></span>)</p>
+      <button class="logout-btn" onclick="adminLogout()">Logout</button>
+    </div>
+
+    <div class="container">
+      <h2>➕ Add New User</h2>
+      <input type="text" id="newUserName" placeholder="Full Name">
+      <input type="email" id="newUserEmail" placeholder="Email">
+      <input type="text" id="newUserPassword" placeholder="Password">
+      <button onclick="addNewUser()">Add User</button>
+
+      <h2>👥 Registered Users</h2>
+      <input type="text" id="searchInput" placeholder="Search by name or email" oninput="filterUsers()">
+      <table>
+        <thead>
+          <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
+
+      <h2>🛠️ Admin Management</h2>
+      <input type="email" id="newAdminEmail" placeholder="Admin Email">
+      <input type="text" id="newAdminPassword" placeholder="Admin Password">
+      <button onclick="addNewAdmin()">Add Admin</button>
+      <ul id="adminList"></ul>
+
+      <div class="user-data-section" id="userDataSection" style="display: none;">
+        <h2>📂 User Dashboard Data Viewer</h2>
+        <select id="userDataSelect" onchange="loadUserDashboardData()">
+          <option value="">-- Select User Email --</option>
+        </select>
+
+        <table id="dashboardDataTable" style="margin-top: 10px; display: none;">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="dashboardDataBody"></tbody>
+        </table>
+        <br>
+        <button class="danger" onclick="deleteUserDashboardData()">🗑 Delete Dashboard Data</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminLoginBox" class="login-box">
+    <h2>Admin Login</h2>
+    <input type="text" id="adminEmail" placeholder="Admin Email" required>
+    <input type="password" id="adminPass" placeholder="Password" required>
+    <button onclick="adminLogin()">Login</button>
+  </div>
+
+  <script>
+    const PERMANENT_ADMIN = "senerwaalex@gmail.com";
+    const adminAccounts = JSON.parse(localStorage.getItem("adminAccounts")) || [{ email: PERMANENT_ADMIN, password: "alexadmin" }];
+    localStorage.setItem("adminAccounts", JSON.stringify(adminAccounts));
+    let currentDashboardData = {};
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const loggedInEmail = localStorage.getItem("loggedInEmail");
+      const adminFlag = localStorage.getItem("adminLoggedIn") === "true";
+      if (adminAccounts.some(admin => admin.email === loggedInEmail) && adminFlag) {
+        document.getElementById("adminContent").style.display = "block";
+        document.getElementById("adminLoginBox").style.display = "none";
+        document.getElementById("adminName").textContent = loggedInEmail;
+        document.getElementById("userDataSection").style.display = "block";
+        populateUserDashboardDropdown();
+        showAdminList();
+        loadUsers();
+      } else {
+        document.getElementById("adminContent").style.display = "none";
+        document.getElementById("adminLoginBox").style.display = "block";
+      }
+    });
+
+    function adminLogin() {
+      const email = document.getElementById("adminEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("adminPass").value.trim();
+      if (adminAccounts.some(admin => admin.email === email && admin.password === pass)) {
+        localStorage.setItem("loggedInEmail", email);
+        localStorage.setItem("adminLoggedIn", "true");
+        alert("✅ Admin login successful!");
+        location.reload();
+      } else {
+        alert("❌ Incorrect admin credentials");
+      }
+    }
+
+    function adminLogout() {
+      localStorage.removeItem("adminLoggedIn");
+      localStorage.removeItem("loggedInEmail");
+      location.reload();
+    }
+
+    function addNewUser() {
+      const name = document.getElementById("newUserName").value.trim();
+      const email = document.getElementById("newUserEmail").value.trim().toLowerCase();
+      const password = document.getElementById("newUserPassword").value.trim();
+      if (!name || !email || !password) return alert("Please fill all fields");
+
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      if (users.some(user => user.email === email)) return alert("User already exists");
+
+      users.push({ fullname: name, email, password });
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("✅ New user added!");
+      document.getElementById("newUserName").value = "";
+      document.getElementById("newUserEmail").value = "";
+      document.getElementById("newUserPassword").value = "";
+      loadUsers();
+    }
+
+    function loadUsers() {
+      const tbody = document.getElementById("userTable");
+      tbody.innerHTML = "";
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      users.forEach((user, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><input class="editable" value="${user.fullname}" onchange="updateUser(${index}, 'fullname', this.value)"></td>
+          <td><input class="editable" value="${user.email}" onchange="updateUser(${index}, 'email', this.value)"></td>
+          <td><input class="editable" value="${user.password}" onchange="updateUser(${index}, 'password', this.value)"></td>
+          <td><button class="danger" onclick="deleteUser(${index})">Delete</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateUser(index, key, value) {
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      if (key === "email" && users.some((u, i) => i !== index && u.email === value)) {
+        alert("❌ Email already exists.");
+        return;
+      }
+      users[index][key] = value;
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    function deleteUser(index) {
+      if (!confirm("Delete this user?")) return;
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+      users.splice(index, 1);
+      localStorage.setItem("users", JSON.stringify(users));
+      loadUsers();
+    }
+
+    function filterUsers() {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("#userTable tr");
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(search) ? "" : "none";
+      });
+    }
+
+    function addNewAdmin() {
+      const email = document.getElementById("newAdminEmail").value.trim().toLowerCase();
+      const password = document.getElementById("newAdminPassword").value.trim();
+      if (!email || !password) return alert("Enter admin email and password");
+      if (adminAccounts.some(admin => admin.email === email)) return alert("Admin already exists");
+      adminAccounts.push({ email, password });
+      localStorage.setItem("adminAccounts", JSON.stringify(adminAccounts));
+      alert("✅ Admin added!");
+      document.getElementById("newAdminEmail").value = "";
+      document.getElementById("newAdminPassword").value = "";
+      showAdminList();
+    }
+
+    function showAdminList() {
+      const ul = document.getElementById("adminList");
+      ul.innerHTML = "";
+      adminAccounts.forEach((admin, index) => {
+        const li = document.createElement("li");
+        li.textContent = admin.email;
+        if (admin.email !== PERMANENT_ADMIN) {
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Delete";
+          delBtn.className = "danger";
+          delBtn.style.marginLeft = "10px";
+          delBtn.onclick = () => {
+            if (confirm(`Delete admin ${admin.email}?`)) {
+              adminAccounts.splice(index, 1);
+              localStorage.setItem("adminAccounts", JSON.stringify(adminAccounts));
+              showAdminList();
+            }
+          };
+          li.appendChild(delBtn);
+        } else {
+          li.innerHTML += " <strong>(Permanent)</strong>";
+        }
+        ul.appendChild(li);
+      });
+    }
+
+    function populateUserDashboardDropdown() {
+      const select = document.getElementById("userDataSelect");
+      select.innerHTML = '<option value="">-- Select User Email --</option>';
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("user_data_")) {
+          const email = key.replace("user_data_", "");
+          const option = document.createElement("option");
+          option.value = email;
+          option.textContent = email;
+          select.appendChild(option);
+        }
+      });
+    }
+
+    function loadUserDashboardData() {
+      const email = document.getElementById("userDataSelect").value;
+      const raw = localStorage.getItem("user_data_" + email);
+      const table = document.getElementById("dashboardDataTable");
+      const tbody = document.getElementById("dashboardDataBody");
+
+      table.style.display = "none";
+      tbody.innerHTML = "";
+      currentDashboardData = {};
+
+      if (!raw) {
+        alert("❌ No dashboard data found for user.");
+        return;
+      }
+
+      try {
+        const data = JSON.parse(raw);
+        if (typeof data !== "object" || Array.isArray(data)) throw new Error("Data is not a valid object");
+
+        currentDashboardData = data;
+
+        Object.entries(currentDashboardData).forEach(([key, value]) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${key}</td>
+            <td><input type="text" value="${value}" 
+              oninput="updateDashboardValue('${key}', this.value)" 
+              style="width: 100%; padding: 5px;"></td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        table.style.display = "table";
+      } catch (e) {
+        alert("❌ Error loading dashboard data:\n" + e.message);
+      }
+    }
+
+    function updateDashboardValue(key, newValue) {
+      const email = document.getElementById("userDataSelect").value;
+      if (!email) return;
+      currentDashboardData[key] = newValue;
+      localStorage.setItem("user_data_" + email, JSON.stringify(currentDashboardData));
+    }
+
+    function deleteUserDashboardData() {
+      const email = document.getElementById("userDataSelect").value;
+      if (!email || !confirm("Are you sure you want to delete dashboard data for: " + email + "?")) return;
+      localStorage.removeItem("user_data_" + email);
+      alert("✅ User dashboard data deleted.");
+      document.getElementById("dashboardDataTable").style.display = "none";
+      populateUserDashboardDropdown();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prince Alex Design University - Login</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .left-side {
+      flex: 1;
+      background: url('Myschoolgate.png') no-repeat center center;
+      background-size: cover;
+    }
+
+    .right-side {
+      flex: 1;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .logo {
+      width: 120px;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      color: #006400;
+      margin-bottom: 10px;
+    }
+
+    form {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      padding: 10px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      width: 100%;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #006400;
+      color: white;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #004d00;
+    }
+
+    .forgot-password {
+      font-size: 13px;
+      color: #006400;
+      text-align: right;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .create-account {
+      background-color: transparent;
+      border: 2px solid #006400;
+      color: #006400;
+      padding: 10px;
+      font-size: 15px;
+      margin-top: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .create-account:hover {
+      background-color: #006400;
+      color: white;
+    }
+
+    .admin-link {
+      font-size: 13px;
+      margin-top: 5px;
+      color: #006400;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .PAD {
+      color: #006400;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="left-side"></div>
+
+    <div class="right-side">
+      <img src="Myschoollogo.png" alt="University Logo" class="logo" />
+      <h2>Hi, welcome back</h2>
+      <p>Please fill in your details to log in</p>
+
+      <form onsubmit="return loginUser(event)">
+        <label for="email">Email address</label>
+        <input type="text" id="email" placeholder="Enter your email" required />
+
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="password" placeholder="Enter your Password" required />
+          <span class="toggle-password" onclick="togglePassword()">👁</span>
+        </div>
+
+        <div class="remember-me">
+          <input type="checkbox" id="remember" checked />
+          <label for="remember">Remember me</label>
+        </div>
+
+        <button type="submit">Sign In</button>
+        <button type="button" class="admin-link" onclick="goToAdminLogin()">Admin Login</button>
+
+        <p class="forgot-password" onclick="location.href='forgot.html'">Forgot Password?</p>
+
+        <button type="button" class="create-account" onclick="createAccount()">Sign Up</button>
+      </form>
+
+      <footer>
+        <p>2025 © Designed by <span class="PAD">Prince Alex Digital</span></p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const passwordInput = document.getElementById("password");
+      const type = passwordInput.getAttribute("type");
+      passwordInput.setAttribute("type", type === "password" ? "text" : "password");
+    }
+
+    function loginUser(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value.trim();
+
+      const users = JSON.parse(localStorage.getItem("users")) || [];
+
+      const matchedUser = users.find(user => user.email === email && user.password === password);
+
+      if (matchedUser) {
+        localStorage.setItem("userLoggedIn", "true");
+        localStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+        alert("✅ Login successful!");
+        window.location.href = "dashboard.html";
+      } else {
+        alert("❌ Incorrect Email or Password.");
+      }
+    }
+
+    function createAccount() {
+      window.location.href = "signup.html";
+    }
+
+    function goToAdminLogin() {
+      window.location.href = "admin.html";
+    }
+  </script>
+
+</body>
+</html>
