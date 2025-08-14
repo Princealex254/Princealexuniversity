@@ -431,7 +431,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
@@ -520,7 +520,7 @@
           return;
         }
         
-        const adminDocRef = doc(db, `artifacts/${appId}/public/data/admins`, user.email.toLowerCase());
+        const adminDocRef = doc(db, `admins`, user.email.toLowerCase()); // Updated path
         try {
           const adminDocSnap = await getDoc(adminDocRef);
           if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
@@ -597,7 +597,7 @@
           return; // Stay on login form
         }
 
-        const adminDocRef = doc(db, `artifacts/${appId}/public/data/admins`, user.email.toLowerCase());
+        const adminDocRef = doc(db, `admins`, user.email.toLowerCase()); // Updated path
         const adminDocSnap = await getDoc(adminDocRef);
 
         if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
@@ -760,18 +760,18 @@
 
         try {
             // Get total students from the public students collection
-            const studentsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/students`));
+            const studentsSnapshot = await getDocs(collection(db, `students`)); // Updated path
             totalStudents = studentsSnapshot.size;
 
             // Get total courses
-            const coursesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/courses`));
+            const coursesSnapshot = await getDocs(collection(db, `courses`)); // Updated path
             totalCourses = coursesSnapshot.size;
 
             // Get pending graduation requests by querying all public student profiles
-            const allStudentProfilesSnap = await getDocs(collection(db, `artifacts/${appId}/public/data/students`));
+            const allStudentProfilesSnap = await getDocs(collection(db, `students`)); // Updated path
             for (const studentDoc of allStudentProfilesSnap.docs) {
                 const studentUid = studentDoc.id; // The public student doc ID is the UID
-                const gradReqDocRef = doc(db, `artifacts/${appId}/users/${studentUid}/graduationRequest`, 'currentRequest');
+                const gradReqDocRef = doc(db, `artifacts/${appId}/users/${studentUid}/graduationRequest`, 'currentRequest'); // This path is correct for private user data
                 const gradReqSnap = await getDoc(gradReqDocRef);
                 if (gradReqSnap.exists() && gradReqSnap.data().status !== 'approved' && gradReqSnap.data().status !== 'rejected') {
                     pendingGraduationRequests++;
@@ -782,7 +782,7 @@
             let totalOutstanding = 0;
             for (const studentDoc of allStudentProfilesSnap.docs) {
                 const studentUid = studentDoc.id;
-                const feesSnapshot = await getDocs(collection(db, `artifacts/${appId}/users/${studentUid}/fees`));
+                const feesSnapshot = await getDocs(collection(db, `artifacts/${appId}/users/${studentUid}/fees`)); // This path is correct for private user data
                 feesSnapshot.docs.forEach(feeDoc => {
                     const feeData = feeDoc.data();
                     totalOutstanding += (feeData.debit || 0) - (feeData.credit || 0);
@@ -794,7 +794,7 @@
             let totalBookings = 0;
             for (const studentDoc of allStudentProfilesSnap.docs) {
                 const studentUid = studentDoc.id;
-                const hostelBookingDocRef = doc(db, `artifacts/${appId}/users/${studentUid}/hostelBookings`, 'currentBooking');
+                const hostelBookingDocRef = doc(db, `artifacts/${appId}/users/${studentUid}/hostelBookings`, 'currentBooking'); // This path is correct for private user data
                 const hostelBookingSnap = await getDoc(hostelBookingDocRef);
                 if (hostelBookingSnap.exists() && hostelBookingSnap.data().status === 'booked') {
                     totalBookings++;
@@ -878,7 +878,7 @@
     }
 
     async function fetchAndRenderStudents() {
-        const studentsCollectionRef = collection(db, `artifacts/${appId}/public/data/students`);
+        const studentsCollectionRef = collection(db, `students`); // Updated path
         try {
             const querySnapshot = await getDocs(studentsCollectionRef);
             studentsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1014,7 +1014,7 @@
 
             if (studentId) { // Editing existing student
                 // Update basic student data in public profile
-                const studentDocRef = doc(db, `artifacts/${appId}/public/data/students`, studentId);
+                const studentDocRef = doc(db, `students`, studentId); // Updated path
                 await updateDoc(studentDocRef, {
                     name, email, regNo, programme, campus, dob, gender, address
                 });
@@ -1051,7 +1051,7 @@
                 userAuthId = userCredential.user.uid;
 
                 // 2. Create student profile in public data
-                const studentDocRef = doc(db, `artifacts/${appId}/public/data/students`, userAuthId);
+                const studentDocRef = doc(db, `students`, userAuthId); // Updated path
                 await setDoc(studentDocRef, {
                     id: userAuthId, // Store UID as ID in public profile
                     name, email, regNo, programme, campus, dob, gender, address,
@@ -1059,7 +1059,7 @@
                 });
 
                 // 3. (Optional) Initialize private student data linked by UID
-                const privateStudentDocRef = doc(db, `artifacts/${appId}/users/${userAuthId}/students`, userAuthId);
+                const privateStudentDocRef = doc(db, `artifacts/${appId}/users/${userAuthId}/students`, userAuthId); // This path is correct for private user data
                 await setDoc(privateStudentDocRef, {
                     name, email, regNo, programme, campus, dob, gender, address,
                     profilePhotoURL: '',
@@ -1100,7 +1100,7 @@
 
         try {
             // Delete public student profile
-            await deleteDoc(doc(db, `artifacts/${appId}/public/data/students`, studentId));
+            await deleteDoc(doc(db, `students`, studentId)); // Updated path
 
             // Attempt to delete associated subcollections for the user UID
             // NOTE: Firestore client-side SDK does NOT support recursive deletion of subcollections.
@@ -1247,7 +1247,7 @@
             const hostelBookingSnap = await getDoc(hostelBookingDocRef);
             if (hostelBookingSnap.exists()) {
                 const bookingData = hostelBookingSnap.data();
-                const hostelDocRef = doc(db, `artifacts/${appId}/public/data/hostels`, bookingData.hostelId);
+                const hostelDocRef = doc(db, `hostels`, bookingData.hostelId); // Updated path
                 const hostelSnap = await getDoc(hostelDocRef);
                 const hostelName = hostelSnap.exists() ? hostelSnap.data().name : 'Unknown Hostel';
                 hostelDiv.innerHTML = `<p><strong>Booked Hostel:</strong> ${hostelName}</p>
@@ -1343,6 +1343,8 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
+      await addPdfHeaderFooter(doc, "Fees Statement (Admin Generated)", studentData);
+
       let runningBalance = 0;
       const tableData = feesData.map(t => {
         runningBalance += (t.debit || 0) - (t.credit || 0);
@@ -1355,8 +1357,6 @@
           runningBalance.toFixed(2)
         ];
       });
-
-      await addPdfHeaderFooter(doc, "Fees Statement (Admin Generated)", studentData);
 
       doc.autoTable({
         head: [["Posting Date", "Ref #", "Description", "Debit (KES)", "Credit (KES)", "Running Balance (KES)"]],
@@ -1478,7 +1478,7 @@
 
         // Ensure public 'admins' collection has at least one admin for testing
         const adminEmail = currentAdminData.email; // Use the email of the currently logged-in admin
-        const adminDocRef = doc(db, `artifacts/${appId}/public/data/admins`, adminEmail.toLowerCase());
+        const adminDocRef = doc(db, `admins`, adminEmail.toLowerCase()); // Updated path
         const adminSnap = await getDoc(adminDocRef);
         if (!adminSnap.exists() || adminSnap.data().isAdmin !== true) {
             console.log("Admin record missing or invalid, attempting to set current user as admin...");
@@ -1486,7 +1486,7 @@
         }
 
         // Add dummy public students data if not already present
-        const publicStudentsCol = collection(db, `artifacts/${appId}/public/data/students`);
+        const publicStudentsCol = collection(db, `students`); // Updated path
         const publicStudentsSnap = await getDocs(publicStudentsCol);
         if (publicStudentsSnap.empty) {
             console.log("Populating dummy public students data...");
@@ -1543,7 +1543,7 @@
         }
 
         // Add dummy courses if not already present in public data
-        const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
+        const coursesCol = collection(db, `courses`); // Updated path
         const coursesSnap = await getDocs(coursesCol);
         if (coursesSnap.empty) {
             console.log("Populating dummy courses...");
@@ -1553,7 +1553,7 @@
         }
 
         // Add dummy public hostels data if not already present
-        const publicHostelsCol = collection(db, `artifacts/${appId}/public/data/hostels`);
+        const publicHostelsCol = collection(db, `hostels`); // Updated path
         const publicHostelsSnap = await getDocs(publicHostelsCol);
         if (publicHostelsSnap.empty) {
             console.log("Populating dummy public hostels data...");
@@ -1562,7 +1562,7 @@
         }
 
         // Add dummy announcements if not already present
-        const announcementsCol = collection(db, `artifacts/${appId}/public/data/announcements`);
+        const announcementsCol = collection(db, `announcements`); // Updated path
         const announcementsSnap = await getDocs(announcementsCol);
         if (announcementsSnap.empty) {
             console.log("Populating dummy announcements...");
