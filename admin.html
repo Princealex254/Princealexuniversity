@@ -1,393 +1,1403 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Panel - Prince Alex Design University</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Prince Alex Design University</title>
+  <!-- Tailwind CSS CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- jsPDF and jsPDF-AutoTable for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.autotable.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    /* Custom styles to extend Tailwind defaults */
     body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f2f2f2;
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc; /* Light gray background */
+      overflow-x: hidden; /* Prevent horizontal scroll on mobile */
     }
-
-    .header {
-      background-color: #006400;
+    .header-bar {
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      z-index: 1000;
+    }
+    .sidebar {
+      width: 16rem; /* w-64 */
+      background-color: #004d00; /* Dark green */
       color: white;
-      padding: 20px;
-      text-align: center;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 999;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease-in-out;
+      transform: translateX(0); /* Default visible on desktop */
+      z-index: 999; /* Below header */
     }
-
-    .logout-btn {
+    .sidebar.hidden-mobile {
+      transform: translateX(-100%); /* Hidden on mobile */
       position: absolute;
-      top: 20px;
-      right: 20px;
-      background: #cc0000;
+      height: 100%;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        height: 100vh;
+        transform: translateX(-100%);
+      }
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      .content-area {
+        margin-left: 0 !important; /* Adjust for mobile view */
+      }
+    }
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      gap: 0.75rem;
+      border-radius: 0.5rem;
+      transition: background-color 0.2s ease-in-out;
+    }
+    .sidebar a:hover {
+      background-color: #006400; /* Lighter green on hover */
+    }
+    .sidebar .submenu a {
+        padding-left: 2.5rem; /* Indent submenu items */
+        background-color: #005000;
+    }
+    .sidebar .submenu a:hover {
+        background-color: #006000;
+    }
+    .card {
+      background-color: #ffffff;
+      border-radius: 0.75rem; /* rounded-xl */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .stat-card {
+      background-color: #e6ffe6; /* Very light green */
+      border: 1px solid #006400;
+      color: #004d00;
     }
 
-    .container {
+    /* Custom Message Box styles (for admin.html) */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 2000; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
       padding: 20px;
-      margin-top: 120px; /* Add space to accommodate fixed header */
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-
-    h2 { color: #006400; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+    .modal-content h3 {
+      margin-bottom: 15px;
+      color: #006400;
     }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
+    .modal-content p {
+      margin-bottom: 20px;
+      color: #333;
     }
-    th { background-color: #eee; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    tr:hover { background-color: #e0f5e0; }
-
-    button {
-      padding: 6px 12px;
+    .modal-buttons button {
       background-color: #006400;
       color: white;
+      padding: 10px 20px;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      margin: 0 5px;
     }
-    button:hover { background-color: #004d00; }
-
-    .danger { background-color: #cc0000; }
-    .danger:hover { background-color: #990000; }
-
-    .login-box {
-      max-width: 350px;
-      margin: 100px auto;
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px #ccc;
+    .modal-buttons button.cancel {
+      background-color: #ccc;
+      color: #333;
     }
 
-    .login-box h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #006400;
+    /* Styles for tables */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
     }
-
-    .login-box input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+    .data-table th, .data-table td {
+        border: 1px solid #e2e8f0; /* gray-200 */
+        padding: 0.75rem;
+        text-align: left;
+        font-size: 0.875rem; /* text-sm */
     }
-
-    .login-box button {
-      width: 100%;
-      margin-top: 10px;
+    .data-table th {
+        background-color: #f1f5f9; /* gray-100 */
+        font-weight: 600;
+        color: #1a202c; /* gray-900 */
     }
-
-    #searchInput {
-      padding: 8px;
-      width: 100%;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+    .data-table tbody tr:nth-child(even) {
+        background-color: #f8fafc; /* gray-50 */
     }
-
-    input.editable {
-      width: 100%;
-      border: none;
-      background: transparent;
+    .data-table tbody tr:hover {
+        background-color: #e2e8f0; /* gray-200 */
     }
-
-    .user-data-section {
-      margin-top: 40px;
+    .action-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease;
     }
+    .action-btn-view { background-color: #3b82f6; color: white; } /* blue-500 */
+    .action-btn-view:hover { background-color: #2563eb; } /* blue-600 */
+    .action-btn-edit { background-color: #f59e0b; color: white; } /* amber-500 */
+    .action-btn-edit:hover { background-color: #d97706; } /* amber-600 */
+    .action-btn-delete { background-color: #ef4444; color: white; } /* red-500 */
+    .action-btn-delete:hover { background-color: #dc2626; } /* red-600 */
 
-    select {
-      padding: 8px;
-      margin-bottom: 10px;
+    /* Form styles within modals/cards */
+    .form-group {
+        margin-bottom: 1rem;
+        text-align: left;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 1rem;
+    }
+    .form-actions {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
     }
   </style>
 </head>
-<body>
-  <div id="adminContent">
-    <div class="header">
-      <h1>Admin Dashboard - PADU</h1>
-      <p>Welcome, Admin (<span id="adminName"></span>)</p>
-      <button class="logout-btn" onclick="adminLogout()">Logout</button>
+<body class="flex flex-col min-h-screen">
+
+  <!-- Header Bar -->
+  <header class="header-bar p-4 flex justify-between items-center fixed w-full top-0">
+    <div class="flex items-center gap-4">
+      <button id="menuToggle" class="lg:hidden text-green-800 text-2xl focus:outline-none">
+        &#9776;
+      </button>
+      <img src="myschoollogo.png" alt="University Logo" class="h-10" />
+      <h1 class="text-2xl font-bold text-green-800">Admin Portal</h1>
     </div>
+    <div class="flex items-center gap-4">
+      <span class="text-green-800 font-semibold" id="adminUserName">Admin</span>
+      <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow transition duration-200">
+        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+      </button>
+    </div>
+  </header>
 
-    <div class="container">
-      <h2>➕ Add New User</h2>
-      <input type="text" id="newUserName" placeholder="Full Name">
-      <input type="email" id="newUserEmail" placeholder="Email">
-      <input type="text" id="newUserPassword" placeholder="Password">
-      <button onclick="addNewUser()">Add User</button>
+  <div class="flex flex-1 mt-16"> <!-- mt-16 to offset fixed header -->
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 lg:relative lg:translate-x-0 p-4 pt-8 overflow-y-auto">
+      <h3 class="text-xl font-bold mb-6 pb-3 border-b border-green-300">Admin Menu</h3>
+      <nav class="space-y-2">
+        <a href="#" onclick="showSection('dashboard')" class="block"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        <a href="#" onclick="showSection('students')" class="block"><i class="fas fa-users"></i> Students</a>
+        <a href="#" onclick="showSection('courses')" class="block"><i class="fas fa-book-open"></i> Courses</a>
+        <a href="#" onclick="showSection('registrations')" class="block"><i class="fas fa-clipboard-list"></i> Registrations</a>
+        <a href="#" onclick="showSection('fees')" class="block"><i class="fas fa-money-bill-wave"></i> Fees</a>
+        <a href="#" onclick="showSection('grades')" class="block"><i class="fas fa-graduation-cap"></i> Grades</a>
+        <a href="#" onclick="showSection('hostels')" class="block"><i class="fas fa-hotel"></i> Hostels</a>
+        <a href="#" onclick="showSection('announcements')" class="block"><i class="fas fa-bullhorn"></i> Announcements</a>
+        <a href="#" onclick="showSection('adminUsers')" class="block"><i class="fas fa-user-shield"></i> Admin Users</a>
+        <a href="#" onclick="showSection('settings')" class="block"><i class="fas fa-cog"></i> Settings</a>
+      </nav>
+    </aside>
 
-      <h2>👥 Registered Users</h2>
-      <input type="text" id="searchInput" placeholder="Search by name or email" oninput="filterUsers()">
-      <table>
-        <thead>
-          <tr>
-            <th>Full Name</th>
-            <th>Email</th>
-            <th>Password</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="userTable"></tbody>
-      </table>
+    <!-- Main Content Area -->
+    <main id="content" class="content-area flex-1 p-6 lg:ml-64 transition-all duration-300">
+      <!-- Content will be loaded here dynamically -->
+      <div class="flex justify-center items-center h-full text-gray-500 text-xl">
+        Loading admin dashboard...
+      </div>
+    </main>
+  </div>
 
-      <h2>🛠️ Admin Management</h2>
-      <input type="email" id="newAdminEmail" placeholder="Admin Email">
-      <input type="text" id="newAdminPassword" placeholder="Admin Password">
-      <button onclick="addNewAdmin()">Add Admin</button>
-      <ul id="adminList"></ul>
-
-      <div class="user-data-section" id="userDataSection" style="display: none;">
-        <h2>📂 User Dashboard Data Viewer</h2>
-        <select id="userDataSelect" onchange="loadUserDashboardData()">
-          <option value="">-- Select User Email --</option>
-        </select>
-
-        <table id="dashboardDataTable" style="margin-top: 10px; display: none;">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody id="dashboardDataBody"></tbody>
-        </table>
-        <br>
-        <button class="danger" onclick="deleteUserDashboardData()">🗑 Delete Dashboard Data</button>
+  <!-- Custom Modal for Alerts/Confirms -->
+  <div id="customModal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle"></h3>
+      <p id="modalMessage"></p>
+      <div class="modal-buttons">
+        <button id="modalConfirmBtn">OK</button>
+        <button id="modalCancelBtn" class="cancel">Cancel</button>
       </div>
     </div>
   </div>
 
-  <div id="adminLoginBox" class="login-box">
-    <h2>Admin Login</h2>
-    <input type="text" id="adminEmail" placeholder="Admin Email" required>
-    <input type="password" id="adminPass" placeholder="Password" required>
-    <button onclick="adminLogin()">Login</button>
+  <!-- Student Modals -->
+  <!-- Add/Edit Student Modal -->
+  <div id="studentModal" class="modal">
+    <div class="modal-content !max-w-xl">
+      <h3 id="studentModalTitle" class="text-2xl font-bold mb-4"></h3>
+      <form id="studentForm" class="text-left">
+        <input type="hidden" id="studentId">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="studentName">Full Name:</label>
+              <input type="text" id="studentName" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="studentEmail">Email:</label>
+              <input type="email" id="studentEmail" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="studentPassword">Password (for new student):</label>
+              <input type="password" id="studentPassword" class="form-control" placeholder="Leave empty to keep current">
+            </div>
+            <div class="form-group">
+              <label for="studentRegNo">Reg. No:</label>
+              <input type="text" id="studentRegNo" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="studentProgramme">Programme:</label>
+              <input type="text" id="studentProgramme" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="studentCampus">Campus:</label>
+              <input type="text" id="studentCampus" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="studentDob">Date of Birth:</label>
+              <input type="date" id="studentDob" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="studentGender">Gender:</label>
+              <select id="studentGender" required class="form-control">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group md:col-span-2">
+              <label for="studentAddress">Address:</label>
+              <input type="text" id="studentAddress" required class="form-control">
+            </div>
+            <div class="form-group md:col-span-2">
+                <label for="studentProfilePhoto">Profile Photo:</label>
+                <input type="file" id="studentProfilePhoto" accept="image/*" class="form-control">
+                <img id="studentProfilePhotoPreview" src="https://placehold.co/100x100/eeeeee/333333?text=No+Photo" alt="Profile Preview" class="mt-2 mx-auto" width="100">
+            </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="closeModal('studentModal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Save Student</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <script>
-    const PERMANENT_ADMIN = "senerwaalex@gmail.com";
-    const adminAccounts = JSON.parse(localStorage.getItem("adminAccounts")) || [{ email: PERMANENT_ADMIN, password: "alexadmin" }];
-    localStorage.setItem("adminAccounts", JSON.stringify(adminAccounts));
-    let currentDashboardData = {};
+  <!-- View Student Details Modal -->
+  <div id="viewStudentModal" class="modal">
+    <div class="modal-content !max-w-2xl text-left">
+      <h3 class="text-2xl font-bold mb-4">Student Details: <span id="viewStudentName"></span></h3>
+      <div id="viewStudentContent" class="space-y-4">
+        <div class="flex flex-col items-center">
+            <img id="viewStudentPhoto" src="https://placehold.co/100x100/eeeeee/333333?text=No+Photo" alt="Student Photo" class="w-24 h-24 rounded-full object-cover mb-4">
+            <p><strong>Reg. No:</strong> <span id="viewStudentRegNo"></span></p>
+            <p><strong>Email:</strong> <span id="viewStudentEmail"></span></p>
+            <p><strong>Programme:</strong> <span id="viewStudentProgramme"></span></p>
+            <p><strong>Campus:</strong> <span id="viewStudentCampus"></span></p>
+            <p><strong>Date of Birth:</strong> <span id="viewStudentDob"></span></p>
+            <p><strong>Gender:</strong> <span id="viewStudentGender"></span></p>
+            <p><strong>Address:</strong> <span id="viewStudentAddress"></span></p>
+        </div>
+        
+        <hr class="my-4">
+        <h4 class="text-xl font-semibold text-green-700 mb-2">Registered Courses</h4>
+        <div id="viewStudentCourses">Loading courses...</div>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const loggedInEmail = localStorage.getItem("loggedInEmail");
-      const adminFlag = localStorage.getItem("adminLoggedIn") === "true";
-      if (adminAccounts.some(admin => admin.email === loggedInEmail) && adminFlag) {
-        document.getElementById("adminContent").style.display = "block";
-        document.getElementById("adminLoginBox").style.display = "none";
-        document.getElementById("adminName").textContent = loggedInEmail;
-        document.getElementById("userDataSection").style.display = "block";
-        populateUserDashboardDropdown();
-        showAdminList();
-        loadUsers();
+        <hr class="my-4">
+        <h4 class="text-xl font-semibold text-green-700 mb-2">Fees Statement</h4>
+        <div id="viewStudentFees">Loading fees...</div>
+
+        <hr class="my-4">
+        <h4 class="text-xl font-semibold text-green-700 mb-2">Grades</h4>
+        <div id="viewStudentGrades">Loading grades...</div>
+
+        <hr class="my-4">
+        <h4 class="text-xl font-semibold text-green-700 mb-2">Hostel Booking</h4>
+        <div id="viewStudentHostel">Loading hostel info...</div>
+
+      </div>
+      <div class="form-actions flex justify-end gap-2 mt-6">
+        <button type="button" onclick="generateStudentTranscriptPDF(currentViewingStudent)" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-file-pdf mr-2"></i>Transcript</button>
+        <button type="button" onclick="generateStudentExamCardPDF(currentViewingStudent)" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-file-pdf mr-2"></i>Exam Card</button>
+        <button type="button" onclick="generateStudentFeesPDF(currentViewingStudent)" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"><i class="fas fa-file-pdf mr-2"></i>Fees Statement</button>
+        <button type="button" onclick="closeModal('viewStudentModal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    // Firebase Configuration
+    // Use the provided __firebase_config if available, otherwise use a fallback
+    const firebaseConfig = typeof __firebase_config !== 'undefined'
+      ? JSON.parse(__firebase_config)
+      : {
+          apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+          authDomain: "universityweb-19e1e.firebaseapp.com",
+          projectId: "universityweb-19e1e",
+          storageBucket: "universityweb-19e1e.firebasestorage.app",
+          messagingSenderId: "401942926589",
+          appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+        };
+
+    // The appId is used for structuring Firestore collections under /artifacts/{appId}/
+    const appId = firebaseConfig.projectId;
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    let currentAdminId = null;
+    let currentAdminData = null;
+    let studentsData = []; // To cache student data for search/filter
+    let currentViewingStudent = null; // To hold the student data when viewing details
+
+    // --- Custom Modal Functions (replaces alert/confirm) ---
+    let resolveModalPromise;
+    function showCustomModal(title, message, isConfirm = false) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('customModal');
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalMessage').innerText = message;
+        
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+
+        confirmBtn.onclick = () => {
+          modal.style.display = 'none';
+          resolve(true);
+        };
+        cancelBtn.onclick = () => {
+          modal.style.display = 'none';
+          resolve(false);
+        };
+
+        cancelBtn.style.display = isConfirm ? 'inline-block' : 'none';
+        modal.style.display = 'flex'; // Use flex to center
+      });
+    }
+
+    window.alert = (message) => showCustomModal('Alert', message); // Override alert
+    window.confirm = (message) => showCustomModal('Confirm', message, true); // Override confirm
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
+    }
+    window.closeModal = closeModal;
+    // --- End Custom Modal Functions ---
+
+    // --- Authentication and Admin Check ---
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        console.log("User detected by onAuthStateChanged:", user.email);
+        // Ensure user.email exists before calling toLowerCase
+        if (!user.email) {
+          console.warn("User object has no email. Logging out as cannot verify admin privileges.");
+          await auth.signOut();
+          await alert("Access Denied: Your account does not have a verifiable email for admin access.");
+          window.location.replace(window.location.origin + "/admin-login.html");
+          return;
+        }
+        
+        const adminDocRef = doc(db, `artifacts/${appId}/public/data/admins`, user.email.toLowerCase());
+        try {
+          const adminDocSnap = await getDoc(adminDocRef);
+          if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
+            currentAdminId = user.uid;
+            currentAdminData = adminDocSnap.data();
+            document.getElementById("adminUserName").innerText = currentAdminData.name || user.email;
+            console.log("Admin privileges confirmed. Loading dashboard.");
+            await populateInitialPublicData(); // Ensure public data exists for admin to manage
+            showSection('dashboard'); // Load dashboard once authenticated and authorized
+          } else {
+            console.warn("User is not an authorized admin. Logging out and redirecting.");
+            await auth.signOut();
+            await alert("Access Denied: You do not have administrator privileges.");
+            window.location.replace(window.location.origin + "/admin-login.html");
+          }
+        } catch (error) {
+          console.error("Error checking admin privileges:", error);
+          await alert("An error occurred during admin check. Please try again.");
+          await auth.signOut();
+          window.location.replace(window.location.origin + "/admin-login.html");
+        }
       } else {
-        document.getElementById("adminContent").style.display = "none";
-        document.getElementById("adminLoginBox").style.display = "block";
+        console.log("No user signed in. Redirecting to admin login page.");
+        window.location.replace(window.location.origin + "/admin-login.html");
       }
     });
 
-    function adminLogin() {
-      const email = document.getElementById("adminEmail").value.trim().toLowerCase();
-      const pass = document.getElementById("adminPass").value.trim();
-      if (adminAccounts.some(admin => admin.email === email && admin.password === pass)) {
-        localStorage.setItem("loggedInEmail", email);
-        localStorage.setItem("adminLoggedIn", "true");
-        alert("✅ Admin login successful!");
-        location.reload();
+    // --- Logout Function ---
+    async function confirmLogout() {
+      const response = await confirm("Are you sure you want to log out?");
+      if (response) {
+        try {
+          await signOut(auth);
+          // Redirection is handled by onAuthStateChanged listener
+        } catch (error) {
+          console.error("Error signing out:", error);
+          await alert("Error logging out. Please try again.");
+        }
+      }
+    }
+    window.confirmLogout = confirmLogout; // Expose to global scope
+
+    // --- Sidebar Toggle for Mobile ---
+    document.getElementById('menuToggle').addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('active');
+      const overlay = document.createElement('div');
+      overlay.id = 'sidebar-overlay';
+      overlay.className = 'fixed inset-0 bg-black opacity-50 z-998 lg:hidden';
+      overlay.onclick = () => {
+        sidebar.classList.remove('active');
+        overlay.remove();
+      };
+      if (sidebar.classList.contains('active')) {
+        document.body.appendChild(overlay);
       } else {
-        alert("❌ Incorrect admin credentials");
+        document.getElementById('sidebar-overlay')?.remove();
       }
-    }
+    });
 
-    function adminLogout() {
-      localStorage.removeItem("adminLoggedIn");
-      localStorage.removeItem("loggedInEmail");
-      location.reload();
-    }
-
-    function addNewUser() {
-      const name = document.getElementById("newUserName").value.trim();
-      const email = document.getElementById("newUserEmail").value.trim().toLowerCase();
-      const password = document.getElementById("newUserPassword").value.trim();
-      if (!name || !email || !password) return alert("Please fill all fields");
-
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      if (users.some(user => user.email === email)) return alert("User already exists");
-
-      users.push({ fullname: name, email, password });
-      localStorage.setItem("users", JSON.stringify(users));
-      alert("✅ New user added!");
-      document.getElementById("newUserName").value = "";
-      document.getElementById("newUserEmail").value = "";
-      document.getElementById("newUserPassword").value = "";
-      loadUsers();
-    }
-
-    function loadUsers() {
-      const tbody = document.getElementById("userTable");
-      tbody.innerHTML = "";
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      users.forEach((user, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td><input class="editable" value="${user.fullname}" onchange="updateUser(${index}, 'fullname', this.value)"></td>
-          <td><input class="editable" value="${user.email}" onchange="updateUser(${index}, 'email', this.value)"></td>
-          <td><input class="editable" value="${user.password}" onchange="updateUser(${index}, 'password', this.value)"></td>
-          <td><button class="danger" onclick="deleteUser(${index})">Delete</button></td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    function updateUser(index, key, value) {
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      if (key === "email" && users.some((u, i) => i !== index && u.email === value)) {
-        alert("❌ Email already exists.");
+    // --- Section Display Logic ---
+    async function showSection(sectionName) {
+      if (!currentAdminId) {
+        console.log("Admin not authenticated. Cannot show section.");
+        window.location.replace(window.location.origin + "/admin-login.html");
         return;
       }
-      users[index][key] = value;
-      localStorage.setItem("users", JSON.stringify(users));
-    }
 
-    function deleteUser(index) {
-      if (!confirm("Delete this user?")) return;
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      users.splice(index, 1);
-      localStorage.setItem("users", JSON.stringify(users));
-      loadUsers();
-    }
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = `<div class="flex justify-center items-center h-96 text-gray-500 text-xl">
+                                <i class="fas fa-spinner fa-spin mr-3"></i> Loading ${sectionName} data...
+                              </div>`; // Loading indicator
 
-    function filterUsers() {
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      const rows = document.querySelectorAll("#userTable tr");
-      rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(search) ? "" : "none";
-      });
-    }
+      // Close sidebar on mobile when a section is selected
+      const sidebar = document.getElementById('sidebar');
+      if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        document.getElementById('sidebar-overlay')?.remove();
+      }
 
-    function addNewAdmin() {
-      const email = document.getElementById("newAdminEmail").value.trim().toLowerCase();
-      const password = document.getElementById("newAdminPassword").value.trim();
-      if (!email || !password) return alert("Enter admin email and password");
-      if (adminAccounts.some(admin => admin.email === email)) return alert("Admin already exists");
-      adminAccounts.push({ email, password });
-      localStorage.setItem("adminAccounts", JSON.stringify(adminAccounts));
-      alert("✅ Admin added!");
-      document.getElementById("newAdminEmail").value = "";
-      document.getElementById("newAdminPassword").value = "";
-      showAdminList();
+      switch (sectionName) {
+        case 'dashboard':
+          await loadDashboardOverview(contentDiv);
+          break;
+        case 'students':
+          await loadStudentManagement(contentDiv);
+          break;
+        case 'courses':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Course Management</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Course management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'registrations':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Registration Management</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Registration management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'fees':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Fees Management</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Fees management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'grades':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Grades & Transcripts</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Grades management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'hostels':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Hostel Management</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Hostel management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'announcements':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Announcements</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Announcements management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'adminUsers':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Admin Users Management</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Admin users management section coming soon!</p>
+                                  </div>`;
+          break;
+        case 'settings':
+          contentDiv.innerHTML = `<h2 class="text-2xl font-bold text-green-800 mb-6">Settings</h2>
+                                  <div class="card p-6">
+                                    <p class="text-gray-700">Admin settings section coming soon!</p>
+                                  </div>`;
+          break;
+        default:
+          contentDiv.innerHTML = `<div class="card p-6 text-center">
+                                    <h2 class="text-2xl font-bold text-red-600 mb-4">Page Not Found</h2>
+                                    <p class="text-gray-700">The requested admin section does not exist.</p>
+                                  </div>`;
+      }
     }
+    window.showSection = showSection; // Expose to global scope
 
-    function showAdminList() {
-      const ul = document.getElementById("adminList");
-      ul.innerHTML = "";
-      adminAccounts.forEach((admin, index) => {
-        const li = document.createElement("li");
-        li.textContent = admin.email;
-        if (admin.email !== PERMANENT_ADMIN) {
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "Delete";
-          delBtn.className = "danger";
-          delBtn.style.marginLeft = "10px";
-          delBtn.onclick = () => {
-            if (confirm(`Delete admin ${admin.email}?`)) {
-              adminAccounts.splice(index, 1);
-              localStorage.setItem("adminAccounts", JSON.stringify(adminAccounts));
-              showAdminList();
+
+    // --- Dashboard Overview Data Loading ---
+    async function loadDashboardOverview(contentDiv) {
+        let totalStudents = 0;
+        let totalCourses = 0;
+        let pendingGraduationRequests = 0;
+        let outstandingFeesTotal = 0;
+        let totalHostelBookings = 0;
+
+        try {
+            // Get total students from the public students collection
+            const studentsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/students`));
+            totalStudents = studentsSnapshot.size;
+
+            // Get total courses
+            const coursesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/courses`));
+            totalCourses = coursesSnapshot.size;
+
+            // Get pending graduation requests by querying all public student profiles
+            const allStudentProfilesSnap = await getDocs(collection(db, `artifacts/${appId}/public/data/students`));
+            for (const studentDoc of allStudentProfilesSnap.docs) {
+                const studentUid = studentDoc.id; // The public student doc ID is the UID
+                const gradReqDocRef = doc(db, `artifacts/${appId}/users/${studentUid}/graduationRequest`, 'currentRequest');
+                const gradReqSnap = await getDoc(gradReqDocRef);
+                if (gradReqSnap.exists() && gradReqSnap.data().status !== 'approved' && gradReqSnap.data().status !== 'rejected') {
+                    pendingGraduationRequests++;
+                }
             }
-          };
-          li.appendChild(delBtn);
-        } else {
-          li.innerHTML += " <strong>(Permanent)</strong>";
+
+            // Get outstanding fees total for all students
+            let totalOutstanding = 0;
+            for (const studentDoc of allStudentProfilesSnap.docs) {
+                const studentUid = studentDoc.id;
+                const feesSnapshot = await getDocs(collection(db, `artifacts/${appId}/users/${studentUid}/fees`));
+                feesSnapshot.docs.forEach(feeDoc => {
+                    const feeData = feeDoc.data();
+                    totalOutstanding += (feeData.debit || 0) - (feeData.credit || 0);
+                });
+            }
+            outstandingFeesTotal = totalOutstanding;
+
+            // Get total hostel bookings for all students
+            let totalBookings = 0;
+            for (const studentDoc of allStudentProfilesSnap.docs) {
+                const studentUid = studentDoc.id;
+                const hostelBookingDocRef = doc(db, `artifacts/${appId}/users/${studentUid}/hostelBookings`, 'currentBooking');
+                const hostelBookingSnap = await getDoc(hostelBookingDocRef);
+                if (hostelBookingSnap.exists() && hostelBookingSnap.data().status === 'booked') {
+                    totalBookings++;
+                }
+            }
+            totalHostelBookings = totalBookings;
+
+        } catch (error) {
+            console.error("Error fetching dashboard overview data:", error);
+            await alert("Failed to load dashboard data. Please check console for details.");
         }
-        ul.appendChild(li);
-      });
+
+        contentDiv.innerHTML = `
+          <h2 class="text-2xl font-bold text-green-800 mb-6">Dashboard Overview</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="card p-6 stat-card flex flex-col items-center justify-center">
+              <i class="fas fa-users text-5xl mb-3"></i>
+              <p class="text-4xl font-bold">${totalStudents}</p>
+              <p class="text-lg">Total Students</p>
+            </div>
+            <div class="card p-6 stat-card flex flex-col items-center justify-center">
+              <i class="fas fa-book-open text-5xl mb-3"></i>
+              <p class="text-4xl font-bold">${totalCourses}</p>
+              <p class="text-lg">Courses Offered</p>
+            </div>
+            <div class="card p-6 stat-card flex flex-col items-center justify-center">
+              <i class="fas fa-hourglass-half text-5xl mb-3"></i>
+              <p class="text-4xl font-bold">${pendingGraduationRequests}</p>
+              <p class="text-lg">Pending Grad. Requests</p>
+            </div>
+            <div class="card p-6 stat-card flex flex-col items-center justify-center">
+              <i class="fas fa-money-bill-alt text-5xl mb-3"></i>
+              <p class="text-4xl font-bold">KES ${outstandingFeesTotal.toFixed(2)}</p>
+              <p class="text-lg">Outstanding Fees Total</p>
+            </div>
+            <div class="card p-6 stat-card flex flex-col items-center justify-center">
+              <i class="fas fa-hotel text-5xl mb-3"></i>
+              <p class="text-4xl font-bold">${totalHostelBookings}</p>
+              <p class="text-lg">Hostel Bookings</p>
+            </div>
+            <div class="card p-6 stat-card flex flex-col items-center justify-center">
+              <i class="fas fa-chalkboard-teacher text-5xl mb-3"></i>
+              <p class="text-4xl font-bold">3</p> <!-- Dummy data -->
+              <p class="text-lg">Total Lecturers</p>
+            </div>
+          </div>
+          <div class="mt-8 card p-6">
+              <h3 class="text-xl font-bold text-green-800 mb-4">Quick Actions</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <button onclick="showAddStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
+                      <i class="fas fa-user-plus"></i> Add New Student
+                  </button>
+                  <button onclick="showSection('courses')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
+                      <i class="fas fa-folder-plus"></i> Add New Course
+                  </button>
+                  <button onclick="showSection('announcements')" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-200 flex items-center justify-center gap-2">
+                      <i class="fas fa-bullhorn"></i> Post Announcement
+                  </button>
+              </div>
+          </div>
+        `;
     }
 
-    function populateUserDashboardDropdown() {
-      const select = document.getElementById("userDataSelect");
-      select.innerHTML = '<option value="">-- Select User Email --</option>';
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("user_data_")) {
-          const email = key.replace("user_data_", "");
-          const option = document.createElement("option");
-          option.value = email;
-          option.textContent = email;
-          select.appendChild(option);
-        }
-      });
+    // --- Student Management Functions ---
+    async function loadStudentManagement(contentDiv) {
+        contentDiv.innerHTML = `
+            <h2 class="text-2xl font-bold text-green-800 mb-6">Student Management</h2>
+            <div class="card p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <input type="text" id="studentSearchInput" onkeyup="filterStudents()" placeholder="Search by name, reg. no, email, programme..." class="flex-1 p-2 border border-gray-300 rounded-md">
+                    <button onclick="showAddStudentModal()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow">
+                        <i class="fas fa-user-plus mr-2"></i> Add New Student
+                    </button>
+                </div>
+                <div id="studentsTableContainer">
+                    <p class="text-gray-600 text-center">Loading students...</p>
+                </div>
+            </div>
+        `;
+        await fetchAndRenderStudents();
     }
 
-    function loadUserDashboardData() {
-      const email = document.getElementById("userDataSelect").value;
-      const raw = localStorage.getItem("user_data_" + email);
-      const table = document.getElementById("dashboardDataTable");
-      const tbody = document.getElementById("dashboardDataBody");
+    async function fetchAndRenderStudents() {
+        const studentsCollectionRef = collection(db, `artifacts/${appId}/public/data/students`);
+        try {
+            const querySnapshot = await getDocs(studentsCollectionRef);
+            studentsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderStudentsTable(studentsData);
+        } catch (error) {
+            console.error("Error fetching students:", error);
+            await alert("Failed to load students data.");
+        }
+    }
 
-      table.style.display = "none";
-      tbody.innerHTML = "";
-      currentDashboardData = {};
+    function renderStudentsTable(studentsToRender) {
+        const tableContainer = document.getElementById('studentsTableContainer');
+        if (studentsToRender.length === 0) {
+            tableContainer.innerHTML = `<p class="text-center text-gray-500">No students found.</p>`;
+            return;
+        }
 
-      if (!raw) {
-        alert("❌ No dashboard data found for user.");
+        let tableHtml = `
+            <table class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Reg. No</th>
+                        <th>Email</th>
+                        <th>Programme</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        studentsToRender.forEach(student => {
+            tableHtml += `
+                <tr id="student-row-${student.id}">
+                    <td>${student.name || 'N/A'}</td>
+                    <td>${student.regNo || 'N/A'}</td>
+                    <td>${student.email || 'N/A'}</td>
+                    <td>${student.programme || 'N/A'}</td>
+                    <td class="flex flex-wrap gap-2">
+                        <button onclick="viewStudentDetails('${student.id}')" class="action-btn action-btn-view"><i class="fas fa-eye"></i> View</button>
+                        <button onclick="showEditStudentModal('${student.id}')" class="action-btn action-btn-edit"><i class="fas fa-edit"></i> Edit</button>
+                        <button onclick="deleteStudent('${student.id}')" class="action-btn action-btn-delete"><i class="fas fa-trash"></i> Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+        tableHtml += `</tbody></table>`;
+        tableContainer.innerHTML = tableHtml;
+    }
+
+    function filterStudents() {
+        const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+        const filtered = studentsData.filter(student =>
+            (student.name && student.name.toLowerCase().includes(searchTerm)) ||
+            (student.regNo && student.regNo.toLowerCase().includes(searchTerm)) ||
+            (student.email && student.email.toLowerCase().includes(searchTerm)) ||
+            (student.programme && student.programme.toLowerCase().includes(searchTerm))
+        );
+        renderStudentsTable(filtered);
+    }
+    window.filterStudents = filterStudents; // Expose to global scope
+
+    function clearStudentForm() {
+        document.getElementById('studentId').value = '';
+        document.getElementById('studentName').value = '';
+        document.getElementById('studentEmail').value = '';
+        document.getElementById('studentPassword').value = ''; // Clear password field
+        document.getElementById('studentRegNo').value = '';
+        document.getElementById('studentProgramme').value = '';
+        document.getElementById('studentCampus').value = '';
+        document.getElementById('studentDob').value = '';
+        document.getElementById('studentGender').value = '';
+        document.getElementById('studentAddress').value = '';
+        document.getElementById('studentProfilePhoto').value = ''; // Clear file input
+        document.getElementById('studentProfilePhotoPreview').src = 'https://placehold.co/100x100/eeeeee/333333?text=No+Photo';
+        document.getElementById('studentPassword').required = false; // Make password not required for edit
+    }
+
+    function showAddStudentModal() {
+        clearStudentForm();
+        document.getElementById('studentModalTitle').innerText = 'Add New Student';
+        document.getElementById('studentPassword').required = true; // Password is required for new user
+        document.getElementById('studentModal').style.display = 'flex';
+    }
+    window.showAddStudentModal = showAddStudentModal;
+
+    async function showEditStudentModal(studentId) {
+        clearStudentForm();
+        const student = studentsData.find(s => s.id === studentId);
+        if (!student) {
+            await alert("Student not found.");
+            return;
+        }
+
+        document.getElementById('studentModalTitle').innerText = 'Edit Student';
+        document.getElementById('studentId').value = student.id;
+        document.getElementById('studentName').value = student.name || '';
+        document.getElementById('studentEmail').value = student.email || '';
+        // Password field is intentionally left blank for security reasons in edit mode
+        document.getElementById('studentPassword').required = false; 
+        document.getElementById('studentRegNo').value = student.regNo || '';
+        document.getElementById('studentProgramme').value = student.programme || '';
+        document.getElementById('studentCampus').value = student.campus || '';
+        document.getElementById('studentDob').value = student.dob || '';
+        document.getElementById('studentGender').value = student.gender || '';
+        document.getElementById('studentAddress').value = student.address || '';
+        document.getElementById('studentProfilePhotoPreview').src = student.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=No+Photo';
+
+        document.getElementById('studentModal').style.display = 'flex';
+    }
+    window.showEditStudentModal = showEditStudentModal;
+
+    document.getElementById('studentForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const studentId = document.getElementById('studentId').value;
+        const name = document.getElementById('studentName').value.trim();
+        const email = document.getElementById('studentEmail').value.trim();
+        const password = document.getElementById('studentPassword').value.trim();
+        const regNo = document.getElementById('studentRegNo').value.trim();
+        const programme = document.getElementById('studentProgramme').value.trim();
+        const campus = document.getElementById('studentCampus').value.trim();
+        const dob = document.getElementById('studentDob').value;
+        const gender = document.getElementById('studentGender').value;
+        const address = document.getElementById('studentAddress').value.trim();
+        const profilePhotoFile = document.getElementById('studentProfilePhoto').files[0];
+
+        if (!name || !email || !regNo || !programme || !campus || !dob || !gender || !address) {
+            await alert("Please fill in all required fields.");
+            return;
+        }
+
+        try {
+            let userAuthId = studentId; // Will be the UID if editing, or new UID if adding
+
+            if (studentId) { // Editing existing student
+                // Update basic student data in public profile
+                const studentDocRef = doc(db, `artifacts/${appId}/public/data/students`, studentId);
+                await updateDoc(studentDocRef, {
+                    name, email, regNo, programme, campus, dob, gender, address
+                });
+
+                // Update email in Firebase Auth (if changed)
+                const user = auth.currentUser; // Assuming admin is the logged-in user in Firebase Auth
+                if (user && user.email !== email) {
+                    // This is complex: updating another user's email requires Admin SDK on backend
+                    // For client-side, we can only update the *current* user's email.
+                    // For demo, we'll skip Firebase Auth email update here and alert.
+                    await alert("Cannot update user email directly from client-side for another user. This would require a backend function.");
+                }
+
+                // Update password in Firebase Auth (if provided)
+                if (password) {
+                    // Sending password reset email is safer for another user than direct update
+                    await sendPasswordResetEmail(auth, email);
+                    await alert("Password reset email sent to student's email. They can reset it.");
+                }
+
+                // Upload new profile photo if selected
+                if (profilePhotoFile) {
+                    const storageRef = ref(storage, `uploads/profile_pictures/${studentId}/${profilePhotoFile.name}`);
+                    const uploadTask = await uploadBytes(storageRef, profilePhotoFile);
+                    const downloadURL = await getDownloadURL(uploadTask.ref);
+                    await updateDoc(studentDocRef, { profilePhotoURL: downloadURL });
+                }
+
+                await alert("✅ Student updated successfully!");
+
+            } else { // Adding new student
+                // 1. Create user in Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                userAuthId = userCredential.user.uid;
+
+                // 2. Create student profile in public data
+                const studentDocRef = doc(db, `artifacts/${appId}/public/data/students`, userAuthId);
+                await setDoc(studentDocRef, {
+                    id: userAuthId, // Store UID as ID in public profile
+                    name, email, regNo, programme, campus, dob, gender, address,
+                    profilePhotoURL: ''
+                });
+
+                // 3. (Optional) Initialize private student data linked by UID
+                const privateStudentDocRef = doc(db, `artifacts/${appId}/users/${userAuthId}/students`, userAuthId);
+                await setDoc(privateStudentDocRef, {
+                    name, email, regNo, programme, campus, dob, gender, address,
+                    profilePhotoURL: '',
+                    initialized: true // Mark as initialized
+                });
+
+                // Upload profile photo for new student
+                if (profilePhotoFile) {
+                    const storageRef = ref(storage, `uploads/profile_pictures/${userAuthId}/${profilePhotoFile.name}`);
+                    const uploadTask = await uploadBytes(storageRef, profilePhotoFile);
+                    const downloadURL = await getDownloadURL(uploadTask.ref);
+                    await updateDoc(studentDocRef, { profilePhotoURL: downloadURL });
+                    await updateDoc(privateStudentDocRef, { profilePhotoURL: downloadURL }); // Also update private profile
+                }
+
+                await alert("✅ New student added successfully!");
+            }
+            closeModal('studentModal');
+            await fetchAndRenderStudents(); // Refresh student list
+        } catch (error) {
+            console.error("Error saving student:", error);
+            let errorMessage = "❌ Failed to save student. " + error.message;
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = "❌ Email already registered. Please use a different email.";
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = "❌ Password is too weak. Please choose a stronger password (min 6 characters).";
+            }
+            await alert(errorMessage);
+        }
+    };
+
+    async function deleteStudent(studentId) {
+        const student = studentsData.find(s => s.id === studentId);
+        if (!student) return;
+
+        const confirmDelete = await confirm(`Are you sure you want to delete student ${student.name} (${student.regNo})?\n\nThis will also attempt to delete associated data (fees, grades, etc.) and cannot be undone.`);
+        if (!confirmDelete) return;
+
+        try {
+            // Delete public student profile
+            await deleteDoc(doc(db, `artifacts/${appId}/public/data/students`, studentId));
+
+            // Attempt to delete associated subcollections for the user UID
+            // NOTE: Firestore client-side SDK does NOT support recursive deletion of subcollections.
+            // This is a placeholder. For production, use Firebase Admin SDK (Cloud Function)
+            // to delete user data recursively for scalability and security.
+            console.warn(`Simulating deletion of subcollections for student ${studentId}.
+                         For a real application, implement a Firebase Cloud Function for recursive deletion.`);
+
+            // Delete specific documents in subcollections if they exist (non-recursive)
+            await deleteDoc(doc(db, `artifacts/${appId}/users/${studentId}/graduationRequest`, 'currentRequest')).catch(e => console.log("No grad request to delete.", e));
+            await deleteDoc(doc(db, `artifacts/${appId}/users/${studentId}/clearance`, studentId)).catch(e => console.log("No clearance to delete.", e));
+            await deleteDoc(doc(db, `artifacts/${appId}/users/${studentId}/hostelBookings`, 'currentBooking')).catch(e => console.log("No hostel booking to delete.", e));
+            await deleteDoc(doc(db, `artifacts/${appId}/users/${studentId}/students`, studentId)).catch(e => console.log("No private student doc to delete.", e));
+
+            // Delete documents within known subcollections (e.g., registrations, fees, grades)
+            const subCollectionsToDelete = ['registrations', 'fees', 'grades'];
+            for (const subCol of subCollectionsToDelete) {
+                const subColDocs = await getDocs(collection(db, `artifacts/${appId}/users/${studentId}/${subCol}`));
+                for (const docToDelete of subColDocs.docs) {
+                    await deleteDoc(doc(db, `artifacts/${appId}/users/${studentId}/${subCol}`, docToDelete.id));
+                }
+            }
+
+            // Delete profile picture from Storage
+            if (student.profilePhotoURL) {
+                try {
+                    const photoRef = ref(storage, student.profilePhotoURL);
+                    await deleteObject(photoRef);
+                } catch (e) {
+                    console.warn("Could not delete profile photo from storage (might not exist or permissions issue):", e);
+                }
+            }
+
+            // Delete Firebase Authentication user
+            // This also requires Admin SDK on backend. Client-side users can only delete their *own* account.
+            // For demo purposes, we will alert that this requires backend.
+            await alert(`Student ${student.name} deleted from database.
+                         ❗ Manual action required: Delete Firebase Auth user for ${student.email} via Firebase Console,
+                         as client-side code cannot delete other users.`);
+
+
+            await alert("✅ Student and associated data deleted (some manual steps might be needed for full cleanup).");
+            await fetchAndRenderStudents(); // Refresh list
+        } catch (error) {
+            console.error("Error deleting student:", error);
+            await alert("❌ Failed to delete student. Please check console for details.");
+        }
+    }
+    window.deleteStudent = deleteStudent;
+
+    async function viewStudentDetails(studentId) {
+        currentViewingStudent = studentsData.find(s => s.id === studentId);
+        if (!currentViewingStudent) {
+            await alert("Student not found.");
+            return;
+        }
+
+        document.getElementById('viewStudentName').innerText = currentViewingStudent.name || 'N/A';
+        document.getElementById('viewStudentPhoto').src = currentViewingStudent.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=No+Photo';
+        document.getElementById('viewStudentRegNo').innerText = currentViewingStudent.regNo || 'N/A';
+        document.getElementById('viewStudentEmail').innerText = currentViewingStudent.email || 'N/A';
+        document.getElementById('viewStudentProgramme').innerText = currentViewingStudent.programme || 'N/A';
+        document.getElementById('viewStudentCampus').innerText = currentViewingStudent.campus || 'N/A';
+        document.getElementById('viewStudentDob').innerText = currentViewingStudent.dob || 'N/A';
+        document.getElementById('viewStudentGender').innerText = currentViewingStudent.gender || 'N/A';
+        document.getElementById('viewStudentAddress').innerText = currentViewingStudent.address || 'N/A';
+
+        // Load courses
+        const coursesDiv = document.getElementById('viewStudentCourses');
+        coursesDiv.innerHTML = `<p class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading courses...</p>`;
+        try {
+            const registrationsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${studentId}/registrations`));
+            let coursesHtml = '';
+            if (!registrationsSnap.empty) {
+                registrationsSnap.docs.forEach(regDoc => {
+                    const regData = regDoc.data();
+                    if (regData.units && regData.units.length > 0) {
+                        coursesHtml += `<h5 class="font-semibold text-green-600">${regDoc.id}</h5><ul>`; // Semester name
+                        regData.units.forEach(unit => {
+                            coursesHtml += `<li>${unit.code} - ${unit.name}</li>`;
+                        });
+                        coursesHtml += `</ul>`;
+                    }
+                });
+                if (!coursesHtml) coursesHtml = '<p class="text-red-500">No courses registered.</p>';
+            } else {
+                coursesHtml = '<p class="text-red-500">No courses registered.</p>';
+            }
+            coursesDiv.innerHTML = coursesHtml;
+        } catch (error) {
+            console.error("Error loading student courses:", error);
+            coursesDiv.innerHTML = '<p class="text-red-500">Error loading courses.</p>';
+        }
+
+        // Load fees
+        const feesDiv = document.getElementById('viewStudentFees');
+        feesDiv.innerHTML = `<p class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading fees...</p>`;
+        try {
+            const feesSnap = await getDocs(collection(db, `artifacts/${appId}/users/${studentId}/fees`));
+            let feesHtml = `<table class="data-table"><thead><tr><th>Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody>`;
+            let runningBalance = 0;
+            if (!feesSnap.empty) {
+                const sortedFees = feesSnap.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
+                sortedFees.forEach(item => {
+                    runningBalance += (item.debit || 0) - (item.credit || 0);
+                    feesHtml += `<tr><td>${item.date}</td><td>${item.description}</td><td>${(item.debit || 0).toFixed(2)}</td><td>${(item.credit || 0).toFixed(2)}</td><td>${runningBalance.toFixed(2)}</td></tr>`;
+                });
+            } else {
+                feesHtml += `<tr><td colspan="5" class="text-center text-red-500">No fee records.</td></tr>`;
+            }
+            feesHtml += `</tbody></table><p class="mt-2 font-bold">Current Balance: KES ${runningBalance.toFixed(2)}</p>`;
+            feesDiv.innerHTML = feesHtml;
+        } catch (error) {
+            console.error("Error loading student fees:", error);
+            feesDiv.innerHTML = '<p class="text-red-500">Error loading fees.</p>';
+        }
+
+        // Load grades
+        const gradesDiv = document.getElementById('viewStudentGrades');
+        gradesDiv.innerHTML = `<p class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading grades...</p>`;
+        try {
+            const gradesSnap = await getDocs(collection(db, `artifacts/${appId}/users/${studentId}/grades`));
+            let gradesHtml = `<table class="data-table"><thead><tr><th>Unit Code</th><th>Unit Name</th><th>CAT</th><th>Exam</th><th>Grade</th></tr></thead><tbody>`;
+            if (!gradesSnap.empty) {
+                gradesSnap.docs.forEach(gradeDoc => {
+                    const gradeData = gradeDoc.data();
+                    gradesHtml += `<tr><td>${gradeData.unitCode}</td><td>${gradeData.unitName}</td><td>${gradeData.catScore}</td><td>${gradeData.examScore}</td><td>${gradeData.grade}</td></tr>`;
+                });
+            } else {
+                gradesHtml += `<tr><td colspan="5" class="text-center text-red-500">No grades recorded.</td></tr>`;
+            }
+            gradesHtml += `</tbody></table>`;
+            gradesDiv.innerHTML = gradesHtml;
+        } catch (error) {
+            console.error("Error loading student grades:", error);
+            gradesDiv.innerHTML = '<p class="text-red-500">Error loading grades.</p>';
+        }
+
+        // Load hostel booking
+        const hostelDiv = document.getElementById('viewStudentHostel');
+        hostelDiv.innerHTML = `<p class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading hostel info...</p>`;
+        try {
+            const hostelBookingDocRef = doc(db, `artifacts/${appId}/users/${studentId}/hostelBookings`, 'currentBooking');
+            const hostelBookingSnap = await getDoc(hostelBookingDocRef);
+            if (hostelBookingSnap.exists()) {
+                const bookingData = hostelBookingSnap.data();
+                const hostelDocRef = doc(db, `artifacts/${appId}/public/data/hostels`, bookingData.hostelId);
+                const hostelSnap = await getDoc(hostelDocRef);
+                const hostelName = hostelSnap.exists() ? hostelSnap.data().name : 'Unknown Hostel';
+                hostelDiv.innerHTML = `<p><strong>Booked Hostel:</strong> ${hostelName}</p>
+                                        <p><strong>Booking Date:</strong> ${new Date(bookingData.bookingDate).toLocaleDateString()}</p>
+                                        <p><strong>Status:</strong> ${bookingData.status || 'N/A'}</p>`;
+            } else {
+                hostelDiv.innerHTML = '<p class="text-red-500">No hostel booking found.</p>';
+            }
+        } catch (error) {
+            console.error("Error loading student hostel booking:", error);
+            hostelDiv.innerHTML = '<p class="text-red-500">Error loading hostel info.</p>';
+        }
+
+        document.getElementById('viewStudentModal').style.display = 'flex';
+    }
+    window.viewStudentDetails = viewStudentDetails;
+
+
+    // --- PDF Generation Functions (for Admin) ---
+    let schoolLogoBase64 = null; // To store base64 representation of the logo
+
+    async function getSchoolLogoBase64() {
+        if (schoolLogoBase64) return schoolLogoBase64;
+        try {
+            const logoRef = ref(storage, 'assets/myschoollogo.png'); // Assuming logo is in 'assets'
+            const url = await getDownloadURL(logoRef);
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    schoolLogoBase64 = reader.result;
+                    resolve(schoolLogoBase64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn("Could not fetch school logo from Storage. Using fallback or no logo.", error);
+            return null; 
+        }
+    }
+
+    async function addPdfHeaderFooter(doc, title, student, includeWatermark = false) {
+      const logo = await getSchoolLogoBase64();
+      if (logo) {
+          doc.addImage(logo, "PNG", 15, 10, 30, 30);
+      } else {
+          doc.setFontSize(10);
+          doc.text("Prince Alex Design University", 15, 25);
+      }
+      
+      doc.setFont('times', 'bold');
+      doc.setFontSize(18);
+      doc.text("Prince Alex Design University", 105, 25, { align: 'center' }); // University Name
+      doc.setFontSize(16);
+      doc.text(title, 105, 35, { align: 'center' }); // Page Title
+
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Name: ${student.name || 'N/A'}`, 15, 50);
+      doc.text(`Reg No: ${student.regNo || 'N/A'}`, 15, 56);
+      doc.text(`Email: ${student.email || 'N/A'}`, 15, 62);
+      doc.text(`Programme: ${student.programme || 'N/A'}`, 105, 50);
+
+      // Watermark (simulated) - Requires a semi-transparent image of the crest
+      if (includeWatermark) {
+          // Replace with actual base64 image of your crest if available
+          // doc.addImage('YOUR_CREST_BASE64_IMAGE', 'PNG', 50, 100, 100, 100, undefined, 'FAST', 0.1);
+      }
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for(let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(10);
+          doc.text(`Page ${i} of ${pageCount}`, 10, doc.internal.pageSize.height - 10);
+          doc.text(`Generated by Admin Portal on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, doc.internal.pageSize.width - 70, doc.internal.pageSize.height - 10);
+      }
+    }
+
+    window.generateStudentFeesPDF = async function(studentData) {
+      const studentId = studentData.id;
+      const feesCollectionRef = collection(db, `artifacts/${appId}/users/${studentId}/fees`);
+      const feesSnapshot = await getDocs(feesCollectionRef);
+      const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+      if (feesData.length === 0) {
+        await alert("No fees records found for this student.");
         return;
       }
 
-      try {
-        const data = JSON.parse(raw);
-        if (typeof data !== "object" || Array.isArray(data)) throw new Error("Data is not a valid object");
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
 
-        currentDashboardData = data;
+      let runningBalance = 0;
+      const tableData = feesData.map(t => {
+        runningBalance += (t.debit || 0) - (t.credit || 0);
+        return [
+          t.date,
+          t.ref,
+          t.description,
+          (t.debit || 0).toFixed(2),
+          (t.credit || 0).toFixed(2),
+          runningBalance.toFixed(2)
+        ];
+      });
 
-        Object.entries(currentDashboardData).forEach(([key, value]) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${key}</td>
-            <td><input type="text" value="${value}" 
-              oninput="updateDashboardValue('${key}', this.value)" 
-              style="width: 100%; padding: 5px;"></td>
-          `;
-          tbody.appendChild(row);
-        });
+      await addPdfHeaderFooter(doc, "Fees Statement (Admin Generated)", studentData);
 
-        table.style.display = "table";
-      } catch (e) {
-        alert("❌ Error loading dashboard data:\n" + e.message);
+      doc.autoTable({
+        head: [["Posting Date", "Ref #", "Description", "Debit (KES)", "Credit (KES)", "Running Balance (KES)"]],
+        body: tableData,
+        startY: 75,
+        styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
+      });
+
+      const finalY = doc.autoTable.previous.finalY;
+      const totalBilled = feesData.reduce((sum, item) => sum + (item.debit || 0), 0);
+      const totalPaid = feesData.reduce((sum, item) => sum + (item.credit || 0), 0);
+      const currentBalance = totalBilled - totalPaid;
+
+      doc.setFont('times', 'bold');
+      doc.setFontSize(12);
+      doc.text(`Current Balance: KES ${currentBalance.toFixed(2)}`, 15, finalY + 10);
+
+      doc.save(`${studentData.regNo || 'student'}_Fees_Statement.pdf`);
+      await alert("Fees Statement PDF downloaded!");
+    };
+
+    window.generateStudentExamCardPDF = async function(studentData) {
+      const studentId = studentData.id;
+      const registeredUnitsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${studentId}/registrations`));
+      let allRegisteredUnits = [];
+      registeredUnitsSnap.forEach(doc => {
+          const data = doc.data();
+          if (data.units) {
+              allRegisteredUnits = allRegisteredUnits.concat(data.units);
+          }
+      });
+
+      if (allRegisteredUnits.length === 0) {
+        await alert("No registered units found for this student to generate Exam Card.");
+        return;
       }
-    }
 
-    function updateDashboardValue(key, newValue) {
-      const email = document.getElementById("userDataSelect").value;
-      if (!email) return;
-      currentDashboardData[key] = newValue;
-      localStorage.setItem("user_data_" + email, JSON.stringify(currentDashboardData));
-    }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
 
-    function deleteUserDashboardData() {
-      const email = document.getElementById("userDataSelect").value;
-      if (!email || !confirm("Are you sure you want to delete dashboard data for: " + email + "?")) return;
-      localStorage.removeItem("user_data_" + email);
-      alert("✅ User dashboard data deleted.");
-      document.getElementById("dashboardDataTable").style.display = "none";
-      populateUserDashboardDropdown();
+      await addPdfHeaderFooter(doc, "Exam Card (Admin Generated)", studentData);
+
+      const tableData = allRegisteredUnits.map((unit, i) => [
+        i + 1, unit.code, unit.name, "Room TBA", "Time TBA"
+      ]);
+
+      doc.autoTable({
+        head: [["#", "Unit Code", "Unit Name", "Room", "Time"]],
+        body: tableData,
+        startY: 75,
+        styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
+      });
+
+      const finalY = doc.autoTable.previous.finalY;
+      doc.setFontSize(10);
+      doc.text("_________________________", 15, finalY + 20);
+      doc.text("Registrar's Signature/Stamp", 15, finalY + 25);
+
+      doc.save(`${studentData.regNo || 'student'}_Exam_Card.pdf`);
+      await alert("Exam Card PDF downloaded!");
+    };
+
+    window.generateStudentTranscriptPDF = async function(studentData) {
+      const studentId = studentData.id;
+      const gradesCollectionRef = collection(db, `artifacts/${appId}/users/${studentId}/grades`);
+      const gradesSnapshot = await getDocs(gradesCollectionRef);
+      const gradesData = gradesSnapshot.docs.map(doc => doc.data());
+
+      if (gradesData.length === 0) {
+        await alert("No grades found for this student to generate Transcript.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      await addPdfHeaderFooter(doc, "Academic Transcript (Admin Generated)", studentData);
+
+      let totalPoints = 0;
+      let totalUnits = 0;
+      const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
+      const tableData = gradesData.map(item => {
+        const points = gradeMap[item.grade] || 0;
+        const units = 1;
+        totalPoints += points * units;
+        totalUnits += units;
+        return [item.unitCode, item.unitName, item.catScore, item.examScore, item.grade];
+      });
+      const calculatedGpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : 'N/A';
+
+      doc.autoTable({
+        head: [["Unit Code", "Unit Description", "CAT", "Exam", "Grade"]],
+        body: tableData,
+        startY: 75,
+        styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
+      });
+
+      const finalY = doc.autoTable.previous.finalY;
+      doc.setFont('times', 'bold');
+      doc.setFontSize(12);
+      doc.text(`Cumulative GPA: ${calculatedGpa}`, 15, finalY + 10);
+
+      doc.setFontSize(10);
+      doc.text("_________________________", 15, finalY + 40);
+      doc.text("Dean of Academics Signature", 15, finalY + 45);
+
+      doc.save(`${studentData.regNo || 'student'}_Academic_Transcript.pdf`);
+      await alert("Academic Transcript PDF downloaded!");
+    };
+
+
+    // --- Initial Data Population for Admin Demo ---
+    // This function ensures there's some public data for the admin to manage.
+    async function populateInitialPublicData() {
+        console.log("Checking and populating initial public data if necessary...");
+
+        // Ensure public 'admins' collection has at least one admin for testing
+        const adminEmail = currentAdminData.email; // Use the email of the currently logged-in admin
+        const adminDocRef = doc(db, `artifacts/${appId}/public/data/admins`, adminEmail.toLowerCase());
+        const adminSnap = await getDoc(adminDocRef);
+        if (!adminSnap.exists() || adminSnap.data().isAdmin !== true) {
+            console.log("Admin record missing or invalid, attempting to set current user as admin...");
+            await setDoc(adminDocRef, { isAdmin: true, name: currentAdminData.name || "Default Admin", email: adminEmail.toLowerCase() }, { merge: true });
+        }
+
+        // Add dummy public students data if not already present
+        const publicStudentsCol = collection(db, `artifacts/${appId}/public/data/students`);
+        const publicStudentsSnap = await getDocs(publicStudentsCol);
+        if (publicStudentsSnap.empty) {
+            console.log("Populating dummy public students data...");
+            // These UIDs would typically come from Firebase Auth user creation
+            const dummyStudent1Uid = 'dummy_student_uid_001';
+            const dummyStudent2Uid = 'dummy_student_uid_002';
+
+            await setDoc(doc(publicStudentsCol, dummyStudent1Uid), {
+                id: dummyStudent1Uid,
+                name: "Alice Smith",
+                regNo: "STD/2025/001",
+                email: "alice.s@example.com",
+                programme: "Bachelor of Science in Data Science",
+                campus: "Main Campus",
+                dob: "2003-05-15",
+                gender: "Female",
+                address: "101 University Lane",
+                profilePhotoURL: "https://placehold.co/100x100/A0DC96/2E8B57?text=AS"
+            });
+            await setDoc(doc(publicStudentsCol, dummyStudent2Uid), {
+                id: dummyStudent2Uid,
+                name: "Bob Johnson",
+                regNo: "STD/2025/002",
+                email: "bob.j@example.com",
+                programme: "Bachelor of Arts in Linguistics",
+                campus: "Satellite Campus",
+                dob: "2002-11-20",
+                gender: "Male",
+                address: "202 College Ave",
+                profilePhotoURL: "https://placehold.co/100x100/A0DC96/2E8B57?text=BJ"
+            });
+            
+            // Also ensure private data exists for these dummy students for full view
+            await setDoc(doc(db, `artifacts/${appId}/users/${dummyStudent1Uid}/students`, dummyStudent1Uid), {
+                name: "Alice Smith", email: "alice.s@example.com", regNo: "STD/2025/001", programme: "Bachelor of Science in Data Science", initialized: true
+            });
+            await setDoc(doc(db, `artifacts/${appId}/users/${dummyStudent2Uid}/students`, dummyStudent2Uid), {
+                name: "Bob Johnson", email: "bob.j@example.com", regNo: "STD/2025/002", programme: "Bachelor of Arts in Linguistics", initialized: true
+            });
+
+            // Populate some dummy sub-collection data for these dummy students
+            // Alice's Fees
+            const aliceFeesCol = collection(db, `artifacts/${appId}/users/${dummyStudent1Uid}/fees`);
+            await addDoc(aliceFeesCol, { date: "2025-01-10", ref: "AFI001", description: "Tuition Fee Semester 1", debit: 30000, credit: 0 });
+            await addDoc(aliceFeesCol, { date: "2025-01-20", ref: "APR001", description: "Payment for Tuition", debit: 0, credit: 15000 });
+            // Alice's Grades
+            const aliceGradesCol = collection(db, `artifacts/${appId}/users/${dummyStudent1Uid}/grades`);
+            await addDoc(aliceGradesCol, { unitCode: "DSA101", unitName: "Intro to Data Science", catScore: 18, examScore: 70, grade: "A" });
+            // Bob's Registrations
+            const bobRegCol = collection(db, `artifacts/${appId}/users/${dummyStudent2Uid}/registrations`);
+            await setDoc(doc(bobRegCol, "Semester 1"), { units: [{code: "LIN101", name: "Intro to Linguistics"}, {code: "PHL101", name: "Philosophy"}] });
+
+            console.log("Dummy public student data populated.");
+        }
+
+        // Add dummy courses if not already present in public data
+        const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
+        const coursesSnap = await getDocs(coursesCol);
+        if (coursesSnap.empty) {
+            console.log("Populating dummy courses...");
+            await addDoc(coursesCol, { code: "ENG101", name: "Introduction to Writing", semester: "Semester 1", lecturer: "Dr. Smith", schedule: { day: "Monday", time: "09:00-10:00" }, timetableURL: "http://example.com/eng101_timetable.pdf" });
+            await addDoc(coursesCol, { code: "MAT101", name: "Basic Mathematics", semester: "Semester 1", lecturer: "Prof. Johnson", schedule: { day: "Tuesday", time: "10:00-11:00" }, timetableURL: "http://example.com/mat101_timetable.pdf" });
+            await addDoc(coursesCol, { code: "CSC101", name: "Introduction to Computing", semester: "Semester 1", lecturer: "Ms. Davis", schedule: { day: "Wednesday", time: "08:00-09:00" }, timetableURL: "http://example.com/csc101_timetable.pdf" });
+        }
+
+        // Add dummy public hostels data if not already present
+        const publicHostelsCol = collection(db, `artifacts/${appId}/public/data/hostels`);
+        const publicHostelsSnap = await getDocs(publicHostelsCol);
+        if (publicHostelsSnap.empty) {
+            console.log("Populating dummy public hostels data...");
+            await addDoc(publicHostelsCol, { name: "Greenfields Hostel", price: 15000, availableRooms: 5 });
+            await addDoc(publicHostelsCol, { name: "Sunrise Hostel", price: 13500, availableRooms: 3 });
+        }
+
+        // Add dummy announcements if not already present
+        const announcementsCol = collection(db, `artifacts/${appId}/public/data/announcements`);
+        const announcementsSnap = await getDocs(announcementsCol);
+        if (announcementsSnap.empty) {
+            console.log("Populating dummy announcements...");
+            await addDoc(announcementsCol, { title: "Exam Schedule Update", message: "Final exam schedule has been released. Check academic section.", date: "2025-06-25", publishDate: new Date().toISOString() });
+            await addDoc(announcementsCol, { title: "Holiday Break", message: "University will be closed from July 1st to July 5th.", date: "2025-06-20", publishDate: new Date().toISOString() });
+        }
     }
   </script>
 </body>
