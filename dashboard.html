@@ -4,7 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard - Prince Alex Design University</title>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- jsPDF and jsPDF-AutoTable for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.autotable.min.js"></script>
   <style>
+    /* Global styles */
     * {
       margin: 0;
       padding: 0;
@@ -74,28 +80,16 @@
       transition: background 0.3s;
       cursor: pointer;
       border-radius: 4px;
+      display: flex; /* Added for icon alignment */
+      align-items: center; /* Added for icon alignment */
+      gap: 10px; /* Space between icon and text */
     }
     .sidebar a:hover {
       background-color: #006400;
     }
     /* Academics submenu links */
-    #academics-submenu a {
-      display: block;
-      margin: 8px 0;
-      padding: 10px;
-      background-color: #005000;
-      border-radius: 4px;
-      font-size: 15px;
-    }
-    /* Finance submenu links */
-    #finance-submenu a {
-      display: block;
-      margin: 8px 0;
-      padding: 10px;
-      background-color: #005000;
-      border-radius: 4px;
-      font-size: 15px;
-    }
+    #academics-submenu a,
+    #finance-submenu a,
     #exam-submenu a {
       display: block;
       margin: 8px 0;
@@ -210,6 +204,151 @@
       border-radius: 4px;
     }
 
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .modal-content h3 {
+      margin-bottom: 15px;
+      color: #006400;
+    }
+    .modal-content p {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .modal-buttons button {
+      background-color: #006400;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    .modal-buttons button.cancel {
+      background-color: #ccc;
+      color: #333;
+    }
+
+    /* Search bar and Notifications */
+    .dashboard-header-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        gap: 15px; /* Spacing between items */
+    }
+
+    .search-bar {
+        flex-grow: 1;
+        max-width: 300px; /* Limit search bar width */
+        position: relative;
+    }
+
+    .search-bar input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        padding-right: 40px; /* Space for icon */
+    }
+
+    .search-bar .search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #888;
+    }
+
+    .notifications-panel {
+        background-color: #e9f7ef;
+        border: 1px solid #006400;
+        border-radius: 8px;
+        padding: 15px;
+        width: 100%; /* Full width below search on small screens */
+        max-width: 350px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .notifications-panel h4 {
+        color: #004d00;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .notifications-panel ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .notifications-panel li {
+        padding: 8px 0;
+        border-bottom: 1px dashed #c8e6d0;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .notifications-panel li:last-child {
+        border-bottom: none;
+    }
+
+    /* Breadcrumb navigation */
+    .breadcrumb {
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .breadcrumb a {
+        color: #006400;
+        text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb span {
+        margin: 0 5px;
+    }
+
+    /* GPA Tracker */
+    .gpa-tracker {
+      font-size: 16px;
+      font-weight: bold;
+      color: #006400;
+      margin-top: 20px;
+      text-align: center;
+      padding: 10px;
+      background-color: #e4f5e9;
+      border-radius: 8px;
+    }
+
     /* Media Query for screens smaller than 768px */
     @media (max-width: 768px) {
       header {
@@ -307,583 +446,1486 @@
         padding: 10px 20px; /* Adjust button padding */
         font-size: 14px; /* Adjust button font size */
       }
+
+      .dashboard-header-controls {
+        flex-direction: column; /* Stack search and notifications vertically */
+        align-items: flex-start; /* Align to start */
+      }
+      .search-bar, .notifications-panel {
+        max-width: 100%; /* Full width */
+      }
     }
   </style>
 </head>
 <body>
   <header>
     <img src="myschoollogo.png" alt="University Logo" />
-    <button class="menu-toggle" id="menuToggle">&#9776;</button> <div class="greeting">Welcome, <span id="userName">User</span>!</div>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+    <button class="menu-toggle" id="menuToggle">&#9776;</button> 
+    <div class="greeting">Welcome, <span id="userName">User</span>!</div>
+    <button class="logout-btn" onclick="confirmLogout()">Logout</button>
   </header>
 
   <div class="container">
     <div class="sidebar">
       <h3>Quick Menu</h3>
-      <a onclick="showSection('home')">🏠 Home</a>
-      <a onclick="showSection('profile')">👤 Personal Profile</a>
+      <a onclick="showSection('home')"><i class="fas fa-home"></i> Home</a>
+      <a onclick="showSection('profile')"><i class="fas fa-user"></i> Personal Profile</a>
       
-      <a onclick="toggleSubmenu('academics-submenu')">📘 Academics ▾</a>
+      <a onclick="toggleSubmenu('academics-submenu')"><i class="fas fa-book"></i> Academics ▾</a>
       <div id="academics-submenu" style="display: none; padding-left: 15px;">
-        <a onclick="showSection('courseReg')">📄 Course Registration</a>
-        <a onclick="showSection('timetable')">🗓️ Timetable</a>
-        <a onclick="showSection('evaluation')">📝 Course Evaluation</a>
-        <a onclick="showSection('graduation')">🎓 Graduation Request</a>
-        <a onclick="showSection('clearance')">✅ Clearance Request</a>
+        <a onclick="showSection('courseReg')"><i class="fas fa-file-alt"></i> Course Registration</a>
+        <a onclick="showSection('timetable')"><i class="fas fa-calendar-alt"></i> Timetable</a>
+        <a onclick="showSection('evaluation')"><i class="fas fa-clipboard-list"></i> Course Evaluation</a>
+        <a onclick="showSection('graduation')"><i class="fas fa-graduation-cap"></i> Graduation Request</a>
+        <a onclick="showSection('clearance')"><i class="fas fa-check-circle"></i> Clearance Request</a>
       </div>
 
-      <a onclick="toggleSubmenu('finance-submenu')">💰 Finance ▾</a>
+      <a onclick="toggleSubmenu('finance-submenu')"><i class="fas fa-money-bill-wave"></i> Finance ▾</a>
       <div id="finance-submenu" style="display: none; padding-left: 15px;">
-        <a onclick="showSection('feesStatement')">💳 Fees Statement</a>
-        <a onclick="showSection('receipts')">🧾 Receipts</a>
-        <a onclick="showSection('examCard')">📋 Exam Card</a>
+        <a onclick="showSection('feesStatement')"><i class="fas fa-credit-card"></i> Fees Statement</a>
+        <a onclick="showSection('receipts')"><i class="fas fa-receipt"></i> Receipts</a>
+        <a onclick="showSection('examCard')"><i class="fas fa-id-card"></i> Exam Card</a>
       </div>
 
-      <a onclick="toggleSubmenu('exam-submenu')">📚 Examination ▾</a>
+      <a onclick="toggleSubmenu('exam-submenu')"><i class="fas fa-laptop-code"></i> Examination ▾</a>
       <div id="exam-submenu" style="display: none; padding-left: 15px;">
-        <a onclick="showSection('examTimetable')">📊 Timetable</a>
-        <a onclick="showSection('transcripts')">📄 Transcripts</a>
+        <a onclick="showSection('examTimetable')"><i class="fas fa-clock"></i> Timetable</a>
+        <a onclick="showSection('transcripts')"><i class="fas fa-file-invoice"></i> Transcripts</a>
       </div>
-      <a onclick="showSection('hostelBooking')">🏨 Accommodation</a>
-      <a onclick="showSection('settings')">⚙️ Settings</a>
+      <a onclick="showSection('hostelBooking')"><i class="fas fa-hotel"></i> Accommodation</a>
+      <a onclick="showSection('settings')"><i class="fas fa-cog"></i> Settings</a>
     </div>
 
     <div class="main" id="content">
-      </div>
+      <!-- Dynamic content loaded here -->
+    </div>
   </div>
 
   <footer>
     2025 © Prince Alex Design University. All rights reserved.
   </footer>
 
-  <script>
-    const userEmail = localStorage.getItem("loggedInEmail") || "User";
-    const name = userEmail.split("@")[0];
-    const properName = name.charAt(0).toUpperCase() + name.slice(1);
-    document.getElementById("userName").innerText = properName;
+  <!-- Custom Modal for Alerts/Confirms -->
+  <div id="customModal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle"></h3>
+      <p id="modalMessage"></p>
+      <div class="modal-buttons">
+        <button id="modalConfirmBtn">OK</button>
+        <button id="modalCancelBtn" class="cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
 
-    const isAdmin = (userEmail === "senerwaalex@gmail.com");
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    function logout() {
-      if (confirm("Are you sure you want to log out?")) {
-        localStorage.removeItem("loggedInEmail");
-        window.location.href = "index.html";
+    // Firebase Config: This configuration object contains your Firebase project details.
+    // It's essential for initializing the Firebase SDK and connecting to your project.
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+      authDomain: "universityweb-19e1e.firebaseapp.com",
+      projectId: "universityweb-19e1e",
+      storageBucket: "universityweb-19e1e.firebasestorage.app",
+      messagingSenderId: "401942926589",
+      appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+    };
+
+    // The appId is used for structuring Firestore collections under /artifacts/{appId}/
+    // This value is extracted from the firebaseConfig.appId to maintain consistency
+    const appId = firebaseConfig.projectId; // Using projectId as appId for artifacts path
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+
+    let currentUserId = null;
+    let currentUserData = null; // Store fetched user data
+
+    // --- Custom Modal Functions (replaces alert/confirm) ---
+    let resolveModalPromise;
+    function showCustomModal(title, message, isConfirm = false) {
+      return new Promise((resolve) => {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalMessage').innerText = message;
+        document.getElementById('modalConfirmBtn').onclick = () => {
+          document.getElementById('customModal').style.display = 'none';
+          resolve(true);
+        };
+        document.getElementById('modalCancelBtn').onclick = () => {
+          document.getElementById('customModal').style.display = 'none';
+          resolve(false);
+        };
+        document.getElementById('modalCancelBtn').style.display = isConfirm ? 'inline-block' : 'none';
+        document.getElementById('customModal').style.display = 'flex'; // Use flex to center
+        resolveModalPromise = resolve;
+      });
+    }
+
+    window.alert = (message) => showCustomModal('Alert', message); // Override alert
+    window.confirm = (message) => showCustomModal('Confirm', message, true); // Override confirm
+    // --- End Custom Modal Functions ---
+
+
+    // --- Firebase Authentication Handling ---
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUserId = user.uid;
+        console.log("User authenticated:", user.uid);
+        // Fetch user data from Firestore
+        // Collection path: /artifacts/{appId}/users/{userId}/students/{studentId}
+        const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
+        const studentDocSnap = await getDoc(studentDocRef);
+
+        if (studentDocSnap.exists()) {
+          currentUserData = studentDocSnap.data();
+          document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+          // If there's a stored photo URL, use it
+          const profileImgElement = document.querySelector('#profile-img-preview');
+          if (profileImgElement && currentUserData.profilePhotoURL) {
+            profileImgElement.src = currentUserData.profilePhotoURL;
+          }
+        } else {
+          // If user doc doesn't exist, create a basic one (should ideally be done during signup)
+          // For now, setting placeholder data. In a real scenario, this would come from the signup process.
+          await setDoc(studentDocRef, {
+            email: user.email,
+            name: user.email.split("@")[0], // Placeholder name
+            regNo: "N/A",
+            programme: "N/A",
+            campus: "Main Campus",
+            dob: "N/A",
+            gender: "N/A",
+            address: "N/A",
+            profilePhotoURL: ""
+          });
+          currentUserData = (await getDoc(studentDocRef)).data();
+          document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
+        }
+        showSection('home'); // Show dashboard content once authenticated and data loaded
+        populateInitialData(); // Populate dummy data if not already present
+      } else {
+        // User is signed out or not logged in, redirect to login page
+        console.log("No user authenticated. Redirecting to login.");
+        window.location.replace("/index.html"); // Redirect to the login page with absolute path
+      }
+    });
+
+    // Initial sign-in with custom token if available (for Canvas environment)
+    console.log("Attempting initial sign-in...");
+    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+      console.log("Custom token found, attempting sign-in with custom token.");
+      signInWithCustomToken(auth, __initial_auth_token)
+        .catch((error) => {
+          console.error("Error signing in with custom token:", error);
+          // If custom token fails, redirect to login as anonymous sign-in is restricted.
+          console.log("Custom token sign-in failed. Redirecting to login.");
+          window.location.replace("/index.html");
+        });
+    } else {
+      console.log("No custom token found. Redirecting to login page as anonymous sign-in is restricted.");
+      // Directly redirect to login if no custom token and anonymous sign-in is restricted
+      window.location.replace("/index.html");
+    }
+
+
+    // --- Dashboard Specific Functions (Adapted for Firestore) ---
+
+    // Logout function
+    async function confirmLogout() {
+      const response = await confirm("Are you sure you want to log out?");
+      if (response) {
+        try {
+          await signOut(auth);
+          // Redirect handled by onAuthStateChanged
+        } catch (error) {
+          console.error("Error signing out:", error);
+          alert("Error logging out. Please try again.");
+        }
       }
     }
+    window.logout = confirmLogout; // Expose to global scope for HTML onclick
+
 
     function toggleSubmenu(id) {
       const submenu = document.getElementById(id);
       submenu.style.display = submenu.style.display === "none" ? "block" : "none";
     }
+    window.toggleSubmenu = toggleSubmenu; // Expose to global scope
 
-    // New: Toggle sidebar visibility for mobile
     document.getElementById('menuToggle').addEventListener('click', function() {
       const sidebar = document.querySelector('.sidebar');
       sidebar.classList.toggle('active');
     });
 
-    function showSection(section) {
+    // Helper to generate breadcrumbs
+    function generateBreadcrumb(currentSectionTitle) {
+      return `<div class="breadcrumb">
+                <a onclick="showSection('home')">Home</a>
+                <span>/</span>
+                <span>${currentSectionTitle}</span>
+              </div>`;
+    }
+
+    async function showSection(section) {
       const content = document.getElementById("content");
-      content.innerHTML = "";
+      let sectionContent = '';
+      let breadcrumbTitle = '';
 
-      if (section === 'home') {
-        content.innerHTML = `<div class="card">
-          <h2>Dashboard Overview</h2>
-          <p>Welcome back, ${properName}</p>
-          <p>Welcome to your student portal. Here you can access all your academic information and university services in one place.</p>
-          <h3>Upcoming Activities</h3>
-          <ul>
-            <li>📅 Semester 2 begins: July 1st, 2025</li>
-            <li>📌 Fee Deadline: June 30th, 2025</li>
-            <li>🧪 Exam Registration Closes: July 10th, 2025</li>
-          </ul>
-        </div>`;
+      if (!currentUserId) {
+        console.log("currentUserId is null. Redirecting to login from showSection.");
+        window.location.replace("/index.html");
+        return;
       }
-      else if (section === 'profile') {
-        content.innerHTML = `<div class="card">
-          <h2>Personal Profile</h2>
-          <img src="avatar.png" alt="Student Avatar">
-          <div class="info-group">
-            <p><strong>Reg. No:</strong> ENG/94/25</p>
-            <p><strong>Name:</strong> Senerwa Alex</p>
-            <p><strong>ID No:</strong> XXXX</p>
-            <p><strong>Gender:</strong> Male</p>
-            <p><strong>Address:</strong> --</p>
-            <p><strong>Email:</strong> senerwaalex@gmail.com</p>
-            <p><strong>Date Of Birth:</strong> 01/01/0001</p>
-            <p><strong>Campus:</strong> 00</p>
-          </div>
-          <hr style="margin: 30px 0">
-          <h3>Academic Information</h3>
-          <div class="info-group">
-            <p><strong>Current Programme:</strong> Bachelor of Arts in xxxx</p>
-            <p><strong>Attempted Units:</strong> 00</p>
-            <p><strong>Registered Units:</strong> 00</p>
-          </div>
-          <hr style="margin: 30px 0">
-          <h3>Fee Payment</h3>
-          <div class="info-group">
-            <p><strong>Total Billed:</strong> 0.00</p>
-            <p><strong>Scholarship Amount:</strong> 0.00</p>
-            <p><strong>Total Paid:</strong> 0.00</p>
-            <p><strong>Fee Balance:</strong> 0.00</p>
-          </div>
-          <button class="pay-btn">Make Payment</button>
-          <hr style="margin: 30px 0">
-          <h3>Important Documents</h3>
-          <table>
-            <thead><tr><th>File Name</th><th>Action</th></tr></thead>
-            <tbody>
-              <tr><td>Transcript.pdf</td><td><button class="pay-btn">Download</button></td></tr>
-              <tr><td>Admission Letter.pdf</td><td><button class="pay-btn">Download</button></td></tr>
-            </tbody>
-          </table>
-        </div>`;
-      }
-      else if (section === 'courseReg') {
-        const registered = JSON.parse(localStorage.getItem("registeredUnits") || "{}");
 
-        const units = {
-          "Semester 1": [
-            { code: "ENG101", name: "Introduction to Writing" },
-            { code: "MAT101", name: "Basic Mathematics" },
-            { code: "CSC101", name: "Introduction to Computing" }
-          ],
-          "Semester 2": [
-            { code: "ENG102", name: "Advanced Composition" },
-            { code: "MAT102", name: "Statistics" },
-            { code: "CSC102", name: "Web Development Basics" }
-          ]
-        };
+      const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
 
-        content.innerHTML = `
-          <div class="card">
-            <h2>Course Registration</h2>
-            <label for="semesterSelect">Select Semester:</label><br/>
-            <select id="semesterSelect" onchange="renderUnits()" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
-              <option value="">-- Select Semester --</option>
-              <option value="Semester 1">Semester 1</option>
-              <option value="Semester 2">Semester 2</option>
-            </select>
-            <div id="unitFormArea" style="margin-top: 20px;"></div>
-          </div>
-        `;
+      switch (section) {
+        case 'home':
+          breadcrumbTitle = 'Dashboard Overview';
+          sectionContent = `<div class="card">
+            <h2>Dashboard Overview</h2>
+            <p>Welcome back, ${currentUserData?.name?.split(" ")[0] || 'User'}!</p>
+            <p>Welcome to your student portal. Here you can access all your academic information and university services in one place.</p>
+            <h3>Upcoming Activities</h3>
+            <ul>
+              <li><i class="fas fa-calendar-alt"></i> Semester 2 begins: July 1st, 2025</li>
+              <li><i class="fas fa-money-bill-wave"></i> Fee Deadline: June 30th, 2025</li>
+              <li><i class="fas fa-flask"></i> Exam Registration Closes: July 10th, 2025</li>
+            </ul>
+            <hr style="margin: 30px 0;">
+            <h4><i class="fas fa-bullhorn"></i> Notifications</h4>
+            <div class="notifications-panel" id="notifications-panel">
+                <!-- Announcements will be loaded here -->
+                <p>Loading announcements...</p>
+            </div>
+            <div class="search-bar" style="margin-top: 20px;">
+                <input type="text" id="dashboardSearch" placeholder="Search courses, grades, fees...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+          </div>`;
+          content.innerHTML = sectionContent;
+          // Load announcements
+          onSnapshot(collection(db, `artifacts/${appId}/public/data/announcements`), (snapshot) => {
+              const announcements = snapshot.docs.map(doc => doc.data());
+              const notificationList = document.querySelector('#notifications-panel');
+              if (announcements.length > 0) {
+                  notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> Latest Announcements</h4><ul>${announcements.map(ann => `<li>${ann.title}: ${new Date(ann.date).toLocaleDateString()} - ${ann.message}</li>`).join('')}</ul>`;
+              } else {
+                  notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> No New Announcements</h4><p>Check back later for updates.</p>`;
+              }
+          }, (error) => {
+              console.error("Error fetching announcements:", error);
+              document.querySelector('#notifications-panel').innerHTML = `<p style="color:red;">Error loading announcements.</p>`;
+          });
+          break;
 
-        window.renderUnits = function () {
-          const semester = document.getElementById("semesterSelect").value;
-          const formArea = document.getElementById("unitFormArea");
-          if (!semester) {
-            formArea.innerHTML = "";
-            return;
-          }
+        case 'profile':
+          breadcrumbTitle = 'Personal Profile';
+          const studentSnap = await getDoc(studentDocRef);
+          const studentData = studentSnap.exists() ? studentSnap.data() : {};
+          
+          let profilePhotoURL = studentData.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
 
-          if (registered[semester]) {
-            formArea.innerHTML = `
-              <p style="color:green;"><strong>✅ You have already registered the following units for ${semester}:</strong></p>
-              <ul>${registered[semester].map(u => `<li>${u.code} - ${u.name}</li>`).join("")}</ul>
-            `;
-            return;
-          }
+          // Calculate GPA from grades
+          let totalPoints = 0;
+          let totalUnits = 0;
+          const gradesSnapshot = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/grades`));
+          gradesSnapshot.docs.forEach(doc => {
+              const gradeData = doc.data();
+              const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 }; // Simple grade mapping
+              const points = gradeMap[gradeData.grade] || 0;
+              const units = 1; // Assuming each unit is 1 credit for simplicity
+              totalPoints += points * units;
+              totalUnits += units;
+          });
+          const calculatedGpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : 'N/A';
 
-          const unitOptions = units[semester].map((unit, i) => `
-            <label>
-              <input type="checkbox" name="unit" value="${unit.code}" data-name="${unit.name}" />
-              ${unit.code} - ${unit.name}
-            </label><br/>
-          `).join("");
 
-          formArea.innerHTML = `
-            <form id="unitForm">
-              <h3>Select Units:</h3>
-              ${unitOptions}
-              <button type="submit" class="pay-btn" style="margin-top: 20px;">Submit Registration</button>
-            </form>
-          `;
+          sectionContent = `<div class="card">
+            <h2>Personal Profile</h2>
+            <img src="${profilePhotoURL}" alt="Student Avatar" id="profile-img-preview">
+            <input type="file" id="profile-picture-upload" accept="image/*" style="margin: 15px auto; display: block;">
+            <button class="pay-btn" onclick="uploadProfilePicture()" style="display: block; margin: 10px auto;">Upload Photo</button>
 
-          document.getElementById("unitForm").onsubmit = function(e) {
-            e.preventDefault();
-            const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
-              code: input.value,
-              name: input.dataset.name
-            }));
-            if (selected.length === 0) {
-              alert("⚠️ Please select at least one unit.");
-              return;
-            }
-            registered[semester] = selected;
-            localStorage.setItem("registeredUnits", JSON.stringify(registered));
-            alert("✅ Units registered successfully for " + semester);
-            renderUnits(); // refresh to lock form
-          };
-        };
-      }
-      else if (section === 'timetable') {
-        content.innerHTML = `<div class="card"><h2>Timetable</h2><div class="no-records">No Records Found</div></div>`;
-      }
-      else if (section === 'evaluation') {
-        content.innerHTML = `<div class="card"><h2>Course Evaluation</h2><table><thead><tr><th>Action</th><th>Unit Code</th><th>Unit Description</th></tr></thead><tbody><tr><td>-</td><td>---</td><td>---</td></tr></tbody></table></div>`;
-      }
-      else if (section === 'graduation') {
-        content.innerHTML = `
-          <div class="card">
-            <h2>Graduation Request</h2>
             <div class="info-group">
-              <p><strong>Reg No:</strong> ENG/94/25</p>
-              <p><strong>Full Name:</strong> Senerwa Alex</p>
-              <p><strong>Telephone:</strong> 0700000000</p>
-              <p><strong>Email:</strong> senerwaalex@gmail.com</p>
+              <p><strong>Reg. No:</strong> ${studentData.regNo || 'N/A'}</p>
+              <p><strong>Name:</strong> ${studentData.name || 'N/A'}</p>
+              <p><strong>Email:</strong> ${studentData.email || 'N/A'}</p>
+              <p><strong>Programme:</strong> ${studentData.programme || 'N/A'}</p>
+              <p><strong>Campus:</strong> ${studentData.campus || 'N/A'}</p>
+              <p><strong>Date Of Birth:</strong> ${studentData.dob || 'N/A'}</p>
+              <p><strong>Gender:</strong> ${studentData.gender || 'N/A'}</p>
+              <p><strong>Address:</strong> ${studentData.address || 'N/A'}</p>
             </div>
             <hr style="margin: 30px 0">
-            <h3>Graduation Application Form</h3>
-            <label for="gradType">Graduation Type:</label><br/>
-            <select id="gradType" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
-              <option value="">-- Select --</option>
-              <option value="regular">Regular</option>
-              <option value="special">Special</option>
-              <option value="posthumous">Posthumous</option>
-            </select><br/><br/>
-
-            <label for="gradDate">Proposed Graduation Date:</label><br/>
-            <input type="date" id="gradDate" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
-
-            <label for="disability">Do you have any disability?</label><br/>
-            <select id="disability" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
-              <option value="">-- Select --</option>
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select><br/><br/>
-
-            <label><input type="checkbox" id="declaration" style="margin-right:8px;"> I confirm that I have met all academic and financial requirements for graduation.</label><br/><br/>
-
-            <button class="pay-btn" onclick="submitGraduationRequest()">Submit Request</button>
-          </div>
-        `;
-      }
-      else if (section === 'clearance') {
-        const requestStatus = localStorage.getItem("clearanceStatus") || "none";
-
-        if (requestStatus !== "none") {
-          content.innerHTML = `
-            <div class="card">
-              <h2>Clearance Request</h2>
-              <p><strong>Status:</strong> ✅ <span style="color: green;">Request submitted</span></p>
-              <p>Your clearance request is being reviewed. Check back later for updates.</p>
-            </div>
-          `;
-          return;
-        }
-
-        content.innerHTML = `
-          <div class="card">
-            <h2>Clearance Request</h2>
+            <h3>Academic Information</h3>
             <div class="info-group">
-              <p><strong>Reg No:</strong> ENG/94/25</p>
-              <p><strong>Full Name:</strong> Senerwa Alex</p>
-              <p><strong>Email:</strong> senerwaalex@gmail.com</p>
+              <p><strong>Current Programme:</strong> ${studentData.programme || 'N/A'}</p>
+              <p id="attempted-units"><strong>Attempted Units:</strong> Loading...</p>
+              <p id="registered-units"><strong>Registered Units:</strong> Loading...</p>
             </div>
+            <p class="gpa-tracker">Current GPA: ${calculatedGpa}</p>
             <hr style="margin: 30px 0">
-
-            <form id="clearanceForm">
-              <h3>Select Departments for Clearance:</h3>
-              <label><input type="checkbox" name="department" value="Library"> Library</label><br/>
-              <label><input type="checkbox" name="department" value="Finance"> Finance</label><br/>
-              <label><input type="checkbox" name="department" value="Hostel"> Hostel</label><br/>
-              <label><input type="checkbox" name="department" value="Academics"> Academics</label><br/>
-              <label><input type="checkbox" name="department" value="Sports"> Sports</label><br/><br/>
-
-              <label for="uploadFile">Attach Clearance Form (optional):</label><br/>
-              <input type="file" id="uploadFile" accept=".pdf,.jpg,.png" style="margin: 10px 0;" /><br/>
-
-              <label><input type="checkbox" id="clearDeclaration"> I declare that I have no pending issues with selected departments.</label><br/><br/>
-
-              <button type="submit" class="pay-btn">Submit Request</button>
-            </form>
-          </div>
-        `;
-
-        // Handle form submission
-        document.getElementById("clearanceForm").onsubmit = function (e) {
-          e.preventDefault();
-          const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
-            .map(el => el.value);
-          const declaration = document.getElementById("clearDeclaration").checked;
-
-          if (checked.length === 0) {
-            alert("⚠️ Please select at least one department.");
-            return;
-          }
-
-          if (!declaration) {
-            alert("⚠️ Please confirm the declaration.");
-            return;
-          }
-
-          localStorage.setItem("clearanceStatus", "submitted");
-          alert("✅ Clearance Request Submitted!");
-          showSection("clearance");
-        };
-      }
-      else if (section === 'feesStatement') {
-        content.innerHTML = `<div class="card">
-          <h2>Fees Statement</h2>
-          <button class="red-btn" onclick="window.print()">Print Fees Statement</button>
-          <table>
-            <thead>
-              <tr>
-                <th>Posting Date</th>
-                <th>Ref #</th>
-                <th>Description</th>
-                <th>Debit (KES)</th>
-                <th>Credit (KES)</th>
-                <th>Running Balance (KES)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>2025-06-01</td><td>INV001</td><td>Tuition Fee Semester 1</td><td>25,000</td><td>0</td><td>25,000</td></tr>
-              <tr><td>2025-06-03</td><td>INV002</td><td>Hostel Booking</td><td>13,500</td><td>0</td><td>38,500</td></tr>
-              <tr><td>2025-06-07</td><td>RCPT001</td><td>Payment via M-PESA</td><td>0</td><td>20,000</td><td>18,500</td></tr>
-              <tr><td>2025-06-10</td><td>INV003</td><td>Library Fine</td><td>500</td><td>0</td><td>19,000</td></tr>
-              <tr><td>2025-06-15</td><td>INV004</td><td>Exam Fee</td><td>3,000</td><td>0</td><td>22,000</td></tr>
-              <tr><td>2025-06-20</td><td>RCPT002</td><td>Bank Deposit</td><td>0</td><td>10,000</td><td>12,000</td></tr>
-            </tbody>
-          </table>
-          <p style="margin-top: 15px; font-weight: bold;">Current Balance: KES 12,000</p>
-        </div>`;
-      }
-      else if (section === 'receipts') {
-        content.innerHTML = `<div class="card">
-          <h2>Receipts</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Receipt No</th>
-                <th>Date</th>
-                <th>Payment Mode</th>
-                <th>Amount</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td colspan="5" class="no-records">No Records Found</td></tr>
-            </tbody>
-          </table>
-        </div>`;
-      }
-      else if (section === 'examCard') {
-        const feesBalance = 0; // Simulated from feesStatement
-        const registered = JSON.parse(localStorage.getItem("registeredUnits") || "{}");
-
-        if (feesBalance > 0) {
-          content.innerHTML = `
-            <div class="card">
-              <h2>Exam Card</h2>
-              <p style="color:red;">❌ You cannot generate an Exam Card until you clear your fee balance (KES ${feesBalance}).</p>
-            </div>`;
-          return;
-        }
-
-        const allUnits = Object.values(registered).flat();
-
-        if (allUnits.length === 0) {
-          content.innerHTML = `
-            <div class="card">
-              <h2>Exam Card</h2>
-              <p style="color:red;">❌ You haven't registered any units yet. Please register your units first.</p>
-            </div>`;
-          return;
-        }
-
-        const unitRows = allUnits.map((unit, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${unit.code}</td>
-            <td>${unit.name}</td>
-            <td>Room TBA</td>
-            <td>Time TBA</td>
-          </tr>
-        `).join("");
-
-        content.innerHTML = `
-          <div class="card" id="examCardSection">
-            <h2>📋 Exam Card</h2>
-            <p><strong>Reg No:</strong> ENG/94/25</p>
-            <p><strong>Name:</strong> Senerwa Alex</p>
-            <p><strong>Programme:</strong> Bachelor of Arts in xxxx</p>
+            <h3>Fee Payment</h3>
+            <div class="info-group">
+              <p><strong>Total Billed:</strong> Loading...</p>
+              <p><strong>Total Paid:</strong> Loading...</p>
+              <p><strong>Fee Balance:</strong> Loading...</p>
+            </div>
+            <button class="pay-btn">Make Payment</button>
+            <hr style="margin: 30px 0">
+            <h3>Important Documents</h3>
             <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Unit Code</th>
-                  <th>Unit Name</th>
-                  <th>Room</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
+              <thead><tr><th>File Name</th><th>Action</th></tr></thead>
               <tbody>
-                ${unitRows}
+                <tr><td>Transcript.pdf</td><td><button class="pay-btn" onclick="generateTranscriptPDF()"><i class="fas fa-download"></i> Download</button></td></tr>
+                <tr><td>Admission Letter.pdf</td><td><button class="pay-btn"><i class="fas fa-download"></i> Download</button></td></tr>
               </tbody>
             </table>
-            <button class="red-btn" onclick="window.print()">🖨️ Print Exam Card</button>
           </div>`;
-      }
-      else if (section === 'examTimetable') {
-        content.innerHTML = `
-          <div class="card">
-            <h2>Examination Timetable</h2>
-            <label for="timetableType">Select Timetable Type:</label><br/>
-            <select id="timetableType" name="timetableType" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 250px;">
-              <option value="study">📘 Study Timetable</option>
-              <option value="exam">📝 Exam Timetable</option>
-            </select>
-            <br/>
-            <button class="red-btn" style="margin-top: 20px;">Download</button>
-          </div>`;
-      }
-      else if (section === 'transcripts') {
-        content.innerHTML = `
-          <div class="card">
-            <h2>Student Transcripts</h2>
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+
+          // Dynamically update units data
+          onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`), (snapshot) => {
+              let attempted = 0;
+              let registered = 0;
+              snapshot.docs.forEach(doc => {
+                  const data = doc.data();
+                  if (data.units) {
+                      registered += data.units.length;
+                      attempted += data.units.length; // Simple count for demo, assuming all registered are attempted
+                  }
+              });
+              document.getElementById("attempted-units").innerHTML = `<strong>Attempted Units:</strong> ${attempted}`;
+              document.getElementById("registered-units").innerHTML = `<strong>Registered Units:</strong> ${registered}`;
+          }, (error) => {
+              console.error("Error fetching registration data for profile:", error);
+          });
+
+          // Dynamically update fee data
+          onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/fees`), (snapshot) => {
+              let totalBilled = 0;
+              let totalPaid = 0;
+              snapshot.docs.forEach(doc => {
+                  const data = doc.data();
+                  totalBilled += data.debit || 0;
+                  totalPaid += data.credit || 0;
+              });
+              const feeBalance = totalBilled - totalPaid;
+              content.querySelector('.info-group p:nth-child(7)').innerHTML = `<strong>Total Billed:</strong> ${totalBilled.toFixed(2)}`;
+              content.querySelector('.info-group p:nth-child(8)').innerHTML = `<strong>Total Paid:</strong> ${totalPaid.toFixed(2)}`;
+              content.querySelector('.info-group p:nth-child(9)').innerHTML = `<strong>Fee Balance:</strong> ${feeBalance.toFixed(2)}`;
+          }, (error) => {
+              console.error("Error fetching fee data for profile:", error);
+          });
+
+          break;
+
+        case 'courseReg':
+          breadcrumbTitle = 'Course Registration';
+          sectionContent = `
+            <div class="card">
+              <h2>Course Registration</h2>
+              <label for="semesterSelect">Select Semester:</label><br/>
+              <select id="semesterSelect" onchange="renderUnits()" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
+                <option value="">-- Select Semester --</option>
+                <option value="Semester 1">Semester 1</option>
+                <option value="Semester 2">Semester 2</option>
+              </select>
+              <div id="unitFormArea" style="margin-top: 20px;"></div>
+            </div>
+          `;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          window.renderUnits = async function () {
+            const semester = document.getElementById("semesterSelect").value;
+            const formArea = document.getElementById("unitFormArea");
+            if (!semester) {
+              formArea.innerHTML = "";
+              return;
+            }
+
+            // Fetch registered units for the selected semester
+            const regDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/registrations`, semester);
+            const regDocSnap = await getDoc(regDocRef);
+            const registeredUnits = regDocSnap.exists() ? regDocSnap.data().units : [];
+
+            if (registeredUnits && registeredUnits.length > 0) {
+              formArea.innerHTML = `
+                <p style="color:green;"><strong>✅ You have already registered the following units for ${semester}:</strong></p>
+                <ul>${registeredUnits.map(u => `<li>${u.code} - ${u.name}</li>`).join("")}</ul>
+                <button class="red-btn" style="margin-top: 20px;" onclick="unenrollUnits('${semester}')">Unenroll All Units</button>
+              `;
+              return;
+            }
+
+            // Fetch available courses from Firestore
+            const coursesCollection = collection(db, `artifacts/${appId}/public/data/courses`);
+            const q = query(coursesCollection, where("semester", "==", semester));
+            const querySnapshot = await getDocs(q);
+            const availableUnits = querySnapshot.docs.map(doc => doc.data());
+
+            if (availableUnits.length === 0) {
+                formArea.innerHTML = `<p>No courses available for ${semester} yet.</p>`;
+                return;
+            }
+
+            const unitOptions = availableUnits.map(unit => `
+              <label>
+                <input type="checkbox" name="unit" value="${unit.code}" data-name="${unit.name}" />
+                ${unit.code} - ${unit.name} (${unit.lecturer})
+              </label><br/>
+            `).join("");
+
+            formArea.innerHTML = `
+              <form id="unitForm">
+                <h3>Select Units:</h3>
+                ${unitOptions}
+                <button type="submit" class="pay-btn" style="margin-top: 20px;">Submit Registration</button>
+              </form>
+            `;
+
+            document.getElementById("unitForm").onsubmit = async function(e) {
+              e.preventDefault();
+              const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
+                code: input.value,
+                name: input.dataset.name
+              }));
+              if (selected.length === 0) {
+                await alert("⚠️ Please select at least one unit.");
+                return;
+              }
+              
+              // Save registered units to Firestore
+              try {
+                await setDoc(regDocRef, { units: selected }, { merge: true });
+                await alert("✅ Units registered successfully for " + semester);
+                renderUnits(); // refresh to lock form
+              } catch (error) {
+                console.error("Error registering units:", error);
+                await alert("❌ Failed to register units. Please try again.");
+              }
+            };
+          };
+
+          window.unenrollUnits = async function(semester) {
+            const response = await confirm(`Are you sure you want to unenroll all units for ${semester}?`);
+            if (response) {
+              try {
+                const regDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/registrations`, semester);
+                await deleteDoc(regDocRef);
+                await alert("✅ Units unenrolled successfully for " + semester);
+                renderUnits();
+              } catch (error) {
+                console.error("Error unenrolling units:", error);
+                await alert("❌ Failed to unenroll units. Please try again.");
+              }
+            }
+          };
+
+          break;
+
+        case 'timetable':
+          breadcrumbTitle = 'Timetable';
+          // Fetch courses to build a dynamic timetable
+          const coursesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/courses`));
+          const courses = coursesSnapshot.docs.map(doc => doc.data());
+
+          let timetableHtml = `
+            <div class="card">
+              <h2>Timetable</h2>
+              <button class="red-btn" onclick="generateTimetablePDF()"> <i class="fas fa-download"></i> Download Timetable PDF </button>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Monday</th>
+                    <th>Tuesday</th>
+                    <th>Wednesday</th>
+                    <th>Thursday</th>
+                    <th>Friday</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          const timeSlots = ["08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00"];
+          timeSlots.forEach(time => {
+              timetableHtml += `<tr><td>${time}</td>`;
+              ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
+                  const scheduledCourses = courses.filter(c => c.schedule && c.schedule.day === day && c.schedule.time === time);
+                  if (scheduledCourses.length > 0) {
+                      timetableHtml += `<td>${scheduledCourses.map(c => `${c.code}<br>${c.name}`).join('<br>')}</td>`;
+                  } else {
+                      timetableHtml += `<td>-</td>`;
+                  }
+              });
+              timetableHtml += `</tr>`;
+          });
+          timetableHtml += `
+                </tbody>
+              </table>
+            </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + timetableHtml;
+          break;
+
+        case 'evaluation':
+          breadcrumbTitle = 'Course Evaluation';
+          sectionContent = `<div class="card"><h2>Course Evaluation</h2><div class="no-records">No Records Found</div></div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          break;
+
+        case 'graduation':
+          breadcrumbTitle = 'Graduation Request';
+          const currentStudentData = (await getDoc(studentDocRef)).data(); // Ensure latest data
+          sectionContent = `
+            <div class="card">
+              <h2>Graduation Request</h2>
+              <div class="info-group">
+                <p><strong>Reg No:</strong> ${currentStudentData.regNo || 'N/A'}</p>
+                <p><strong>Full Name:</strong> ${currentStudentData.name || 'N/A'}</p>
+                <p><strong>Email:</strong> ${currentStudentData.email || 'N/A'}</p>
+              </div>
+              <hr style="margin: 30px 0">
+              <h3>Graduation Application Form</h3>
+              <label for="gradType">Graduation Type:</label><br/>
+              <select id="gradType" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
+                <option value="">-- Select --</option>
+                <option value="regular">Regular</option>
+                <option value="special">Special</option>
+                <option value="posthumous">Posthumous</option>
+              </select><br/><br/>
+
+              <label for="gradDate">Proposed Graduation Date:</label><br/>
+              <input type="date" id="gradDate" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+              <label for="disability">Do you have any disability?</label><br/>
+              <select id="disability" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
+                <option value="">-- Select --</option>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select><br/><br/>
+
+              <label><input type="checkbox" id="declaration" style="margin-right:8px;"> I confirm that I have met all academic and financial requirements for graduation.</label><br/><br/>
+
+              <button class="pay-btn" onclick="submitGraduationRequest()">Submit Request</button>
+            </div>
+          `;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          window.submitGraduationRequest = async function() {
+            const type = document.getElementById('gradType').value;
+            const date = document.getElementById('gradDate').value;
+            const disability = document.getElementById('disability').value;
+            const confirmed = document.getElementById('declaration').checked;
+
+            if (!type || !date || !disability || !confirmed) {
+              await alert("⚠️ Please fill out all fields and confirm declaration.");
+              return;
+            }
+
+            try {
+              const graduationDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/graduationRequest`, 'currentRequest');
+              await setDoc(graduationDocRef, {
+                  type,
+                  date,
+                  disability,
+                  confirmed,
+                  timestamp: new Date()
+              });
+              await alert("🎓 Graduation Request Submitted Successfully!\n\nWe will review and notify you.");
+            } catch (error) {
+              console.error("Error submitting graduation request:", error);
+              await alert("❌ Failed to submit graduation request. Please try again.");
+            }
+          };
+          break;
+
+        case 'clearance':
+          breadcrumbTitle = 'Clearance Request';
+          const clearanceDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/clearance`, currentUserId);
+          const clearanceSnap = await getDoc(clearanceDocRef);
+          const requestStatus = clearanceSnap.exists() ? clearanceSnap.data().status : "none";
+
+          if (requestStatus !== "none") {
+            sectionContent = `
+              <div class="card">
+                <h2>Clearance Request</h2>
+                <p><strong>Status:</strong> ✅ <span style="color: green;">Request submitted</span></p>
+                <p>Your clearance request is being reviewed. Check back later for updates.</p>
+              </div>
+            `;
+            content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+            return;
+          }
+
+          sectionContent = `
+            <div class="card">
+              <h2>Clearance Request</h2>
+              <div class="info-group">
+                <p><strong>Reg No:</strong> ${currentUserData?.regNo || 'N/A'}</p>
+                <p><strong>Full Name:</strong> ${currentUserData?.name || 'N/A'}</p>
+                <p><strong>Email:</strong> ${currentUserData?.email || 'N/A'}</p>
+              </div>
+              <hr style="margin: 30px 0">
+
+              <form id="clearanceForm">
+                <h3>Select Departments for Clearance:</h3>
+                <label><input type="checkbox" name="department" value="Library"> Library</label><br/>
+                <label><input type="checkbox" name="department" value="Finance"> Finance</label><br/>
+                <label><input type="checkbox" name="department" value="Hostel"> Hostel</label><br/>
+                <label><input type="checkbox" name="department" value="Academics"> Academics</label><br/>
+                <label><input type="checkbox" name="department" value="Sports"> Sports</label><br/><br/>
+
+                <label for="uploadFile">Attach Clearance Form (optional):</label><br/>
+                <input type="file" id="uploadFile" accept=".pdf,.jpg,.png" style="margin: 10px 0;" /><br/>
+
+                <label><input type="checkbox" id="clearDeclaration"> I declare that I have no pending issues with selected departments.</label><br/><br/>
+
+                <button type="submit" class="pay-btn">Submit Request</button>
+              </form>
+            </div>
+          `;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+
+          // Handle form submission
+          document.getElementById("clearanceForm").onsubmit = async function (e) {
+            e.preventDefault();
+            const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
+              .map(el => el.value);
+            const declaration = document.getElementById("clearDeclaration").checked;
+
+            if (checked.length === 0) {
+              await alert("⚠️ Please select at least one department.");
+              return;
+            }
+
+            if (!declaration) {
+              await alert("⚠️ Please confirm the declaration.");
+              return;
+            }
+
+            try {
+              // Optionally upload file to storage if selected
+              let fileURL = '';
+              const uploadFileInput = document.getElementById('uploadFile');
+              if (uploadFileInput.files.length > 0) {
+                  const file = uploadFileInput.files[0];
+                  const storageRef = ref(storage, `clearance_forms/${currentUserId}/${file.name}`);
+                  const uploadTask = await uploadBytes(storageRef, file);
+                  fileURL = await getDownloadURL(uploadTask.ref);
+              }
+
+              await setDoc(clearanceDocRef, { departments: checked, status: "submitted", timestamp: new Date(), fileURL });
+              await alert("✅ Clearance Request Submitted!");
+              showSection("clearance");
+            } catch (error) {
+              console.error("Error submitting clearance:", error);
+              await alert("❌ Failed to submit clearance request. Please try again.");
+            }
+          };
+          break;
+
+        case 'feesStatement':
+          breadcrumbTitle = 'Fees Statement';
+          const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
+          const feesSnapshot = await getDocs(feesCollectionRef);
+          const feesData = feesSnapshot.docs.map(doc => doc.data());
+
+          let feesRows = '';
+          let totalBilled = 0;
+          let totalPaid = 0;
+
+          if (feesData.length > 0) {
+            let runningBalance = 0;
+            feesData.sort((a,b) => new Date(a.date) - new Date(b.date)); // Sort by date for correct running balance
+            feesData.forEach(item => {
+              runningBalance += (item.debit || 0) - (item.credit || 0);
+              totalBilled += item.debit || 0;
+              totalPaid += item.credit || 0;
+              feesRows += `
+                <tr>
+                  <td>${item.date}</td>
+                  <td>${item.ref}</td>
+                  <td>${item.description}</td>
+                  <td>${(item.debit || 0).toFixed(2)}</td>
+                  <td>${(item.credit || 0).toFixed(2)}</td>
+                  <td>${runningBalance.toFixed(2)}</td>
+                </tr>
+              `;
+            });
+          } else {
+            feesRows = `<tr><td colspan="6" class="no-records">No Fees Records Found</td></tr>`;
+          }
+
+          const feeBalance = totalBilled - totalPaid;
+
+          sectionContent = `<div class="card">
+            <h2>Fees Statement</h2>
+            <button class="red-btn" onclick="generateFeesPDF()"><i class="fas fa-print"></i> Print Fees Statement</button>
             <table>
               <thead>
                 <tr>
-                  <th>Unit</th>
+                  <th>Posting Date</th>
+                  <th>Ref #</th>
                   <th>Description</th>
-                  <th>CAT</th>
-                  <th>Exam</th>
-                  <th>Grade</th>
+                  <th>Debit (KES)</th>
+                  <th>Credit (KES)</th>
+                  <th>Running Balance (KES)</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td>ENG 101</td><td>Introduction to Writing</td><td>15</td><td>55</td><td>B</td></tr>
-                <tr><td>CS 105</td><td>Intro to Programming</td><td>18</td><td>72</td><td>A</td></tr>
-                </tbody>
+                ${feesRows}
+              </tbody>
+            </table>
+            <p style="margin-top: 15px; font-weight: bold;">Current Balance: KES ${feeBalance.toFixed(2)}</p>
+          </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          break;
+
+        case 'receipts':
+          breadcrumbTitle = 'Receipts';
+          const receiptsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
+          const receiptsSnapshot = await getDocs(receiptsCollectionRef);
+          const receiptsData = receiptsSnapshot.docs
+                .map(doc => doc.data())
+                .filter(item => (item.credit || 0) > 0)
+                .sort((a,b) => new Date(b.date) - new Date(a.date)); // Sort by date for receipts
+
+          let receiptsRows = '';
+          if (receiptsData.length > 0) {
+            receiptsData.forEach(item => {
+              receiptsRows += `
+                <tr>
+                  <td>${item.ref}</td>
+                  <td>${item.date}</td>
+                  <td>${item.description}</td>
+                  <td>${(item.credit || 0).toFixed(2)}</td>
+                  <td><button class="pay-btn" onclick="generateReceiptPDF('${item.ref}')"><i class="fas fa-download"></i> Download</button></td>
+                </tr>
+              `;
+            });
+          } else {
+            receiptsRows = `<tr><td colspan="5" class="no-records">No Records Found</td></tr>`;
+          }
+
+          sectionContent = `<div class="card">
+            <h2>Receipts</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Receipt No</th>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${receiptsRows}
+              </tbody>
             </table>
           </div>`;
-      }
-      else if (section === 'hostelBooking') {
-        const savedHostel = localStorage.getItem("hostelBooking") || "";
-        content.innerHTML = `
-          <div class="card">
-            <h2>Hostel Booking</h2>
-            <label for="hostelSelect">Select Hostel:</label><br/>
-            <select id="hostelSelect" name="hostelSelect" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
-              <option value="">Select hostel</option>
-              <option value="hostel1">Greenfields Hostel - KES 15,000</option>
-              <option value="hostel2">Sunrise Hostel - KES 13,500</option>
-              <option value="hostel3">Lakeview Hostel - KES 14,200</option>
-              <option value="hostel4">Hilltop Hostel - KES 16,000</option>
-              <option value="hostel5">Riverbend Hostel - KES 12,800</option>
-              <option value="hostel6">Royal Court Hostel - KES 17,500</option>
-              <option value="hostel7">Safari Hostel - KES 11,700</option>
-              <option value="hostel8">Emerald Residency - KES 14,800</option>
-              <option value="hostel9">Golden Nest Hostel - KES 13,300</option>
-              <option value="hostel10">Maple Heights - KES 15,600</option>
-            </select>
-            <br/>
-            <button class="red-btn" style="margin-top: 20px;" onclick="bookHostel()">Book</button>
-            <div id="hostelBookedMsg" style="margin-top: 15px; font-weight: bold; color: #006400;"></div>
-          </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          break;
 
-        // After rendering, pre-select the booked hostel if already saved
-        if (savedHostel) {
-          document.getElementById("hostelSelect").value = savedHostel;
-          document.getElementById("hostelBookedMsg").innerText = "🏨 You already booked: " + savedHostel;
-          // Disable select and button if already booked
-          document.getElementById("hostelSelect").disabled = true;
-          document.querySelector("button[onclick='bookHostel()']").disabled = true;
-        } 
-      }
-      else if (section === 'settings') {
-        content.innerHTML = `
-          <div class="card">
-            <h2>Change Password</h2>
-            <label for="currentPassword">Current Password:</label><br/>
-            <input type="password" id="currentPassword" placeholder="Enter current password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+        case 'examCard':
+          breadcrumbTitle = 'Exam Card';
+          const feesSnapForExamCard = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/fees`));
+          const totalFeeBalance = feesSnapForExamCard.docs.reduce((acc, doc) => acc + (doc.data().debit || 0) - (doc.data().credit || 0), 0);
 
-            <label for="newPassword">New Password:</label><br/>
-            <input type="password" id="newPassword" placeholder="Enter new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+          if (totalFeeBalance > 0) {
+            sectionContent = `
+              <div class="card">
+                <h2>Exam Card</h2>
+                <p style="color:red;">❌ You cannot generate an Exam Card until you clear your fee balance (KES ${totalFeeBalance.toFixed(2)}).</p>
+              </div>`;
+            content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+            return;
+          }
 
-            <label for="confirmPassword">Confirm New Password:</label><br/>
-            <input type="password" id="confirmPassword" placeholder="Confirm new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+          const registeredUnitsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`));
+          let allRegisteredUnits = [];
+          registeredUnitsSnap.forEach(doc => {
+              const data = doc.data();
+              if (data.units) {
+                  allRegisteredUnits = allRegisteredUnits.concat(data.units);
+              }
+          });
 
-            <button class="red-btn" onclick="changePassword()">Update Password</button>
+          if (allRegisteredUnits.length === 0) {
+            sectionContent = `
+              <div class="card">
+                <h2>Exam Card</h2>
+                <p style="color:red;">❌ You haven't registered any units yet. Please register your units first.</p>
+              </div>`;
+            content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+            return;
+          }
 
-            ${isAdmin ? `
-              <hr style="margin: 30px 30px">
-              <h3>Admin Controls</h3>
-              <button class="red-btn" onclick="clearAllData()">🧹 Clear All User Data</button>
-            ` : ''}
-          </div>
-        `;
+          const unitRows = allRegisteredUnits.map((unit, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${unit.code}</td>
+              <td>${unit.name}</td>
+              <td>Room TBA</td>
+              <td>Time TBA</td>
+            </tr>
+          `).join("");
+
+          sectionContent = `
+            <div class="card" id="examCardSection">
+              <h2>📋 Exam Card</h2>
+              <p><strong>Reg No:</strong> ${currentUserData?.regNo || 'N/A'}</p>
+              <p><strong>Name:</strong> ${currentUserData?.name || 'N/A'}</p>
+              <p><strong>Programme:</strong> ${currentUserData?.programme || 'N/A'}</p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Unit Code</th>
+                    <th>Unit Name</th>
+                    <th>Room</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${unitRows}
+                </tbody>
+              </table>
+              <button class="red-btn" onclick="generateExamCardPDF()"><i class="fas fa-print"></i> Print Exam Card</button>
+            </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          break;
+
+        case 'examTimetable':
+          breadcrumbTitle = 'Examination Timetable';
+          sectionContent = `
+            <div class="card">
+              <h2>Examination Timetable</h2>
+              <label for="timetableType">Select Timetable Type:</label><br/>
+              <select id="timetableType" name="timetableType" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 250px;">
+                <option value="study">📘 Study Timetable</option>
+                <option value="exam">📝 Exam Timetable</option>
+              </select>
+              <br/>
+              <button class="red-btn" style="margin-top: 20px;"><i class="fas fa-download"></i> Download</button>
+            </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          break;
+
+        case 'transcripts':
+          breadcrumbTitle = 'Student Transcripts';
+          const transcriptGradesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
+          const transcriptGradesSnapshot = await getDocs(transcriptGradesCollectionRef);
+          const transcriptGradesData = transcriptGradesSnapshot.docs.map(doc => doc.data());
+
+          let transcriptGradesRows = '';
+          if (transcriptGradesData.length > 0) {
+            transcriptGradesData.forEach(item => {
+              transcriptGradesRows += `
+                <tr>
+                  <td>${item.unitCode}</td>
+                  <td>${item.unitName}</td>
+                  <td>${item.catScore}</td>
+                  <td>${item.examScore}</td>
+                  <td>${item.grade}</td>
+                </tr>
+              `;
+            });
+          } else {
+            transcriptGradesRows = `<tr><td colspan="5" class="no-records">No Grades Found</td></tr>`;
+          }
+
+          sectionContent = `
+            <div class="card">
+              <h2>Student Transcripts</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Unit Code</th>
+                    <th>Unit Description</th>
+                    <th>CAT</th>
+                    <th>Exam</th>
+                    <th>Grade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${transcriptGradesRows}
+                </tbody>
+              </table>
+              <button class="red-btn" style="margin-top: 20px;" onclick="generateTranscriptPDF()"><i class="fas fa-download"></i> Download Transcript</button>
+            </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          break;
+
+        case 'hostelBooking':
+          breadcrumbTitle = 'Hostel Accommodation';
+          const hostelsCollectionRef = collection(db, `artifacts/${appId}/public/data/hostels`);
+          const hostelsSnapshot = await getDocs(hostelsCollectionRef);
+          const availableHostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          const studentBookingDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/hostelBookings`, 'currentBooking');
+          const studentBookingSnap = await getDoc(studentBookingDocRef);
+          const savedHostelId = studentBookingSnap.exists() ? studentBookingSnap.data().hostelId : "";
+
+          let hostelOptions = '<option value="">Select hostel</option>';
+          availableHostels.forEach(hostel => {
+              const selectedAttr = (savedHostelId === hostel.id) ? 'selected' : '';
+              const disabledAttr = (hostel.availableRooms <= 0) ? 'disabled' : ''; // Disable if no rooms
+              hostelOptions += `<option value="${hostel.id}" ${selectedAttr} ${disabledAttr}>${hostel.name} - KES ${hostel.price.toLocaleString()} (${hostel.availableRooms} rooms available)</option>`;
+          });
+
+          sectionContent = `
+            <div class="card">
+              <h2>Hostel Booking</h2>
+              <label for="hostelSelect">Select Hostel:</label><br/>
+              <select id="hostelSelect" name="hostelSelect" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
+                ${hostelOptions}
+              </select>
+              <br/>
+              <button class="red-btn" style="margin-top: 20px;" onclick="bookHostel()">Book</button>
+              <div id="hostelBookedMsg" style="margin-top: 15px; font-weight: bold; color: #006400;"></div>
+            </div>`;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+
+          // After rendering, pre-select the booked hostel if already saved
+          if (savedHostelId) {
+            document.getElementById("hostelSelect").value = savedHostelId;
+            const selectedHostelName = availableHostels.find(h => h.id === savedHostelId)?.name || 'Unknown';
+            document.getElementById("hostelBookedMsg").innerText = `🏨 You already booked: ${selectedHostelName}`;
+            // Disable select and button if already booked
+            document.getElementById("hostelSelect").disabled = true;
+            document.querySelector("button[onclick='bookHostel()']").disabled = true;
+          }
+
+          window.bookHostel = async function() {
+            const selectedHostelId = document.getElementById("hostelSelect").value;
+            if (!selectedHostelId) {
+              await alert("⚠️ Please select a hostel.");
+              return;
+            }
+
+            const response = await confirm(`Are you sure you want to book this hostel?`);
+            if (!response) return;
+
+            try {
+              // Check if already booked
+              const alreadyBookedSnap = await getDoc(studentBookingDocRef);
+              if (alreadyBookedSnap.exists() && alreadyBookedSnap.data().hostelId === selectedHostelId) {
+                await alert("❌ You have already booked this hostel.");
+                return;
+              }
+
+              // Re-fetch hostel data to check real-time availability
+              const publicHostelDocRef = doc(db, `artifacts/${appId}/public/data/hostels`, selectedHostelId);
+              const hostelLiveSnap = await getDoc(publicHostelDocRef);
+              const hostelLive = hostelLiveSnap.exists() ? hostelLiveSnap.data() : null;
+
+              if (!hostelLive || hostelLive.availableRooms <= 0) {
+                  await alert("❌ This hostel is currently unavailable. Please choose another.");
+                  return;
+              }
+
+              // Update student's booking
+              await setDoc(studentBookingDocRef, {
+                  hostelId: selectedHostelId,
+                  bookingDate: new Date().toISOString(), // Store as ISO string
+                  status: 'booked'
+              });
+
+              // Decrement availableRooms in public collection
+              await updateDoc(publicHostelDocRef, { availableRooms: hostelLive.availableRooms - 1 });
+
+              await alert("✅ Hostel booked successfully!");
+              showSection('hostelBooking'); // Refresh the section to show updated status
+            } catch (error) {
+              console.error("Error booking hostel:", error);
+              await alert("❌ Failed to book hostel. Please try again.");
+            }
+          };
+          break;
+
+        case 'settings':
+          breadcrumbTitle = 'Settings';
+          // Check if current user is an admin (e.g., based on a Firestore /admins collection)
+          const adminCheckDoc = doc(db, `artifacts/${appId}/public/data/admins`, auth.currentUser.email);
+          const adminSnap = await getDoc(adminCheckDoc);
+          const isAdmin = adminSnap.exists();
+
+          sectionContent = `
+            <div class="card">
+              <h2>Change Password</h2>
+              <label for="currentPassword">Current Password:</label><br/>
+              <input type="password" id="currentPassword" placeholder="Enter current password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+              <label for="newPassword">New Password:</label><br/>
+              <input type="password" id="newPassword" placeholder="Enter new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+              <label for="confirmPassword">Confirm New Password:</label><br/>
+              <input type="password" id="confirmPassword" placeholder="Confirm new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
+
+              <button class="red-btn" onclick="changePassword()"><i class="fas fa-key"></i> Update Password</button>
+
+              ${isAdmin ? `
+                <hr style="margin: 30px 30px">
+                <h3>Admin Controls</h3>
+                <button class="red-btn" onclick="clearAllData()"><i class="fas fa-eraser"></i> Clear All User Data</button>
+              ` : ''}
+            </div>
+          `;
+          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+
+          window.changePassword = async function() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+
+            if (!current || !newPass || !confirmPass) {
+              await alert("Please fill in all fields.");
+              return;
+            }
+
+            if (newPass !== confirmPass) {
+              await alert("New password and confirmation do not match.");
+              return;
+            }
+
+            if (newPass.length < 6) {
+              await alert("New password must be at least 6 characters long.");
+              return;
+            }
+
+            try {
+              const user = auth.currentUser;
+              if (user) {
+                // Note: updatePassword requires user to be recently authenticated.
+                // In a real app, you might need to re-authenticate them first if it's been a while.
+                await updatePassword(user, newPass);
+                await alert("Password updated successfully!");
+              } else {
+                await alert("No user logged in to change password.");
+              }
+              // Reset fields
+              document.getElementById('currentPassword').value = '';
+              document.getElementById('newPassword').value = '';
+              document.getElementById('confirmPassword').value = '';
+            } catch (error) {
+              console.error("Error updating password:", error);
+              if (error.code === 'auth/requires-recent-login') {
+                await alert("For security, please log out and log in again to update your password.");
+              } else {
+                await alert("Failed to update password. " + error.message);
+              }
+            }
+          };
+
+          window.clearAllData = async function() {
+            const response = await confirm("This will delete ALL user data in Firestore! Are you absolutely sure? This action is irreversible.");
+            if (response) {
+              try {
+                // This is a placeholder for actual admin data deletion,
+                // which would involve iterating and deleting subcollections.
+                // For safety in a client-side environment, this remains simulated.
+                await alert("Simulated: All user data cleared (conceptual). In a real application, this would be handled by a secure backend function.");
+              } catch (error) {
+                console.error("Error clearing all data:", error);
+                await alert("❌ Failed to clear all data. Please check console for details.");
+              }
+            }
+          };
+          break;
+
+        default:
+          content.innerHTML = `<div class="card"><h2>Page Not Found</h2><p>The requested section does not exist.</p></div>`;
+          break;
       }
       // New: Close sidebar if on mobile after section is shown
-      if (window.innerWidth <= 768) { // Assuming 768px is your mobile breakpoint
+      if (window.innerWidth <= 768) {
         const sidebar = document.querySelector('.sidebar');
         if (sidebar.classList.contains('active')) {
           sidebar.classList.remove('active');
         }
       }
     }
+    window.showSection = showSection; // Expose to global scope for HTML onclick
 
-    function changePassword() {
-      const current = document.getElementById('currentPassword').value;
-      const newPass = document.getElementById('newPassword').value;
-      const confirm = document.getElementById('confirmPassword').value;
-
-      if (!current || !newPass || !confirm) {
-        alert("Please fill in all fields.");
+    // Function to upload profile picture to Firebase Storage
+    window.uploadProfilePicture = async function() {
+      if (!currentUserId) {
+        await alert("Please log in to upload a profile picture.");
         return;
       }
 
-      if (newPass !== confirm) {
-        alert("New password and confirmation do not match.");
+      const fileInput = document.getElementById('profile-picture-upload');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        await alert("Please select a file to upload.");
         return;
       }
 
-      // Simulate password change success
-      alert("Password updated successfully!");
-      // Reset fields
-      document.getElementById('currentPassword').value = '';
-      document.getElementById('newPassword').value = '';
-      document.getElementById('confirmPassword').value = '';
+      const response = await confirm(`Upload "${file.name}" as your profile picture?`);
+      if (!response) return;
+
+      try {
+        const storageRef = ref(storage, `profile_pictures/${currentUserId}/${file.name}`);
+        const uploadTask = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(uploadTask.ref);
+
+        const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
+        await updateDoc(studentDocRef, { profilePhotoURL: downloadURL });
+
+        document.getElementById('profile-img-preview').src = downloadURL;
+        await alert("✅ Profile picture uploaded successfully!");
+      } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        await alert("❌ Failed to upload picture: " + error.message);
+      }
+    };
+
+    // --- PDF Generation Functions ---
+    // School logo for PDF - you should upload your myschoollogo.png to Firebase Storage
+    // and get its download URL, then replace this placeholder.
+    let schoolLogoBase64 = null; // To store base64 representation of the logo
+
+    async function getSchoolLogoBase64() {
+        if (schoolLogoBase64) return schoolLogoBase64;
+        try {
+            // Assuming you upload myschoollogo.png to 'assets/myschoollogo.png' in Storage
+            const logoRef = ref(storage, 'assets/myschoollogo.png');
+            const url = await getDownloadURL(logoRef);
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    schoolLogoBase64 = reader.result;
+                    resolve(schoolLogoBase64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+        // In a real application, you might provide a default base64 image or handle
+        // the error more gracefully if the logo is critical.
+        // For now, it will just not include the image if it fails to fetch.
+        catch (error) {
+            console.warn("Could not fetch school logo from Storage. Using fallback or no logo.", error);
+            return null; 
+        }
     }
 
-    function bookHostel() {
-      const alreadyBooked = localStorage.getItem("hostelBooking");
-      if (alreadyBooked) {
-        alert("❌ You have already booked: " + alreadyBooked);
-        return;
-      }
-      const selected = document.getElementById("hostelSelect").value;
-      if (selected && selected !== "") {
-        localStorage.setItem("hostelBooking", selected);
-        alert("✅ Hostel booked successfully: " + selected);
-
-        // Disable select and button
-        document.getElementById("hostelSelect").disabled = true;
-        document.querySelector("button[onclick='bookHostel()']").disabled = true;
-        document.getElementById("hostelBookedMsg").innerText = "🏨 You have booked: " + selected;
+    // Helper for common PDF header/footer
+    async function addPdfHeaderFooter(doc, title, student, includeWatermark = false) {
+      const logo = await getSchoolLogoBase64();
+      if (logo) {
+          doc.addImage(logo, "PNG", 15, 10, 30, 30);
       } else {
-        alert("⚠️ Please select a hostel.");
+          doc.setFontSize(10);
+          doc.text("Prince Alex Design University", 15, 25);
+      }
+      
+      doc.setFont('times', 'bold');
+      doc.setFontSize(18);
+      doc.text("Prince Alex Design University", 105, 25, { align: 'center' }); // University Name
+      doc.setFontSize(16);
+      doc.text(title, 105, 35, { align: 'center' }); // Page Title
+
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Name: ${student.name || 'N/A'}`, 15, 50);
+      doc.text(`Reg No: ${student.regNo || 'N/A'}`, 15, 56);
+      doc.text(`Email: ${student.email || 'N/A'}`, 15, 62);
+      doc.text(`Programme: ${student.programme || 'N/A'}`, 105, 50);
+
+      // Watermark (simulated) - requires a base64 image of the crest
+      if (includeWatermark) {
+          // Replace 'watermark_image_base64' with your actual semi-transparent school crest base64 image
+          // doc.addImage('watermark_image_base64', 'PNG', 50, 100, 100, 100, undefined, 'FAST', 0.1); // Adjust position and opacity
+      }
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for(let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(10);
+          doc.text(`Page ${i} of ${pageCount}`, 10, doc.internal.pageSize.height - 10);
+          doc.text(`Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, doc.internal.pageSize.width - 70, doc.internal.pageSize.height - 10);
       }
     }
 
-    function submitGraduationRequest() {
-      const type = document.getElementById('gradType').value;
-      const date = document.getElementById('gradDate').value;
-      const disability = document.getElementById('disability').value;
-      const confirmed = document.getElementById('declaration').checked;
+    window.generateFeesPDF = async function() {
+      const student = currentUserData;
+      const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
+      const feesSnapshot = await getDocs(feesCollectionRef);
+      const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date)); // Sort by date
 
-      if (!type || !date || !disability || !confirmed) {
-        alert("⚠️ Please fill out all fields and confirm declaration.");
+      if (!student || feesData.length === 0) {
+        await alert("No student data or fees records found to generate PDF.");
         return;
       }
 
-      alert("🎓 Graduation Request Submitted Successfully!\n\nWe will review and notify you.");
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      let runningBalance = 0;
+      const tableData = feesData.map(t => {
+        runningBalance += (t.debit || 0) - (t.credit || 0);
+        return [
+          t.date,
+          t.ref,
+          t.description,
+          (t.debit || 0).toFixed(2),
+          (t.credit || 0).toFixed(2),
+          runningBalance.toFixed(2)
+        ];
+      });
+
+      await addPdfHeaderFooter(doc, "Fees Statement", student);
+
+      doc.autoTable({
+        head: [["Posting Date", "Ref #", "Description", "Debit (KES)", "Credit (KES)", "Running Balance (KES)"]],
+        body: tableData,
+        startY: 75, // Adjust startY after header
+        styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
+      });
+
+      const finalY = doc.autoTable.previous.finalY;
+      const totalBilled = feesData.reduce((sum, item) => sum + (item.debit || 0), 0);
+      const totalPaid = feesData.reduce((sum, item) => sum + (item.credit || 0), 0);
+      const currentBalance = totalBilled - totalPaid;
+
+      doc.setFont('times', 'bold');
+      doc.setFontSize(12);
+      doc.text(`Current Balance: KES ${currentBalance.toFixed(2)}`, 15, finalY + 10);
+
+      doc.save("Fees_Statement.pdf");
+      await alert("Fees Statement PDF downloaded!");
+    };
+
+    window.generateReceiptPDF = async function(receiptRef) {
+      const student = currentUserData;
+      const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
+      const feesSnapshot = await getDocs(feesCollectionRef);
+      const receiptData = feesSnapshot.docs.map(doc => doc.data()).find(item => item.ref === receiptRef && (item.credit || 0) > 0);
+
+      if (!student || !receiptData) {
+        await alert("Receipt data not found to generate PDF.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      await addPdfHeaderFooter(doc, "Payment Receipt", student);
+
+      doc.setFont('times', 'normal');
+      doc.setFontSize(12);
+      doc.text(`Receipt No: ${receiptData.ref || 'N/A'}`, 15, 75);
+      doc.text(`Date: ${receiptData.date || 'N/A'}`, 15, 85);
+      doc.text(`Description: ${receiptData.description || 'N/A'}`, 15, 95);
+      doc.text(`Amount Paid: KES ${(receiptData.credit || 0).toFixed(2)}`, 15, 105);
+
+      doc.save(`Receipt_${receiptRef}.pdf`);
+      await alert("Receipt PDF downloaded!");
+    };
+
+    window.generateExamCardPDF = async function() {
+      const student = currentUserData;
+      const registeredUnitsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`));
+      let allRegisteredUnits = [];
+      registeredUnitsSnap.forEach(doc => {
+          const data = doc.data();
+          if (data.units) {
+              allRegisteredUnits = allRegisteredUnits.concat(data.units);
+          }
+      });
+
+      if (!student || allRegisteredUnits.length === 0) {
+        await alert("No student data or registered units found to generate Exam Card.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      await addPdfHeaderFooter(doc, "Exam Card", student);
+
+      const tableData = allRegisteredUnits.map((unit, i) => [
+        i + 1, unit.code, unit.name, "Room TBA", "Time TBA" // Placeholder for room/time
+      ]);
+
+      doc.autoTable({
+        head: [["#", "Unit Code", "Unit Name", "Room", "Time"]],
+        body: tableData,
+        startY: 75,
+        styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
+      });
+
+      // Add a simulated official stamp/signature placeholder
+      const finalY = doc.autoTable.previous.finalY;
+      doc.setFontSize(10);
+      doc.text("_________________________", 15, finalY + 20);
+      doc.text("Registrar's Signature/Stamp", 15, finalY + 25);
+
+      doc.save("Exam_Card.pdf");
+      await alert("Exam Card PDF downloaded!");
+    };
+
+    window.generateTranscriptPDF = async function() {
+      const student = currentUserData;
+      const gradesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
+      const gradesSnapshot = await getDocs(gradesCollectionRef);
+      const gradesData = gradesSnapshot.docs.map(doc => doc.data());
+
+      if (!student || gradesData.length === 0) {
+        await alert("No student data or grades found to generate Transcript.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      await addPdfHeaderFooter(doc, "Academic Transcript", student);
+
+      // Calculate GPA for transcript
+      let totalPoints = 0;
+      let totalUnits = 0;
+      const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 }; // Simple grade mapping
+      const tableData = gradesData.map(item => {
+        const points = gradeMap[item.grade] || 0;
+        const units = 1; // Assuming each unit is 1 credit for simplicity
+        totalPoints += points * units;
+        totalUnits += units;
+        return [item.unitCode, item.unitName, item.catScore, item.examScore, item.grade];
+      });
+      const calculatedGpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : 'N/A';
+
+
+      doc.autoTable({
+        head: [["Unit Code", "Unit Description", "CAT", "Exam", "Grade"]],
+        body: tableData,
+        startY: 75,
+        styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
+      });
+
+      const finalY = doc.autoTable.previous.finalY;
+      doc.setFont('times', 'bold');
+      doc.setFontSize(12);
+      doc.text(`Cumulative GPA: ${calculatedGpa}`, 15, finalY + 10);
+
+      doc.setFontSize(10);
+      doc.text("_________________________", 15, finalY + 40);
+      doc.text("Dean of Academics Signature", 15, finalY + 45);
+
+      doc.save("Academic_Transcript.pdf");
+      await alert("Academic Transcript PDF downloaded!");
+    };
+
+
+    // Initial dummy data population for demonstration (run once or upon first load)
+    async function populateInitialData() {
+        if (!currentUserId) {
+            console.log("No user logged in, cannot populate initial data yet.");
+            return;
+        }
+
+        const studentRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
+        const studentSnap = await getDoc(studentRef);
+        if (!studentSnap.exists() || !studentSnap.data().initialized) {
+            console.log("Initializing student data...");
+            await setDoc(studentRef, {
+                name: currentUserData.name,
+                regNo: "ENG/94/25",
+                email: currentUserData.email,
+                programme: "Bachelor of Arts in Computer Science",
+                campus: "Main Campus",
+                dob: "2000-01-01",
+                gender: "Male",
+                address: "P.O Box 123, Nairobi",
+                profilePhotoURL: "", // Default empty
+                initialized: true // Flag to prevent re-initialization
+            }, { merge: true });
+            currentUserData = (await getDoc(studentRef)).data(); // Refresh currentUserData
+
+            // Add dummy courses if not already present in public data
+            const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
+            const coursesSnap = await getDocs(coursesCol);
+            if (coursesSnap.empty) {
+                console.log("Populating dummy courses...");
+                await addDoc(coursesCol, { code: "ENG101", name: "Introduction to Writing", semester: "Semester 1", lecturer: "Dr. Smith", schedule: { day: "Monday", time: "09:00-10:00" }, timetableURL: "http://example.com/eng101_timetable.pdf" });
+                await addDoc(coursesCol, { code: "MAT101", name: "Basic Mathematics", semester: "Semester 1", lecturer: "Prof. Johnson", schedule: { day: "Tuesday", time: "10:00-11:00" }, timetableURL: "http://example.com/mat101_timetable.pdf" });
+                await addDoc(coursesCol, { code: "CSC101", name: "Introduction to Computing", semester: "Semester 1", lecturer: "Ms. Davis", schedule: { day: "Wednesday", time: "08:00-09:00" }, timetableURL: "http://example.com/csc101_timetable.pdf" });
+                await addDoc(coursesCol, { code: "ENG102", name: "Advanced Composition", semester: "Semester 2", lecturer: "Dr. Brown", schedule: { day: "Thursday", time: "14:00-15:00" }, timetableURL: "http://example.com/eng102_timetable.pdf" });
+                await addDoc(coursesCol, { code: "MAT102", name: "Statistics", semester: "Semester 2", lecturer: "Prof. White", schedule: { day: "Friday", time: "11:00-12:00" }, timetableURL: "http://example.com/mat102_timetable.pdf" });
+                await addDoc(coursesCol, { code: "CSC102", name: "Web Development Basics", semester: "Semester 2", lecturer: "Mr. Green", schedule: { day: "Monday", time: "13:00-14:00" }, timetableURL: "http://example.com/csc102_timetable.pdf" });
+            }
+
+            // Add dummy fees data if not already present
+            const feesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
+            const feesSnap = await getDocs(feesCol);
+            if (feesSnap.empty) {
+                console.log("Populating dummy fees data...");
+                await addDoc(feesCol, { date: "2025-06-01", ref: "INV001", description: "Tuition Fee Semester 1", debit: 25000, credit: 0, runningBalance: 25000 });
+                await addDoc(feesCol, { date: "2025-06-03", ref: "INV002", description: "Hostel Booking", debit: 13500, credit: 0, runningBalance: 38500 });
+                await addDoc(feesCol, { date: "2025-06-07", ref: "RCPT001", description: "Payment via M-PESA", debit: 0, credit: 20000, runningBalance: 18500 });
+                await addDoc(feesCol, { date: "2025-06-10", ref: "INV003", description: "Library Fine", debit: 500, credit: 0, runningBalance: 19000 });
+                await addDoc(feesCol, { date: "2025-06-15", ref: "INV004", description: "Exam Fee", debit: 3000, credit: 0, runningBalance: 22000 });
+                await addDoc(feesCol, { date: "2025-06-20", ref: "RCPT002", description: "Bank Deposit", debit: 0, credit: 10000, runningBalance: 12000 });
+            }
+
+            // Add dummy grades data if not already present
+            const gradesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
+            const gradesSnap = await getDocs(gradesCol);
+            if (gradesSnap.empty) {
+                console.log("Populating dummy grades data...");
+                await addDoc(gradesCol, { unitCode: "ENG101", unitName: "Introduction to Writing", catScore: 15, examScore: 55, grade: "B" });
+                await addDoc(gradesCol, { unitCode: "CSC101", unitName: "Introduction to Computing", catScore: 18, examScore: 72, grade: "A" });
+            }
+
+             // Add dummy public hostels data if not already present
+            const publicHostelsCol = collection(db, `artifacts/${appId}/public/data/hostels`);
+            const publicHostelsSnap = await getDocs(publicHostelsCol);
+            if (publicHostelsSnap.empty) {
+                console.log("Populating dummy public hostels data...");
+                await addDoc(publicHostelsCol, { name: "Greenfields Hostel", price: 15000, availableRooms: 5 });
+                await addDoc(publicHostelsCol, { name: "Sunrise Hostel", price: 13500, availableRooms: 3 });
+                await addDoc(publicHostelsCol, { name: "Lakeview Hostel", price: 14200, availableRooms: 8 });
+                await addDoc(publicHostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 }); // Example unavailable
+                await addDoc(publicHostelsCol, { name: "Riverbend Hostel", price: 12800, availableRooms: 2 });
+            }
+
+            // Add dummy announcements if not already present
+            const announcementsCol = collection(db, `artifacts/${appId}/public/data/announcements`);
+            const announcementsSnap = await getDocs(announcementsCol);
+            if (announcementsSnap.empty) {
+                console.log("Populating dummy announcements...");
+                await addDoc(announcementsCol, { title: "Exam Schedule Update", message: "Final exam schedule has been released. Check academic section.", date: "2025-06-25" });
+                await addDoc(announcementsCol, { title: "Holiday Break", message: "University will be closed from July 1st to July 5th.", date: "2025-06-20" });
+            }
+
+            // Add a dummy admin record for demonstration of isAdmin check
+            const adminsCol = collection(db, `artifacts/${appId}/public/data/admins`);
+            const adminSnap = await getDoc(doc(adminsCol, "senerwaalex@gmail.com"));
+            if (!adminSnap.exists()) {
+                await setDoc(doc(adminsCol, "senerwaalex@gmail.com"), { role: "admin" });
+            }
+
+            console.log("Initial data population complete.");
+            showSection('home'); // Refresh to show updated data
+        }
     }
 
-    // Initial load: show home section
-    showSection('home');
+    // Call populateInitialData once the user is authenticated and currentUserData is available
+    // The onAuthStateChanged listener already calls showSection('home') which will trigger this logic.
   </script>
 </body>
 </html>
