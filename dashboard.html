@@ -493,7 +493,19 @@
   <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
-    <div class="loading-text">Authenticating...</div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
+  <!-- Custom Modal for Alerts/Confirms -->
+  <div id="customModal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle"></h3>
+      <p id="modalMessage"></p>
+      <div class="modal-buttons">
+        <button id="modalConfirmBtn">OK</button>
+        <button id="modalCancelBtn" class="cancel">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <header>
@@ -543,24 +555,11 @@
     2025 © Prince Alex Design University. All rights reserved.
   </footer>
 
-  <!-- Custom Modal for Alerts/Confirms -->
-  <div id="customModal" class="modal">
-    <div class="modal-content">
-      <h3 id="modalTitle"></h3>
-      <p id="modalMessage"></p>
-      <div class="modal-buttons">
-        <button id="modalConfirmBtn">OK</button>
-        <button id="modalCancelBtn" class="cancel">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Firebase SDKs -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
     // Firebase Config: This configuration object contains your Firebase project details.
     const firebaseConfig = {
@@ -583,10 +582,44 @@
 
     let currentUserId = null;
     let currentUserData = null;
-    let authCheckCompleted = false; // New flag to track if initial auth check is done
 
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingText = document.querySelector('#loadingOverlay .loading-text');
+
+    // --- Custom Modal Functions (replaces alert/confirm) ---
+    let resolveModalPromise;
+    function showCustomModal(title, message, isConfirm = false) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('customModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        if (modalTitle) modalTitle.innerText = title;
+        if (modalMessage) modalMessage.innerText = message;
+        
+        if (modalConfirmBtn) {
+            modalConfirmBtn.onclick = () => {
+                if (modal) modal.style.display = 'none';
+                resolve(true);
+            };
+        }
+        if (modalCancelBtn) {
+            modalCancelBtn.onclick = () => {
+                if (modal) modal.style.display = 'none';
+                resolve(false);
+            };
+            modalCancelBtn.style.display = isConfirm ? 'inline-block' : 'none';
+        }
+        if (modal) modal.style.display = 'flex'; // Use flex to center
+        resolveModalPromise = resolve;
+      });
+    }
+
+    window.alert = (message) => showCustomModal('Alert', message); // Override alert
+    window.confirm = (message) => showCustomModal('Confirm', message, true); // Override confirm
+    // --- End Custom Modal Functions ---
 
     // Function to handle redirection
     function redirectToLogin(message = "Session expired or not logged in. Redirecting...") {
@@ -597,109 +630,52 @@
         }, 1500); // Give user a moment to read the message
     }
 
-    // Attempt initial sign-in with custom token if available
-    // This runs *before* onAuthStateChanged potentially sees a null user
-    (async () => {
-        loadingText.innerText = "Authenticating...";
-        loadingOverlay.style.display = 'flex'; // Ensure it's shown from the start
-
-        // Retrieve token from sessionStorage
-        window.__initial_auth_token = sessionStorage.getItem("__initial_auth_token");
-
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            try {
-                await signInWithCustomToken(auth, __initial_auth_token);
-                // If successful, onAuthStateChanged will handle the rest
-                sessionStorage.removeItem("__initial_auth_token"); // Clean up the token from sessionStorage
-            } catch (error) {
-                console.error("Error signing in with custom token:", error);
-                // If custom token fails, explicitly mark check as complete and redirect
-                authCheckCompleted = true;
-                redirectToLogin("Authentication failed. Please log in again. (Error: auth/custom-token-mismatch)");
-            }
-        } else {
-            // No custom token provided, proceed to check auth state via listener
-            // This is crucial for environments where __initial_auth_token is not always present.
-            authCheckCompleted = true; // Mark as complete since we won't try custom token
-            // The onAuthStateChanged will handle if user is null after this.
-            console.log("No custom token found. Checking existing session.");
-        }
-    })();
-
-
-    // Authentication state listener
+    // --- Firebase Authentication Handling ---
     onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUserId = user.uid;
-            console.log("User authenticated:", user.uid);
-            const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
-            const studentDocSnap = await getDoc(studentDocRef);
+      if (user) {
+        currentUserId = user.uid;
+        console.log("User authenticated:", user.email, user.uid);
+        
+        // Fetch user data from Firestore
+        const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
+        const studentDocSnap = await getDoc(studentDocRef);
 
-            if (studentDocSnap.exists()) {
-                currentUserData = studentDocSnap.data();
-                document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-                const profileImgElement = document.querySelector('#profile-img-preview');
-                if (profileImgElement && currentUserData.profilePhotoURL) {
-                    profileImgElement.src = currentUserData.profilePhotoURL;
-                }
-            } else {
-                await setDoc(studentDocRef, {
-                    email: user.email,
-                    name: user.email.split("@")[0],
-                    regNo: "N/A",
-                    programme: "N/A",
-                    campus: "Main Campus",
-                    dob: "N/A",
-                    gender: "N/A",
-                    address: "N/A",
-                    profilePhotoURL: "",
-                    initialized: true
-                }, { merge: true });
-                currentUserData = (await getDoc(studentDocRef)).data();
-                document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
-            }
-            loadingOverlay.style.display = 'none'; // Hide loading overlay
-            showSection('home');
-            populateInitialData();
-            authCheckCompleted = true; // Mark as complete after successful auth
+        if (studentDocSnap.exists()) {
+          currentUserData = studentDocSnap.data();
+          document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+          const profileImgElement = document.querySelector('#profile-img-preview');
+          if (profileImgElement && currentUserData.profilePhotoURL) {
+            profileImgElement.src = currentUserData.profilePhotoURL;
+          }
         } else {
-            // User is signed out or not logged in
-            if (authCheckCompleted) {
-                // Only redirect if the initial check (including custom token attempt) has finished
-                console.log("User signed out. Redirecting to login.");
-                redirectToLogin("You have been signed out. Redirecting to login...");
-            } else {
-                // This state might occur briefly before signInWithCustomToken resolves or if it's explicitly not called.
-                // We'll let the initial IIFE or subsequent onAuthStateChanged calls handle the final state.
-                console.log("onAuthStateChanged: User is null, but initial auth check might still be in progress or just starting.");
-            }
+          // If user doc doesn't exist, create a basic one (should ideally be done during signup)
+          // This ensures new Firebase Auth users get a basic Firestore profile
+          await setDoc(studentDocRef, {
+            email: user.email,
+            name: user.email.split("@")[0], // Placeholder name
+            regNo: "N/A",
+            programme: "N/A",
+            campus: "Main Campus",
+            dob: "N/A",
+            gender: "N/A",
+            address: "N/A",
+            profilePhotoURL: "",
+            initialized: true // Mark as initialized
+          });
+          currentUserData = (await getDoc(studentDocRef)).data(); // Refresh currentUserData after creation
+          document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
+          console.log("Created basic user profile during dashboard load fallback.");
         }
+        
+        loadingOverlay.style.display = 'none'; // Hide loading overlay now that data is loaded
+        showSection('home'); // Show dashboard content once authenticated and data loaded
+        populateInitialData(); // Populate dummy data if not already present
+      } else {
+        // User is signed out or not logged in, redirect to login page
+        console.log("No user authenticated. Redirecting to login.");
+        redirectToLogin("Not logged in. Redirecting to login...");
+      }
     });
-
-    // --- Custom Modal Functions (replaces alert/confirm) ---
-    let resolveModalPromise;
-    function showCustomModal(title, message, isConfirm = false) {
-      return new Promise((resolve) => {
-        document.getElementById('modalTitle').innerText = title;
-        document.getElementById('modalMessage').innerText = message;
-        document.getElementById('modalConfirmBtn').onclick = () => {
-          document.getElementById('customModal').style.display = 'none';
-          resolve(true);
-        };
-        document.getElementById('modalCancelBtn').onclick = () => {
-          document.getElementById('customModal').style.display = 'none';
-          resolve(false);
-        };
-        document.getElementById('modalCancelBtn').style.display = isConfirm ? 'inline-block' : 'none';
-        document.getElementById('customModal').style.display = 'flex'; // Use flex to center
-        resolveModalPromise = resolve;
-      });
-    }
-
-    window.alert = (message) => showCustomModal('Alert', message); // Override alert
-    window.confirm = (message) => showCustomModal('Confirm', message, true); // Override confirm
-    // --- End Custom Modal Functions ---
-
 
     // --- Dashboard Specific Functions (Adapted for Firestore) ---
 
@@ -708,10 +684,10 @@
       const response = await confirm("Are you sure you want to log out?");
       if (response) {
         try {
-          loadingOverlay.style.display = 'flex'; // Show loading during logout
           loadingText.innerText = "Logging out...";
+          loadingOverlay.style.display = 'flex'; // Show loading during logout
           await signOut(auth);
-          // Redirection handled by onAuthStateChanged
+          // Redirection handled by onAuthStateChanged listener
         } catch (error) {
           console.error("Error signing out:", error);
           alert("Error logging out. Please try again.");
@@ -724,13 +700,13 @@
 
     function toggleSubmenu(id) {
       const submenu = document.getElementById(id);
-      submenu.style.display = submenu.style.display === "none" ? "block" : "none";
+      if (submenu) submenu.style.display = submenu.style.display === "none" ? "block" : "none"; // Null check
     }
     window.toggleSubmenu = toggleSubmenu; // Expose to global scope
 
     document.getElementById('menuToggle').addEventListener('click', function() {
       const sidebar = document.querySelector('.sidebar');
-      if (sidebar) sidebar.classList.toggle('active'); // Null check
+      if (sidebar) sidebar.classList.toggle('active');
     });
 
     // Helper to generate breadcrumbs
@@ -749,7 +725,7 @@
 
       if (!currentUserId) {
         console.log("currentUserId is null. Redirecting to login from showSection.");
-        redirectToLogin("Not logged in. Redirecting to login..."); // Use the unified redirect
+        redirectToLogin("Not logged in. Redirecting to login...");
         return;
       }
 
@@ -779,7 +755,7 @@
                 <i class="fas fa-search search-icon"></i>
             </div>
           </div>`;
-          if (content) content.innerHTML = sectionContent; // Null check for content
+          if (content) content.innerHTML = sectionContent;
           // Load announcements
           onSnapshot(collection(db, `artifacts/${appId}/public/data/announcements`), (snapshot) => {
               const announcements = snapshot.docs.map(doc => doc.data());
@@ -832,7 +808,7 @@
               <p><strong>Reg. No:</strong> ${studentData.regNo || 'N/A'}</p>
               <p><strong>Name:</strong> ${studentData.name || 'N/A'}</p>
               <p><strong>Email:</strong> ${studentData.email || 'N/A'}</p>
-              <p><strong>Programme:</b> ${studentData.programme || 'N/A'}</p>
+              <p><strong>Programme:</strong> ${studentData.programme || 'N/A'}</p>
               <p><strong>Campus:</strong> ${studentData.campus || 'N/A'}</p>
               <p><strong>Date Of Birth:</strong> ${studentData.dob || 'N/A'}</p>
               <p><strong>Gender:</strong> ${studentData.gender || 'N/A'}</p>
@@ -924,7 +900,7 @@
           `;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           window.renderUnits = async function () {
-            const semester = document.getElementById("semesterSelect")?.value; // Null check
+            const semester = document.getElementById("semesterSelect")?.value;
             const formArea = document.getElementById("unitFormArea");
             if (!formArea || !semester) {
               if(formArea) formArea.innerHTML = "";
@@ -1065,7 +1041,7 @@
 
         case 'graduation':
           breadcrumbTitle = 'Graduation Request';
-          const currentStudentData = (await getDoc(studentDocRef)).data(); // Ensure latest data
+          const currentStudentData = (await getDoc(studentDocRef)).data();
           sectionContent = `
             <div class="card">
               <h2>Graduation Request</h2>
@@ -1101,10 +1077,10 @@
           `;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           window.submitGraduationRequest = async function() {
-            const type = document.getElementById('gradType')?.value; // Null check
-            const date = document.getElementById('gradDate')?.value; // Null check
-            const disability = document.getElementById('disability')?.value; // Null check
-            const confirmed = document.getElementById('declaration')?.checked; // Null check
+            const type = document.getElementById('gradType')?.value;
+            const date = document.getElementById('gradDate')?.value;
+            const disability = document.getElementById('disability')?.value;
+            const confirmed = document.getElementById('declaration')?.checked;
 
             if (!type || !date || !disability || !confirmed) {
               await alert("⚠️ Please fill out all fields and confirm declaration.");
@@ -1210,7 +1186,7 @@
                 showSection("clearance");
               } catch (error) {
                 console.error("Error submitting clearance:", error);
-                await alert("❌ Failed to submit clearance request. Please try again.");
+                await alert("❌ Failed to submit clearance. Please try again.");
               }
             };
           }
@@ -1591,6 +1567,8 @@
             try {
               const user = auth.currentUser;
               if (user) {
+                // For password updates, Firebase requires recent re-authentication if too much time has passed.
+                // In a production app, you'd typically prompt for re-authentication before this step.
                 await updatePassword(user, newPass);
                 await alert("Password updated successfully!");
               } else {
@@ -1616,6 +1594,9 @@
             const response = await confirm("This will delete ALL user data in Firestore! Are you absolutely sure? This action is irreversible.");
             if (response) {
               try {
+                // This is a placeholder for actual admin data deletion,
+                // which would involve iterating and deleting subcollections securely.
+                // For safety in a client-side environment, this remains simulated.
                 await alert("Simulated: All user data cleared (conceptual). In a real application, this would be handled by a secure backend function.");
               } catch (error) {
                 console.error("Error clearing all data:", error);
@@ -1914,22 +1895,24 @@
 
         const studentRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
         const studentSnap = await getDoc(studentRef);
+        // Only populate if the student data is new or not yet initialized
         if (!studentSnap.exists() || !studentSnap.data().initialized) {
             console.log("Initializing student data...");
             await setDoc(studentRef, {
-                name: currentUserData.name,
+                email: auth.currentUser.email, // Use Firebase Auth email
+                name: auth.currentUser.email.split("@")[0], // Derive name from email
                 regNo: "ENG/94/25",
-                email: currentUserData.email,
                 programme: "Bachelor of Arts in Computer Science",
                 campus: "Main Campus",
                 dob: "2000-01-01",
                 gender: "Male",
                 address: "N/A",
-                profilePhotoURL: "",
-                initialized: true
+                profilePhotoURL: "", // Default empty
+                initialized: true // Flag to prevent re-initialization
             }, { merge: true });
-            currentUserData = (await getDoc(studentRef)).data();
+            currentUserData = (await getDoc(studentRef)).data(); // Refresh currentUserData
 
+            // Add dummy courses if not already present in public data
             const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
             const coursesSnap = await getDocs(coursesCol);
             if (coursesSnap.empty) {
@@ -1942,6 +1925,7 @@
                 await addDoc(coursesCol, { code: "CSC102", name: "Web Development Basics", semester: "Semester 2", lecturer: "Mr. Green", schedule: { day: "Monday", time: "13:00-14:00" }, timetableURL: "http://example.com/csc102_timetable.pdf" });
             }
 
+            // Add dummy fees data if not already present
             const feesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
             const feesSnap = await getDocs(feesCol);
             if (feesSnap.empty) {
@@ -1954,6 +1938,7 @@
                 await addDoc(feesCol, { date: "2025-06-20", ref: "RCPT002", description: "Bank Deposit", debit: 0, credit: 10000, runningBalance: 12000 });
             }
 
+            // Add dummy grades data if not already present
             const gradesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
             const gradesSnap = await getDocs(gradesCol);
             if (gradesSnap.empty) {
@@ -1962,6 +1947,7 @@
                 await addDoc(gradesCol, { unitCode: "CSC101", unitName: "Introduction to Computing", catScore: 18, examScore: 72, grade: "A" });
             }
 
+             // Add dummy public hostels data if not already present
             const publicHostelsCol = collection(db, `artifacts/${appId}/public/data/hostels`);
             const publicHostelsSnap = await getDocs(publicHostelsCol);
             if (publicHostelsSnap.empty) {
@@ -1969,10 +1955,11 @@
                 await addDoc(publicHostelsCol, { name: "Greenfields Hostel", price: 15000, availableRooms: 5 });
                 await addDoc(publicHostelsCol, { name: "Sunrise Hostel", price: 13500, availableRooms: 3 });
                 await addDoc(publicHostelsCol, { name: "Lakeview Hostel", price: 14200, availableRooms: 8 });
-                await addDoc(publicHostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 });
+                await addDoc(publicHostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 }); // Example unavailable
                 await addDoc(publicHostelsCol, { name: "Riverbend Hostel", price: 12800, availableRooms: 2 });
             }
 
+            // Add dummy announcements if not already present
             const announcementsCol = collection(db, `artifacts/${appId}/public/data/announcements`);
             const announcementsSnap = await getDocs(announcementsCol);
             if (announcementsSnap.empty) {
@@ -1981,6 +1968,7 @@
                 await addDoc(announcementsCol, { title: "Holiday Break", message: "University will be closed from July 1st to July 5th.", date: "2025-06-20" });
             }
 
+            // Add a dummy admin record for demonstration of isAdmin check
             const adminsCol = collection(db, `artifacts/${appId}/public/data/admins`);
             const adminSnap = await getDoc(doc(adminsCol, "senerwaalex@gmail.com"));
             if (!adminSnap.exists()) {
@@ -1988,7 +1976,7 @@
             }
 
             console.log("Initial data population complete.");
-            showSection('home');
+            // No explicit showSection('home') needed here as onAuthStateChanged handles it after this.
         }
     }
   </script>
