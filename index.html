@@ -377,12 +377,8 @@
         }
       } catch (error) {
         let errorMessage = "An unknown error occurred. Please try again.";
-        if (error.code === 'auth/invalid-credential') {
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             errorMessage = "❌ Invalid email or password. Please try again.";
-        } else if (error.code === 'auth/user-not-found') {
-            errorMessage = "❌ No account found with that email. Please sign up.";
-        } else if (error.code === 'auth/wrong-password') {
-            errorMessage = "❌ Incorrect password. Please try again.";
         } else {
             errorMessage = "❌ " + error.message; // Fallback for other Firebase errors
         }
@@ -434,9 +430,9 @@
           regDate: new Date().toISOString()
         });
       
-        showMessage("✅ Account created successfully!", "success");
+        showMessage("✅ Account created successfully! Please log in.", "success");
         setTimeout(() => { // Delay redirect to allow message to be seen
-          window.location.href = "dashboard.html"; 
+          showForm('login-form'); // Redirect to login form after signup
         }, 1500);
       } catch (error) {
         let errorMessage = "An unknown error occurred during signup. Please try again.";
