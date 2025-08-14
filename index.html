@@ -356,25 +356,15 @@
       
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const user = userCredential.user; // User object will be available here
 
-        // Check if the user is an admin
-        const adminDoc = await getDoc(doc(db, "admins", user.email.toLowerCase()));
-        if (adminDoc.exists() && adminDoc.data().isAdmin === true) {
-          sessionStorage.setItem("userLoggedIn", "true");
-          sessionStorage.setItem("loggedInUserUid", user.uid);
-          showMessage("✅ Admin login successful!", "success");
-          setTimeout(() => { // Delay redirect to allow message to be seen
-            window.location.href = "admin.html"; 
-          }, 1500);
-        } else {
-          sessionStorage.setItem("userLoggedIn", "true");
-          sessionStorage.setItem("loggedInUserUid", user.uid);
-          showMessage("✅ Login successful!", "success");
-          setTimeout(() => { // Delay redirect to allow message to be seen
+        // Regardless of admin status, if authenticated, redirect to dashboard.
+        sessionStorage.setItem("userLoggedIn", "true");
+        sessionStorage.setItem("loggedInUserUid", user.uid);
+        showMessage("✅ Login successful!", "success");
+        setTimeout(() => { 
             window.location.href = "dashboard.html"; 
-          }, 1500);
-        }
+        }, 1500);
       } catch (error) {
         let errorMessage = "An unknown error occurred. Please try again.";
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
