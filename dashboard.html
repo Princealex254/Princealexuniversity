@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard - Prince Alex Design University</title>
   <!-- Font Awesome for icons -->
@@ -349,6 +349,38 @@
       border-radius: 8px;
     }
 
+    /* Loading indicator styles */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        flex-direction: column;
+    }
+    .loading-spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #006400;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+    }
+    .loading-text {
+        margin-top: 20px;
+        font-size: 1.2em;
+        color: #006400;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
     /* Media Query for screens smaller than 768px */
     @media (max-width: 768px) {
       header {
@@ -458,6 +490,12 @@
   </style>
 </head>
 <body>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Authenticating...</div>
+  </div>
+
   <header>
     <img src="myschoollogo.png" alt="University Logo" />
     <button class="menu-toggle" id="menuToggle">&#9776;</button> 
@@ -525,7 +563,6 @@
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     // Firebase Config: This configuration object contains your Firebase project details.
-    // It's essential for initializing the Firebase SDK and connecting to your project.
     const firebaseConfig = {
       apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
       authDomain: "universityweb-19e1e.firebaseapp.com",
@@ -536,8 +573,7 @@
     };
 
     // The appId is used for structuring Firestore collections under /artifacts/{appId}/
-    // This value is extracted from the firebaseConfig.appId to maintain consistency
-    const appId = firebaseConfig.projectId; // Using projectId as appId for artifacts path
+    const appId = firebaseConfig.projectId;
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
@@ -574,26 +610,26 @@
 
 
     // --- Firebase Authentication Handling ---
+    // Get the loading overlay element
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUserId = user.uid;
         console.log("User authenticated:", user.uid);
         // Fetch user data from Firestore
-        // Collection path: /artifacts/{appId}/users/{userId}/students/{studentId}
         const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
         const studentDocSnap = await getDoc(studentDocRef);
 
         if (studentDocSnap.exists()) {
           currentUserData = studentDocSnap.data();
           document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-          // If there's a stored photo URL, use it
           const profileImgElement = document.querySelector('#profile-img-preview');
           if (profileImgElement && currentUserData.profilePhotoURL) {
             profileImgElement.src = currentUserData.profilePhotoURL;
           }
         } else {
           // If user doc doesn't exist, create a basic one (should ideally be done during signup)
-          // For now, setting placeholder data. In a real scenario, this would come from the signup process.
           await setDoc(studentDocRef, {
             email: user.email,
             name: user.email.split("@")[0], // Placeholder name
@@ -603,35 +639,38 @@
             dob: "N/A",
             gender: "N/A",
             address: "N/A",
-            profilePhotoURL: ""
+            profilePhotoURL: "",
+            initialized: true // Mark as initialized
           });
           currentUserData = (await getDoc(studentDocRef)).data();
           document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
         }
+        loadingOverlay.style.display = 'none'; // Hide loading overlay
         showSection('home'); // Show dashboard content once authenticated and data loaded
         populateInitialData(); // Populate dummy data if not already present
       } else {
         // User is signed out or not logged in, redirect to login page
         console.log("No user authenticated. Redirecting to login.");
-        window.location.replace("/index.html"); // Redirect to the login page with absolute path
+        loadingOverlay.style.display = 'none'; // Hide loading overlay immediately on unauth
+        window.location.href = "index.html"; // Changed from replace to href and removed leading slash
       }
     });
 
     // Initial sign-in with custom token if available (for Canvas environment)
     console.log("Attempting initial sign-in...");
     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-      console.log("Custom token found, attempting sign-in with custom token.");
+      // Custom token sign-in
       signInWithCustomToken(auth, __initial_auth_token)
         .catch((error) => {
           console.error("Error signing in with custom token:", error);
           // If custom token fails, redirect to login as anonymous sign-in is restricted.
-          console.log("Custom token sign-in failed. Redirecting to login.");
-          window.location.replace("/index.html");
+          loadingOverlay.style.display = 'none'; // Hide loading overlay on error
+          window.location.href = "index.html"; // Changed from replace to href and removed leading slash
         });
     } else {
-      console.log("No custom token found. Redirecting to login page as anonymous sign-in is restricted.");
-      // Directly redirect to login if no custom token and anonymous sign-in is restricted
-      window.location.replace("/index.html");
+      // If no custom token is provided (e.g., in a non-Canvas deployed environment),
+      // we still wait for onAuthStateChanged to resolve before redirecting.
+      // The onAuthStateChanged listener will handle the redirect if no user is found.
     }
 
 
@@ -642,11 +681,13 @@
       const response = await confirm("Are you sure you want to log out?");
       if (response) {
         try {
+          loadingOverlay.style.display = 'flex'; // Show loading during logout
           await signOut(auth);
-          // Redirect handled by onAuthStateChanged
+          // Redirection handled by onAuthStateChanged
         } catch (error) {
           console.error("Error signing out:", error);
           alert("Error logging out. Please try again.");
+          loadingOverlay.style.display = 'none'; // Hide loading on error
         }
       }
     }
@@ -680,7 +721,7 @@
 
       if (!currentUserId) {
         console.log("currentUserId is null. Redirecting to login from showSection.");
-        window.location.replace("/index.html");
+        window.location.href = "index.html"; // Changed from replace to href and removed leading slash
         return;
       }
 
@@ -715,14 +756,19 @@
           onSnapshot(collection(db, `artifacts/${appId}/public/data/announcements`), (snapshot) => {
               const announcements = snapshot.docs.map(doc => doc.data());
               const notificationList = document.querySelector('#notifications-panel');
-              if (announcements.length > 0) {
-                  notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> Latest Announcements</h4><ul>${announcements.map(ann => `<li>${ann.title}: ${new Date(ann.date).toLocaleDateString()} - ${ann.message}</li>`).join('')}</ul>`;
-              } else {
-                  notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> No New Announcements</h4><p>Check back later for updates.</p>`;
+              if (notificationList) { // Add null check
+                  if (announcements.length > 0) {
+                      notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> Latest Announcements</h4><ul>${announcements.map(ann => `<li>${ann.title}: ${new Date(ann.date).toLocaleDateString()} - ${ann.message}</li>`).join('')}</ul>`;
+                  } else {
+                      notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> No New Announcements</h4><p>Check back later for updates.</p>`;
+                  }
               }
           }, (error) => {
               console.error("Error fetching announcements:", error);
-              document.querySelector('#notifications-panel').innerHTML = `<p style="color:red;">Error loading announcements.</p>`;
+              const notificationList = document.querySelector('#notifications-panel');
+              if (notificationList) {
+                  notificationList.innerHTML = `<p style="color:red;">Error loading announcements.</p>`;
+              }
           });
           break;
 
@@ -775,9 +821,9 @@
             <hr style="margin: 30px 0">
             <h3>Fee Payment</h3>
             <div class="info-group">
-              <p><strong>Total Billed:</strong> Loading...</p>
-              <p><strong>Total Paid:</strong> Loading...</p>
-              <p><strong>Fee Balance:</strong> Loading...</p>
+              <p id="total-billed"><strong>Total Billed:</strong> Loading...</p>
+              <p id="total-paid"><strong>Total Paid:</strong> Loading...</p>
+              <p id="fee-balance"><strong>Fee Balance:</strong> Loading...</p>
             </div>
             <button class="pay-btn">Make Payment</button>
             <hr style="margin: 30px 0">
@@ -803,8 +849,10 @@
                       attempted += data.units.length; // Simple count for demo, assuming all registered are attempted
                   }
               });
-              document.getElementById("attempted-units").innerHTML = `<strong>Attempted Units:</strong> ${attempted}`;
-              document.getElementById("registered-units").innerHTML = `<strong>Registered Units:</strong> ${registered}`;
+              const attemptedUnitsElement = document.getElementById("attempted-units");
+              const registeredUnitsElement = document.getElementById("registered-units");
+              if(attemptedUnitsElement) attemptedUnitsElement.innerHTML = `<strong>Attempted Units:</strong> ${attempted}`;
+              if(registeredUnitsElement) registeredUnitsElement.innerHTML = `<strong>Registered Units:</strong> ${registered}`;
           }, (error) => {
               console.error("Error fetching registration data for profile:", error);
           });
@@ -819,9 +867,13 @@
                   totalPaid += data.credit || 0;
               });
               const feeBalance = totalBilled - totalPaid;
-              content.querySelector('.info-group p:nth-child(7)').innerHTML = `<strong>Total Billed:</strong> ${totalBilled.toFixed(2)}`;
-              content.querySelector('.info-group p:nth-child(8)').innerHTML = `<strong>Total Paid:</strong> ${totalPaid.toFixed(2)}`;
-              content.querySelector('.info-group p:nth-child(9)').innerHTML = `<strong>Fee Balance:</strong> ${feeBalance.toFixed(2)}`;
+              const totalBilledElement = content.querySelector('#total-billed');
+              const totalPaidElement = content.querySelector('#total-paid');
+              const feeBalanceElement = content.querySelector('#fee-balance');
+
+              if(totalBilledElement) totalBilledElement.innerHTML = `<strong>Total Billed:</strong> ${totalBilled.toFixed(2)}`;
+              if(totalPaidElement) totalPaidElement.innerHTML = `<strong>Total Paid:</strong> ${totalPaid.toFixed(2)}`;
+              if(feeBalanceElement) feeBalanceElement.innerHTML = `<strong>Fee Balance:</strong> ${feeBalance.toFixed(2)}`;
           }, (error) => {
               console.error("Error fetching fee data for profile:", error);
           });
@@ -846,8 +898,8 @@
           window.renderUnits = async function () {
             const semester = document.getElementById("semesterSelect").value;
             const formArea = document.getElementById("unitFormArea");
-            if (!semester) {
-              formArea.innerHTML = "";
+            if (!formArea || !semester) { // Null check for formArea
+              if(formArea) formArea.innerHTML = "";
               return;
             }
 
@@ -891,27 +943,30 @@
               </form>
             `;
 
-            document.getElementById("unitForm").onsubmit = async function(e) {
-              e.preventDefault();
-              const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
-                code: input.value,
-                name: input.dataset.name
-              }));
-              if (selected.length === 0) {
-                await alert("⚠️ Please select at least one unit.");
-                return;
-              }
-              
-              // Save registered units to Firestore
-              try {
-                await setDoc(regDocRef, { units: selected }, { merge: true });
-                await alert("✅ Units registered successfully for " + semester);
-                renderUnits(); // refresh to lock form
-              } catch (error) {
-                console.error("Error registering units:", error);
-                await alert("❌ Failed to register units. Please try again.");
-              }
-            };
+            const unitForm = document.getElementById("unitForm");
+            if (unitForm) { // Null check for unitForm
+                unitForm.onsubmit = async function(e) {
+                  e.preventDefault();
+                  const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
+                    code: input.value,
+                    name: input.dataset.name
+                  }));
+                  if (selected.length === 0) {
+                    await alert("⚠️ Please select at least one unit.");
+                    return;
+                  }
+                  
+                  // Save registered units to Firestore
+                  try {
+                    await setDoc(regDocRef, { units: selected }, { merge: true });
+                    await alert("✅ Units registered successfully for " + semester);
+                    renderUnits(); // refresh to lock form
+                  } catch (error) {
+                    console.error("Error registering units:", error);
+                    await alert("❌ Failed to register units. Please try again.");
+                  }
+                };
+            }
           };
 
           window.unenrollUnits = async function(semester) {
@@ -987,9 +1042,9 @@
             <div class="card">
               <h2>Graduation Request</h2>
               <div class="info-group">
-                <p><strong>Reg No:</strong> ${currentStudentData.regNo || 'N/A'}</p>
-                <p><strong>Full Name:</strong> ${currentStudentData.name || 'N/A'}</p>
-                <p><strong>Email:</strong> ${currentStudentData.email || 'N/A'}</p>
+                <p><strong>Reg No:</strong> ${currentStudentData?.regNo || 'N/A'}</p>
+                <p><strong>Full Name:</strong> ${currentStudentData?.name || 'N/A'}</p>
+                <p><strong>Email:</strong> ${currentStudentData?.email || 'N/A'}</p>
               </div>
               <hr style="margin: 30px 0">
               <h3>Graduation Application Form</h3>
@@ -1093,48 +1148,51 @@
           content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           // Handle form submission
-          document.getElementById("clearanceForm").onsubmit = async function (e) {
-            e.preventDefault();
-            const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
-              .map(el => el.value);
-            const declaration = document.getElementById("clearDeclaration").checked;
+          const clearanceForm = document.getElementById("clearanceForm");
+          if(clearanceForm) { // Null check
+            clearanceForm.onsubmit = async function (e) {
+              e.preventDefault();
+              const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
+                .map(el => el.value);
+              const declaration = document.getElementById("clearDeclaration")?.checked; // Null check for declaration
 
-            if (checked.length === 0) {
-              await alert("⚠️ Please select at least one department.");
-              return;
-            }
-
-            if (!declaration) {
-              await alert("⚠️ Please confirm the declaration.");
-              return;
-            }
-
-            try {
-              // Optionally upload file to storage if selected
-              let fileURL = '';
-              const uploadFileInput = document.getElementById('uploadFile');
-              if (uploadFileInput.files.length > 0) {
-                  const file = uploadFileInput.files[0];
-                  const storageRef = ref(storage, `clearance_forms/${currentUserId}/${file.name}`);
-                  const uploadTask = await uploadBytes(storageRef, file);
-                  fileURL = await getDownloadURL(uploadTask.ref);
+              if (checked.length === 0) {
+                await alert("⚠️ Please select at least one department.");
+                return;
               }
 
-              await setDoc(clearanceDocRef, { departments: checked, status: "submitted", timestamp: new Date(), fileURL });
-              await alert("✅ Clearance Request Submitted!");
-              showSection("clearance");
-            } catch (error) {
-              console.error("Error submitting clearance:", error);
-              await alert("❌ Failed to submit clearance request. Please try again.");
-            }
-          };
+              if (!declaration) {
+                await alert("⚠️ Please confirm the declaration.");
+                return;
+              }
+
+              try {
+                // Optionally upload file to storage if selected
+                let fileURL = '';
+                const uploadFileInput = document.getElementById('uploadFile');
+                if (uploadFileInput && uploadFileInput.files.length > 0) { // Null check for uploadFileInput
+                    const file = uploadFileInput.files[0];
+                    const storageRef = ref(storage, `clearance_forms/${currentUserId}/${file.name}`);
+                    const uploadTask = await uploadBytes(storageRef, file);
+                    fileURL = await getDownloadURL(uploadTask.ref);
+                }
+
+                await setDoc(clearanceDocRef, { departments: checked, status: "submitted", timestamp: new Date(), fileURL });
+                await alert("✅ Clearance Request Submitted!");
+                showSection("clearance");
+              } catch (error) {
+                console.error("Error submitting clearance:", error);
+                await alert("❌ Failed to submit clearance request. Please try again.");
+              }
+            };
+          }
           break;
 
         case 'feesStatement':
           breadcrumbTitle = 'Fees Statement';
           const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
           const feesSnapshot = await getDocs(feesCollectionRef);
-          const feesData = feesSnapshot.docs.map(doc => doc.data());
+          const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date)); // Sort by date
 
           let feesRows = '';
           let totalBilled = 0;
@@ -1142,7 +1200,6 @@
 
           if (feesData.length > 0) {
             let runningBalance = 0;
-            feesData.sort((a,b) => new Date(a.date) - new Date(b.date)); // Sort by date for correct running balance
             feesData.forEach(item => {
               runningBalance += (item.debit || 0) - (item.credit || 0);
               totalBilled += item.debit || 0;
@@ -1395,16 +1452,21 @@
 
           // After rendering, pre-select the booked hostel if already saved
           if (savedHostelId) {
-            document.getElementById("hostelSelect").value = savedHostelId;
-            const selectedHostelName = availableHostels.find(h => h.id === savedHostelId)?.name || 'Unknown';
-            document.getElementById("hostelBookedMsg").innerText = `🏨 You already booked: ${selectedHostelName}`;
-            // Disable select and button if already booked
-            document.getElementById("hostelSelect").disabled = true;
-            document.querySelector("button[onclick='bookHostel()']").disabled = true;
+            const hostelSelect = document.getElementById("hostelSelect");
+            if (hostelSelect) { // Null check
+                hostelSelect.value = savedHostelId;
+                const selectedHostelName = availableHostels.find(h => h.id === savedHostelId)?.name || 'Unknown';
+                const hostelBookedMsgElement = document.getElementById("hostelBookedMsg");
+                if(hostelBookedMsgElement) hostelBookedMsgElement.innerText = `🏨 You already booked: ${selectedHostelName}`;
+                // Disable select and button if already booked
+                hostelSelect.disabled = true;
+                const bookHostelButton = document.querySelector("button[onclick='bookHostel()']");
+                if(bookHostelButton) bookHostelButton.disabled = true;
+            }
           }
 
           window.bookHostel = async function() {
-            const selectedHostelId = document.getElementById("hostelSelect").value;
+            const selectedHostelId = document.getElementById("hostelSelect")?.value; // Null check
             if (!selectedHostelId) {
               await alert("⚠️ Please select a hostel.");
               return;
@@ -1481,9 +1543,9 @@
           content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           window.changePassword = async function() {
-            const current = document.getElementById('currentPassword').value;
-            const newPass = document.getElementById('newPassword').value;
-            const confirmPass = document.getElementById('confirmPassword').value;
+            const current = document.getElementById('currentPassword')?.value; // Null check
+            const newPass = document.getElementById('newPassword')?.value; // Null check
+            const confirmPass = document.getElementById('confirmPassword')?.value; // Null check
 
             if (!current || !newPass || !confirmPass) {
               await alert("Please fill in all fields.");
@@ -1511,9 +1573,12 @@
                 await alert("No user logged in to change password.");
               }
               // Reset fields
-              document.getElementById('currentPassword').value = '';
-              document.getElementById('newPassword').value = '';
-              document.getElementById('confirmPassword').value = '';
+              const currentPasswordElement = document.getElementById('currentPassword');
+              const newPasswordElement = document.getElementById('newPassword');
+              const confirmPasswordElement = document.getElementById('confirmPassword');
+              if(currentPasswordElement) currentPasswordElement.value = '';
+              if(newPasswordElement) newPasswordElement.value = '';
+              if(confirmPasswordElement) confirmPasswordElement.value = '';
             } catch (error) {
               console.error("Error updating password:", error);
               if (error.code === 'auth/requires-recent-login') {
@@ -1547,7 +1612,7 @@
       // New: Close sidebar if on mobile after section is shown
       if (window.innerWidth <= 768) {
         const sidebar = document.querySelector('.sidebar');
-        if (sidebar.classList.contains('active')) {
+        if (sidebar && sidebar.classList.contains('active')) { // Null check for sidebar
           sidebar.classList.remove('active');
         }
       }
@@ -1562,7 +1627,7 @@
       }
 
       const fileInput = document.getElementById('profile-picture-upload');
-      const file = fileInput.files[0];
+      const file = fileInput?.files[0]; // Null check
 
       if (!file) {
         await alert("Please select a file to upload.");
@@ -1580,7 +1645,8 @@
         const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
         await updateDoc(studentDocRef, { profilePhotoURL: downloadURL });
 
-        document.getElementById('profile-img-preview').src = downloadURL;
+        const profileImgPreview = document.getElementById('profile-img-preview');
+        if(profileImgPreview) profileImgPreview.src = downloadURL;
         await alert("✅ Profile picture uploaded successfully!");
       } catch (error) {
         console.error("Error uploading profile picture:", error);
@@ -1638,10 +1704,10 @@
 
       doc.setFont('times', 'normal');
       doc.setFontSize(10);
-      doc.text(`Name: ${student.name || 'N/A'}`, 15, 50);
-      doc.text(`Reg No: ${student.regNo || 'N/A'}`, 15, 56);
-      doc.text(`Email: ${student.email || 'N/A'}`, 15, 62);
-      doc.text(`Programme: ${student.programme || 'N/A'}`, 105, 50);
+      doc.text(`Name: ${student?.name || 'N/A'}`, 15, 50); // Null check
+      doc.text(`Reg No: ${student?.regNo || 'N/A'}`, 15, 56); // Null check
+      doc.text(`Email: ${student?.email || 'N/A'}`, 15, 62); // Null check
+      doc.text(`Programme: ${student?.programme || 'N/A'}`, 105, 50); // Null check
 
       // Watermark (simulated) - requires a base64 image of the crest
       if (includeWatermark) {
@@ -1673,6 +1739,8 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
+      await addPdfHeaderFooter(doc, "Fees Statement", student);
+
       let runningBalance = 0;
       const tableData = feesData.map(t => {
         runningBalance += (t.debit || 0) - (t.credit || 0);
@@ -1685,8 +1753,6 @@
           runningBalance.toFixed(2)
         ];
       });
-
-      await addPdfHeaderFooter(doc, "Fees Statement", student);
 
       doc.autoTable({
         head: [["Posting Date", "Ref #", "Description", "Debit (KES)", "Credit (KES)", "Running Balance (KES)"]],
@@ -1850,7 +1916,7 @@
                 campus: "Main Campus",
                 dob: "2000-01-01",
                 gender: "Male",
-                address: "P.O Box 123, Nairobi",
+                address: "N/A",
                 profilePhotoURL: "", // Default empty
                 initialized: true // Flag to prevent re-initialization
             }, { merge: true });
@@ -1916,16 +1982,13 @@
             const adminsCol = collection(db, `artifacts/${appId}/public/data/admins`);
             const adminSnap = await getDoc(doc(adminsCol, "senerwaalex@gmail.com"));
             if (!adminSnap.exists()) {
-                await setDoc(doc(adminsCol, "senerwaalex@gmail.com"), { role: "admin" });
+                await setDoc(doc(adminsCol, "senerwaalex@gmail.com"), { role: "admin", isAdmin: true }); // Ensure isAdmin is set to true
             }
 
             console.log("Initial data population complete.");
             showSection('home'); // Refresh to show updated data
         }
     }
-
-    // Call populateInitialData once the user is authenticated and currentUserData is available
-    // The onAuthStateChanged listener already calls showSection('home') which will trigger this logic.
   </script>
 </body>
 </html>
