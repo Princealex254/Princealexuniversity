@@ -224,7 +224,7 @@
           <input type="checkbox" id="remember" checked />
           <label for="remember">Remember me</label>
         </div>
-        <button type="submit">Sign In</button>
+        <button type="submit" id="login-btn">Sign In</button>
       </form>
       <!-- Admin Login button removed -->
       <a class="switch-link" onclick="showForm('forgot-password-form')">Forgot Password?</a>
@@ -256,7 +256,7 @@
           <span class="toggle-password" onclick="togglePassword('confirmPassword')">👁</span>
         </div>
         <!-- User type radio buttons removed -->
-        <button type="submit">Submit</button>
+        <button type="submit" id="signup-btn">Submit</button>
       </form>
       <p class="login-link">Already have an account? <a onclick="showForm('login-form')">Log In</a></p>
     </div>
@@ -269,7 +269,7 @@
       <form id="forgot-form" onsubmit="return recoverPassword(event)">
         <label for="email-forgot">Email address</label>
         <input type="email" id="email-forgot" placeholder="Enter your email" required />
-        <button type="submit">Recover Password</button>
+        <button type="submit" id="recover-btn">Recover Password</button>
       </form>
       <p class="result" id="resultMsg"></p>
       <p class="back-link"><a onclick="showForm('login-form')">← Back to Login</a></p>
@@ -277,6 +277,18 @@
   </div>
 
   <script>
+    // Helper function to manage button state (loading/enabled)
+    function setButtonLoading(button, isLoading) {
+      if (isLoading) {
+        button.originalText = button.textContent; // Store original text
+        button.textContent = 'Loading...'; // Change text to loading
+        button.disabled = true; // Disable button
+      } else {
+        button.textContent = button.originalText || button.textContent; // Restore original text
+        button.disabled = false; // Enable button
+      }
+    }
+
     // Function to show a specific form and hide others
     function showForm(formId) {
       const forms = document.querySelectorAll('.form-wrapper');
@@ -315,28 +327,37 @@
     // Function to handle user login
     function loginUser(event) {
       event.preventDefault(); // Prevent default form submission
+      const loginBtn = document.getElementById('login-btn');
+      setButtonLoading(loginBtn, true); // Set button to loading state
+
       const email = document.getElementById("email-login").value.trim().toLowerCase();
       const password = document.getElementById("password-login").value.trim();
       
-      // Retrieve users from localStorage
-      const users = JSON.parse(localStorage.getItem("users")) || [];
+      // Simulate an asynchronous operation (e.g., API call)
+      setTimeout(() => {
+        // Retrieve users from localStorage
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        
+        // Find a matching user
+        const matchedUser = users.find(user => user.email === email && user.password === password);
       
-      // Find a matching user
-      const matchedUser = users.find(user => user.email === email && user.password === password);
-    
-      if (matchedUser) {
-        localStorage.setItem("userLoggedIn", "true");
-        localStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
-        alert("✅ Login successful!");
-        window.location.href = "dashboard.html"; // Redirect to dashboard
-      } else {
-        alert("❌ Incorrect Email or Password.");
-      }
+        if (matchedUser) {
+          localStorage.setItem("userLoggedIn", "true");
+          localStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
+          alert("✅ Login successful!");
+          window.location.href = "dashboard.html"; // Redirect to dashboard
+        } else {
+          alert("❌ Incorrect Email or Password.");
+          setButtonLoading(loginBtn, false); // Re-enable button on failure
+        }
+      }, 1000); // Simulate 1 second delay
     }
     
     // Function to handle new user signup
     function handleSignup(event) {
       event.preventDefault(); // Prevent default form submission
+      const signupBtn = document.getElementById('signup-btn');
+      setButtonLoading(signupBtn, true); // Set button to loading state
       
       const fullName = document.getElementById("fullName").value.trim();
       const admissionNumber = document.getElementById("admissionNumber").value.trim(); // Get admission number
@@ -352,45 +373,60 @@
       const strongPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
       if (!strongPattern.test(password)) {
         alert("❌ Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+        setButtonLoading(signupBtn, false); // Re-enable button
         return false;
       }
       if (password !== confirmPassword) {
         alert("❌ Passwords do not match!");
+        setButtonLoading(signupBtn, false); // Re-enable button
         return false;
       }
     
-      // Retrieve existing users
-      const users = JSON.parse(localStorage.getItem("users")) || {};
-      if (users[email]) {
-        alert("⚠️ Email already exists. Redirecting to login...");
-        showForm('login-form');
-        return false;
-      }
-    
-      // Store new user data
-      users[email] = { fullName, admissionNumber, idNumber, phone, birthYear, email, password, userType: "Student" }; // Default to Student
-      localStorage.setItem("users", JSON.stringify(users));
-      localStorage.setItem("signupSuccess", "true");
-    
-      alert("✅ Account created successfully!");
-      showForm('login-form'); // Redirect to login form after signup
+      // Simulate an asynchronous operation
+      setTimeout(() => {
+        // Retrieve existing users
+        const users = JSON.parse(localStorage.getItem("users")) || {};
+        if (users[email]) {
+          alert("⚠️ Email already exists. Redirecting to login...");
+          showForm('login-form');
+          setButtonLoading(signupBtn, false); // Re-enable button
+          return false;
+        }
+      
+        // Store new user data
+        users[email] = { fullName, admissionNumber, idNumber, phone, birthYear, email, password, userType: "Student" }; // Default to Student
+        localStorage.setItem("users", JSON.stringify(users));
+        localStorage.setItem("signupSuccess", "true");
+      
+        alert("✅ Account created successfully!");
+        showForm('login-form'); // Redirect to login form after signup
+        setButtonLoading(signupBtn, false); // Re-enable button
+      }, 1000); // Simulate 1 second delay
     }
     
     // Function to recover password
     function recoverPassword(event) {
       event.preventDefault(); // Prevent default form submission
+      const recoverBtn = document.getElementById('recover-btn');
+      setButtonLoading(recoverBtn, true); // Set button to loading state
+
       const email = document.getElementById("email-forgot").value.trim().toLowerCase();
-      const users = JSON.parse(localStorage.getItem("users")) || {};
-      const user = users[email];
       const resultMsg = document.getElementById("resultMsg");
-    
-      if (user) {
-        resultMsg.innerText = `✅ Your password is: ${user.password}`;
-        resultMsg.style.color = "green";
-      } else {
-        resultMsg.innerText = "❌ No account found with that email.";
-        resultMsg.style.color = "red";
-      }
+
+      // Simulate an asynchronous operation
+      setTimeout(() => {
+        const users = JSON.parse(localStorage.getItem("users")) || {};
+        const user = users[email];
+        
+        if (user) {
+          resultMsg.innerText = `✅ Your password is: ${user.password}`;
+          resultMsg.style.color = "green";
+        } else {
+          resultMsg.innerText = "❌ No account found with that email.";
+          resultMsg.style.color = "red";
+        }
+        setButtonLoading(recoverBtn, false); // Re-enable button after operation
+      }, 1000); // Simulate 1 second delay
     }
     
     // Function to navigate to admin login page (if it exists)
