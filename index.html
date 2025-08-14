@@ -226,7 +226,6 @@
         </div>
         <button type="submit" id="login-btn">Sign In</button>
       </form>
-      <!-- Admin Login button removed -->
       <a class="switch-link" onclick="showForm('forgot-password-form')">Forgot Password?</a>
       <p class="signup-link">Don't have an account? <a onclick="showForm('signup-form')">Sign Up</a></p>
       <footer>
@@ -255,7 +254,6 @@
           <input type="password" id="confirmPassword" placeholder="Confirm your Password" required />
           <span class="toggle-password" onclick="togglePassword('confirmPassword')">👁</span>
         </div>
-        <!-- User type radio buttons removed -->
         <button type="submit" id="signup-btn">Submit</button>
       </form>
       <p class="login-link">Already have an account? <a onclick="showForm('login-form')">Log In</a></p>
@@ -276,7 +274,30 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    // Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+      sendPasswordResetEmail, updateProfile 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase configuration (from user provided info)
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+      authDomain: "universityweb-19e1e.firebaseapp.com",
+      projectId: "universityweb-19e1e",
+      storageBucket: "universityweb-19e1e.firebasestorage.app",
+      messagingSenderId: "401942926589",
+      appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
     // Helper function to manage button state (loading/enabled)
     function setButtonLoading(button, isLoading) {
       if (isLoading) {
@@ -324,8 +345,8 @@
       }
     }
     
-    // Function to handle user login
-    function loginUser(event) {
+    // Function to handle user login with Firebase
+    async function loginUser(event) {
       event.preventDefault(); // Prevent default form submission
       const loginBtn = document.getElementById('login-btn');
       setButtonLoading(loginBtn, true); // Set button to loading state
@@ -333,79 +354,83 @@
       const email = document.getElementById("email-login").value.trim().toLowerCase();
       const password = document.getElementById("password-login").value.trim();
       
-      // Simulate an asynchronous operation (e.g., API call)
-      setTimeout(() => {
-        // Retrieve users from localStorage
-        const users = JSON.parse(localStorage.getItem("users")) || [];
-        
-        // Find a matching user
-        const matchedUser = users.find(user => user.email === email && user.password === password);
-      
-        if (matchedUser) {
-          localStorage.setItem("userLoggedIn", "true");
-          localStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
-          alert("✅ Login successful!");
-          window.location.href = "dashboard.html"; // Redirect to dashboard
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Check if the user is an admin
+        const adminDoc = await getDoc(doc(db, "admins", user.email.toLowerCase()));
+        if (adminDoc.exists() && adminDoc.data().isAdmin === true) {
+          sessionStorage.setItem("userLoggedIn", "true");
+          sessionStorage.setItem("loggedInUserUid", user.uid);
+          // Instead of alert, use a custom message box for better UX
+          showMessage("✅ Admin login successful!", "success");
+          window.location.href = "admin.html"; // Redirect to admin page
         } else {
-          alert("❌ Incorrect Email or Password.");
-          setButtonLoading(loginBtn, false); // Re-enable button on failure
+          sessionStorage.setItem("userLoggedIn", "true");
+          sessionStorage.setItem("loggedInUserUid", user.uid);
+          showMessage("✅ Login successful!", "success");
+          window.location.href = "dashboard.html"; // Redirect to dashboard
         }
-      }, 1000); // Simulate 1 second delay
+      } catch (error) {
+        showMessage("❌ " + error.message, "error");
+        setButtonLoading(loginBtn, false); // Re-enable button on failure
+      }
     }
     
-    // Function to handle new user signup
-    function handleSignup(event) {
+    // Function to handle new user signup with Firebase
+    async function handleSignup(event) {
       event.preventDefault(); // Prevent default form submission
       const signupBtn = document.getElementById('signup-btn');
       setButtonLoading(signupBtn, true); // Set button to loading state
       
       const fullName = document.getElementById("fullName").value.trim();
-      const admissionNumber = document.getElementById("admissionNumber").value.trim(); // Get admission number
+      const admissionNumber = document.getElementById("admissionNumber").value.trim();
       const idNumber = document.getElementById("idNumber").value.trim();
       const phone = document.getElementById("phone").value.trim();
       const birthYear = document.getElementById("birthYear").value.trim();
       const email = document.getElementById("email-signup").value.trim().toLowerCase();
       const password = document.getElementById("password-signup").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
-      // const userType = document.querySelector('input[name="userType"]:checked').value; // Removed userType
       
       // Password strength validation
       const strongPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
       if (!strongPattern.test(password)) {
-        alert("❌ Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+        showMessage("❌ Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.", "error");
         setButtonLoading(signupBtn, false); // Re-enable button
         return false;
       }
       if (password !== confirmPassword) {
-        alert("❌ Passwords do not match!");
+        showMessage("❌ Passwords do not match!", "error");
         setButtonLoading(signupBtn, false); // Re-enable button
         return false;
       }
     
-      // Simulate an asynchronous operation
-      setTimeout(() => {
-        // Retrieve existing users
-        const users = JSON.parse(localStorage.getItem("users")) || {};
-        if (users[email]) {
-          alert("⚠️ Email already exists. Redirecting to login...");
-          showForm('login-form');
-          setButtonLoading(signupBtn, false); // Re-enable button
-          return false;
-        }
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        await updateProfile(user, { displayName: fullName });
+        await setDoc(doc(db, "students", user.uid), {
+          fullName, 
+          admissionNumber, 
+          idNumber, 
+          phone, 
+          birthYear, 
+          email,
+          regDate: new Date().toISOString()
+        });
       
-        // Store new user data
-        users[email] = { fullName, admissionNumber, idNumber, phone, birthYear, email, password, userType: "Student" }; // Default to Student
-        localStorage.setItem("users", JSON.stringify(users));
-        localStorage.setItem("signupSuccess", "true");
-      
-        alert("✅ Account created successfully!");
-        showForm('login-form'); // Redirect to login form after signup
+        showMessage("✅ Account created successfully!", "success");
+        window.location.href = "dashboard.html"; // Redirect to dashboard
+      } catch (error) {
+        showMessage("❌ " + error.message, "error");
         setButtonLoading(signupBtn, false); // Re-enable button
-      }, 1000); // Simulate 1 second delay
+      }
     }
     
-    // Function to recover password
-    function recoverPassword(event) {
+    // Function to recover password with Firebase
+    async function recoverPassword(event) {
       event.preventDefault(); // Prevent default form submission
       const recoverBtn = document.getElementById('recover-btn');
       setButtonLoading(recoverBtn, true); // Set button to loading state
@@ -413,28 +438,55 @@
       const email = document.getElementById("email-forgot").value.trim().toLowerCase();
       const resultMsg = document.getElementById("resultMsg");
 
-      // Simulate an asynchronous operation
-      setTimeout(() => {
-        const users = JSON.parse(localStorage.getItem("users")) || {};
-        const user = users[email];
-        
-        if (user) {
-          resultMsg.innerText = `✅ Your password is: ${user.password}`;
-          resultMsg.style.color = "green";
-        } else {
-          resultMsg.innerText = "❌ No account found with that email.";
-          resultMsg.style.color = "red";
-        }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        resultMsg.innerText = "✅ Password reset link sent to your email.";
+        resultMsg.style.color = "green";
+      } catch (error) {
+        resultMsg.innerText = "❌ " + error.message;
+        resultMsg.style.color = "red";
+      } finally {
         setButtonLoading(recoverBtn, false); // Re-enable button after operation
-      }, 1000); // Simulate 1 second delay
+      }
     }
-    
-    // Function to navigate to admin login page (if it exists)
-    function goToAdminLogin() {
-        // This function is still here, but the button calling it has been removed.
-        // If an admin.html page is created, this function could be re-linked.
-        window.location.href = "admin.html";
+
+    // Custom message box function (replaces alert)
+    function showMessage(message, type) {
+      const msgBox = document.createElement('div');
+      msgBox.style.position = 'fixed';
+      msgBox.style.top = '20px';
+      msgBox.style.left = '50%';
+      msgBox.style.transform = 'translateX(-50%)';
+      msgBox.style.padding = '15px 25px';
+      msgBox.style.borderRadius = '8px';
+      msgBox.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+      msgBox.style.zIndex = '1000';
+      msgBox.style.color = 'white';
+      msgBox.style.fontWeight = 'bold';
+      msgBox.style.textAlign = 'center';
+      msgBox.style.opacity = '0';
+      msgBox.style.transition = 'opacity 0.5s ease-in-out';
+
+      if (type === 'success') {
+        msgBox.style.backgroundColor = '#4CAF50'; // Green
+      } else if (type === 'error') {
+        msgBox.style.backgroundColor = '#f44336'; // Red
+      } else {
+        msgBox.style.backgroundColor = '#2196F3'; // Blue (info)
+      }
+
+      msgBox.innerText = message;
+      document.body.appendChild(msgBox);
+
+      setTimeout(() => {
+        msgBox.style.opacity = '1';
+      }, 10); // Small delay to trigger transition
+
+      setTimeout(() => {
+        msgBox.style.opacity = '0';
+        msgBox.addEventListener('transitionend', () => msgBox.remove());
+      }, 3000); // Message disappears after 3 seconds
     }
-    </script>
+  </script>
 </body>
 </html>
