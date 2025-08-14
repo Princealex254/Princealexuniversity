@@ -2,65 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Prince Alex Design University - Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prince Alex Design University - Login/Signup</title>
   <style>
+    /* Global styles */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
     body, html {
       height: 100%;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
+    /* Container for the entire page, with background image */
     .container {
       display: flex;
+      justify-content: center;
+      align-items: center;
       height: 100vh;
-    }
-
-    .left-side {
-      flex: 1;
       background: url('myschoolgate.png') no-repeat center center;
       background-size: cover;
     }
 
-    .right-side {
-      flex: 1;
-      background-color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+    /* Styling for each form wrapper (login, signup, forgot password) */
+    .form-wrapper {
+      background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white background */
       padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+      width: 100%;
+      max-width: 450px; /* Maximum width for forms */
+      text-align: center;
+      transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out; /* Smooth transitions for form switching */
     }
 
+    /* Class to hide forms */
+    .form-wrapper.hidden {
+      display: none;
+    }
+
+    /* University logo styling */
     .logo {
       width: 120px;
       margin-bottom: 20px;
     }
 
+    /* Heading styles */
     h2 {
-      color: #006400;
+      color: #006400; /* Dark green color */
       margin-bottom: 10px;
     }
 
-    form {
-      width: 100%;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+    /* Paragraph text styles */
+    p {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 20px;
     }
 
+    /* Form layout */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px; /* Spacing between form elements */
+      text-align: left;
+    }
+
+    /* Label styles */
     label {
       font-weight: bold;
       font-size: 14px;
     }
 
+    /* Input field styles */
     input[type="text"],
+    input[type="email"],
+    input[type="number"],
     input[type="password"] {
       padding: 10px;
       font-size: 15px;
@@ -70,10 +89,12 @@
       width: 100%;
     }
 
+    /* Password input and toggle icon wrapper */
     .password-wrapper {
       position: relative;
     }
 
+    /* Toggle password visibility icon */
     .toggle-password {
       position: absolute;
       right: 10px;
@@ -83,148 +104,301 @@
       font-size: 18px;
     }
 
-    .remember-me {
+    /* Remember me checkbox and user type radio buttons */
+    .remember-me, .user-type {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 14px;
     }
+    .user-type {
+      gap: 20px;
+      justify-content: center;
+    }
 
-    button {
-      background-color: #006400;
+    /* Submit button styles */
+    button[type="submit"] {
+      background-color: #006400; /* Dark green background */
       color: white;
-      padding: 10px;
+      padding: 12px;
       font-size: 16px;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #004d00;
-    }
-
-    .forgot-password {
-      font-size: 13px;
-      color: #006400;
-      text-align: right;
-      text-decoration: underline;
-      cursor: pointer;
-    }
-
-    .create-account {
-      background-color: transparent;
-      border: 2px solid #006400;
-      color: #006400;
-      padding: 10px;
-      font-size: 15px;
       margin-top: 10px;
-      border-radius: 4px;
-      cursor: pointer;
+    }
+    button[type="submit"]:hover {
+      background-color: #004d00; /* Slightly darker green on hover */
     }
 
-    .create-account:hover {
-      background-color: #006400;
-      color: white;
+    /* Link styles (admin, switch, signup, back) */
+    .admin-link, .switch-link, .signup-link, .back-link {
+      font-size: 14px;
+      margin-top: 15px;
+      display: block;
     }
-
     .admin-link {
-      font-size: 13px;
-      margin-top: 5px;
-      color: #006400;
       background: none;
       border: none;
-      cursor: pointer;
+      color: #006400;
       text-decoration: underline;
+      cursor: pointer;
+    }
+    .switch-link, .signup-link a, .back-link a {
+      color: #006400;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: bold;
     }
 
+    /* Password strength message styles */
+    .strength-message {
+      font-size: 13px;
+      margin-top: -10px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .weak { color: red; }
+    .medium { color: orange; }
+    .strong { color: green; }
+
+    /* Footer styles */
     footer {
       margin-top: 30px;
       text-align: center;
       font-size: 12px;
       color: #666;
     }
-
     .PAD {
       color: #006400;
       font-weight: bold;
     }
+
+    /* Media queries for mobile responsiveness */
+    @media (max-width: 600px) {
+      .form-wrapper {
+        padding: 20px; /* Reduce padding on smaller screens */
+        margin: 15px; /* Add some margin to prevent sticking to edges */
+      }
+      .logo {
+        width: 100px; /* Slightly smaller logo on mobile */
+      }
+      h2 {
+        font-size: 22px; /* Adjust heading size */
+      }
+      p {
+        font-size: 13px; /* Adjust paragraph size */
+      }
+      input[type="text"],
+      input[type="email"],
+      input[type="number"],
+      input[type="password"] {
+        font-size: 14px; /* Adjust input font size */
+      }
+      button[type="submit"] {
+        padding: 10px; /* Adjust button padding */
+        font-size: 15px; /* Adjust button font size */
+      }
+      .admin-link, .switch-link, .signup-link, .back-link {
+        font-size: 13px; /* Adjust link font size */
+      }
+    }
   </style>
 </head>
 <body>
-
   <div class="container">
-    <div class="left-side"></div>
-
-    <div class="right-side">
+    <!-- Login Form -->
+    <div class="form-wrapper" id="login-form">
       <img src="myschoollogo.png" alt="University Logo" class="logo" />
       <h2>Hi, welcome back</h2>
       <p>Please fill in your details to log in</p>
-
       <form onsubmit="return loginUser(event)">
-        <label for="email">Email address</label>
-        <input type="text" id="email" placeholder="Enter your email" required />
-
-        <label for="password">Password</label>
+        <label for="email-login">Email address</label>
+        <input type="text" id="email-login" placeholder="Enter your email" required />
+        <label for="password-login">Password</label>
         <div class="password-wrapper">
-          <input type="password" id="password" placeholder="Enter your Password" required />
-          <span class="toggle-password" onclick="togglePassword()">👁</span>
+          <input type="password" id="password-login" placeholder="Enter your Password" required />
+          <span class="toggle-password" onclick="togglePassword('password-login')">👁</span>
         </div>
-
         <div class="remember-me">
           <input type="checkbox" id="remember" checked />
           <label for="remember">Remember me</label>
         </div>
-
         <button type="submit">Sign In</button>
-        <button type="button" class="admin-link" onclick="goToAdminLogin()">Admin Login</button>
-
-        <p class="forgot-password" onclick="location.href='forgot.html'">Forgot Password?</p>
-
-        <button type="button" class="create-account" onclick="createAccount()">Sign Up</button>
       </form>
-
+      <!-- Admin Login button removed -->
+      <a class="switch-link" onclick="showForm('forgot-password-form')">Forgot Password?</a>
+      <p class="signup-link">Don't have an account? <a onclick="showForm('signup-form')">Sign Up</a></p>
       <footer>
         <p>2025 © Designed by <span class="PAD">Prince Alex Digital</span></p>
       </footer>
     </div>
+    
+    <!-- Signup Form -->
+    <div class="form-wrapper hidden" id="signup-form">
+      <img src="myschoollogo.png" alt="University Logo" class="logo" />
+      <h2>Account Registration</h2>
+      <p>To sign up, kindly fill the form below</p>
+      <form id="signup-form-el" onsubmit="return handleSignup(event)">
+        <input type="text" id="fullName" placeholder="Full Name" required />
+        <input type="text" id="admissionNumber" placeholder="Admission Number" required />
+        <input type="text" id="idNumber" placeholder="ID Number" required />
+        <input type="text" id="phone" placeholder="Phone Number" required />
+        <input type="text" id="birthYear" placeholder="Date of Birth (YYYY-MM-DD)" required />
+        <input type="email" id="email-signup" placeholder="Email Address" required />
+        <div class="password-wrapper">
+          <input type="password" id="password-signup" placeholder="Enter your Password" required oninput="checkPasswordStrength()" />
+          <span class="toggle-password" onclick="togglePassword('password-signup')">👁</span>
+        </div>
+        <div id="strengthMessage" class="strength-message"></div>
+        <div class="password-wrapper">
+          <input type="password" id="confirmPassword" placeholder="Confirm your Password" required />
+          <span class="toggle-password" onclick="togglePassword('confirmPassword')">👁</span>
+        </div>
+        <!-- User type radio buttons removed -->
+        <button type="submit">Submit</button>
+      </form>
+      <p class="login-link">Already have an account? <a onclick="showForm('login-form')">Log In</a></p>
+    </div>
+    
+    <!-- Forgot Password Form -->
+    <div class="form-wrapper hidden" id="forgot-password-form">
+      <img src="myschoollogo.png" alt="University Logo" class="logo" />
+      <h2>Forgot Password</h2>
+      <p>Enter your email to recover your password</p>
+      <form id="forgot-form" onsubmit="return recoverPassword(event)">
+        <label for="email-forgot">Email address</label>
+        <input type="email" id="email-forgot" placeholder="Enter your email" required />
+        <button type="submit">Recover Password</button>
+      </form>
+      <p class="result" id="resultMsg"></p>
+      <p class="back-link"><a onclick="showForm('login-form')">← Back to Login</a></p>
+    </div>
   </div>
 
   <script>
-    function togglePassword() {
-      const passwordInput = document.getElementById("password");
+    // Function to show a specific form and hide others
+    function showForm(formId) {
+      const forms = document.querySelectorAll('.form-wrapper');
+      forms.forEach(form => form.classList.add('hidden')); // Hide all forms
+      document.getElementById(formId).classList.remove('hidden'); // Show the selected form
+    }
+    
+    // Function to toggle password visibility
+    function togglePassword(id) {
+      const passwordInput = document.getElementById(id);
       const type = passwordInput.getAttribute("type");
       passwordInput.setAttribute("type", type === "password" ? "text" : "password");
     }
-
+    
+    // Function to check and display password strength
+    function checkPasswordStrength() {
+      const password = document.getElementById("password-signup").value;
+      const strengthMsg = document.getElementById("strengthMessage");
+      // Regex for strong password: at least 8 chars, one lowercase, one uppercase, one number, one special character
+      const strongPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+      // Regex for medium password: at least 6 chars, one lowercase, one uppercase, one number
+      const mediumPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+    
+      if (strongPattern.test(password)) {
+        strengthMsg.textContent = "Strong password ✔";
+        strengthMsg.className = "strength-message strong";
+      } else if (mediumPattern.test(password)) {
+        strengthMsg.textContent = "Medium strength (Add a special character)";
+        strengthMsg.className = "strength-message medium";
+      } else {
+        strengthMsg.textContent = "Weak password (Too short or missing requirements)";
+        strengthMsg.className = "strength-message weak";
+      }
+    }
+    
+    // Function to handle user login
     function loginUser(event) {
-      event.preventDefault();
-
-      const email = document.getElementById("email").value.trim().toLowerCase();
-      const password = document.getElementById("password").value.trim();
-
+      event.preventDefault(); // Prevent default form submission
+      const email = document.getElementById("email-login").value.trim().toLowerCase();
+      const password = document.getElementById("password-login").value.trim();
+      
+      // Retrieve users from localStorage
       const users = JSON.parse(localStorage.getItem("users")) || [];
-
+      
+      // Find a matching user
       const matchedUser = users.find(user => user.email === email && user.password === password);
-
+    
       if (matchedUser) {
         localStorage.setItem("userLoggedIn", "true");
         localStorage.setItem("loggedInUser", JSON.stringify(matchedUser));
         alert("✅ Login successful!");
-        window.location.href = "dashboard.html";
+        window.location.href = "dashboard.html"; // Redirect to dashboard
       } else {
         alert("❌ Incorrect Email or Password.");
       }
     }
-
-    function createAccount() {
-      window.location.href = "signup.html";
+    
+    // Function to handle new user signup
+    function handleSignup(event) {
+      event.preventDefault(); // Prevent default form submission
+      
+      const fullName = document.getElementById("fullName").value.trim();
+      const admissionNumber = document.getElementById("admissionNumber").value.trim(); // Get admission number
+      const idNumber = document.getElementById("idNumber").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const birthYear = document.getElementById("birthYear").value.trim();
+      const email = document.getElementById("email-signup").value.trim().toLowerCase();
+      const password = document.getElementById("password-signup").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      // const userType = document.querySelector('input[name="userType"]:checked').value; // Removed userType
+      
+      // Password strength validation
+      const strongPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+      if (!strongPattern.test(password)) {
+        alert("❌ Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.");
+        return false;
+      }
+      if (password !== confirmPassword) {
+        alert("❌ Passwords do not match!");
+        return false;
+      }
+    
+      // Retrieve existing users
+      const users = JSON.parse(localStorage.getItem("users")) || {};
+      if (users[email]) {
+        alert("⚠️ Email already exists. Redirecting to login...");
+        showForm('login-form');
+        return false;
+      }
+    
+      // Store new user data
+      users[email] = { fullName, admissionNumber, idNumber, phone, birthYear, email, password, userType: "Student" }; // Default to Student
+      localStorage.setItem("users", JSON.stringify(users));
+      localStorage.setItem("signupSuccess", "true");
+    
+      alert("✅ Account created successfully!");
+      showForm('login-form'); // Redirect to login form after signup
     }
-
+    
+    // Function to recover password
+    function recoverPassword(event) {
+      event.preventDefault(); // Prevent default form submission
+      const email = document.getElementById("email-forgot").value.trim().toLowerCase();
+      const users = JSON.parse(localStorage.getItem("users")) || {};
+      const user = users[email];
+      const resultMsg = document.getElementById("resultMsg");
+    
+      if (user) {
+        resultMsg.innerText = `✅ Your password is: ${user.password}`;
+        resultMsg.style.color = "green";
+      } else {
+        resultMsg.innerText = "❌ No account found with that email.";
+        resultMsg.style.color = "red";
+      }
+    }
+    
+    // Function to navigate to admin login page (if it exists)
     function goToAdminLogin() {
-      window.location.href = "admin.html";
+        // This function is still here, but the button calling it has been removed.
+        // If an admin.html page is created, this function could be re-linked.
+        window.location.href = "admin.html";
     }
-  </script>
-
+    </script>
 </body>
 </html>
