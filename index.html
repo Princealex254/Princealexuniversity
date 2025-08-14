@@ -363,14 +363,17 @@
         if (adminDoc.exists() && adminDoc.data().isAdmin === true) {
           sessionStorage.setItem("userLoggedIn", "true");
           sessionStorage.setItem("loggedInUserUid", user.uid);
-          // Instead of alert, use a custom message box for better UX
           showMessage("✅ Admin login successful!", "success");
-          window.location.href = "admin.html"; // Redirect to admin page
+          setTimeout(() => { // Delay redirect to allow message to be seen
+            window.location.href = "admin.html"; 
+          }, 1500);
         } else {
           sessionStorage.setItem("userLoggedIn", "true");
           sessionStorage.setItem("loggedInUserUid", user.uid);
           showMessage("✅ Login successful!", "success");
-          window.location.href = "dashboard.html"; // Redirect to dashboard
+          setTimeout(() => { // Delay redirect to allow message to be seen
+            window.location.href = "dashboard.html"; 
+          }, 1500);
         }
       } catch (error) {
         showMessage("❌ " + error.message, "error");
@@ -422,7 +425,9 @@
         });
       
         showMessage("✅ Account created successfully!", "success");
-        window.location.href = "dashboard.html"; // Redirect to dashboard
+        setTimeout(() => { // Delay redirect to allow message to be seen
+          window.location.href = "dashboard.html"; 
+        }, 1500);
       } catch (error) {
         showMessage("❌ " + error.message, "error");
         setButtonLoading(signupBtn, false); // Re-enable button
@@ -487,6 +492,15 @@
         msgBox.addEventListener('transitionend', () => msgBox.remove());
       }, 3000); // Message disappears after 3 seconds
     }
+
+    // Expose functions to the global window object so inline HTML event handlers can access them.
+    window.showForm = showForm;
+    window.togglePassword = togglePassword;
+    window.checkPasswordStrength = checkPasswordStrength;
+    window.loginUser = loginUser;
+    window.handleSignup = handleSignup;
+    window.recoverPassword = recoverPassword;
   </script>
 </body>
 </html>
+
