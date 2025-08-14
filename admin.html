@@ -15,8 +15,11 @@
     /* Custom styles to extend Tailwind defaults */
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f8fafc; /* Light gray background */
+      background-color: #f3f4f6; /* Light gray background */
       overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+      height: 100vh; /* Ensure body takes full viewport height */
+      display: flex;
+      flex-direction: column;
     }
     .header-bar {
       background-color: #ffffff;
@@ -78,7 +81,7 @@
       color: #004d00;
     }
 
-    /* Custom Message Box styles (for admin.html) */
+    /* Custom Message Box/Modal styles */
     .modal {
       display: none; /* Hidden by default */
       position: fixed; /* Stay in place */
@@ -186,53 +189,125 @@
         justify-content: flex-end;
         gap: 0.75rem;
     }
+
+    /* Login Page specific styles */
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f3f4f6;
+    }
+    .login-form-box {
+      background-color: #ffffff;
+      padding: 2.5rem;
+      border-radius: 0.75rem; /* rounded-xl */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 28rem; /* max-w-md */
+      text-align: center;
+    }
+    .login-input-field {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid #d1d5db; /* border-gray-300 */
+      border-radius: 0.5rem; /* rounded-lg */
+      font-size: 1rem;
+    }
+    .login-logo-container {
+      margin-bottom: 2.5rem; /* mb-10 */
+    }
+    .login-logo {
+      width: 8rem; /* w-32 */
+      height: auto;
+    }
+    .toggle-password {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6b7280; /* text-gray-500 */
+    }
+    .relative-password-container {
+        position: relative;
+        margin-bottom: 1rem;
+    }
   </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body>
 
-  <!-- Header Bar -->
-  <header class="header-bar p-4 flex justify-between items-center fixed w-full top-0">
-    <div class="flex items-center gap-4">
-      <button id="menuToggle" class="lg:hidden text-green-800 text-2xl focus:outline-none">
-        &#9776;
-      </button>
-      <img src="myschoollogo.png" alt="University Logo" class="h-10" />
-      <h1 class="text-2xl font-bold text-green-800">Admin Portal</h1>
-    </div>
-    <div class="flex items-center gap-4">
-      <span class="text-green-800 font-semibold" id="adminUserName">Admin</span>
-      <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow transition duration-200">
-        <i class="fas fa-sign-out-alt mr-2"></i>Logout
-      </button>
-    </div>
-  </header>
+  <!-- Main application container -->
+  <div id="appContainer" class="flex flex-col min-h-screen">
 
-  <div class="flex flex-1 mt-16"> <!-- mt-16 to offset fixed header -->
-    <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 lg:relative lg:translate-x-0 p-4 pt-8 overflow-y-auto">
-      <h3 class="text-xl font-bold mb-6 pb-3 border-b border-green-300">Admin Menu</h3>
-      <nav class="space-y-2">
-        <a href="#" onclick="showSection('dashboard')" class="block"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-        <a href="#" onclick="showSection('students')" class="block"><i class="fas fa-users"></i> Students</a>
-        <a href="#" onclick="showSection('courses')" class="block"><i class="fas fa-book-open"></i> Courses</a>
-        <a href="#" onclick="showSection('registrations')" class="block"><i class="fas fa-clipboard-list"></i> Registrations</a>
-        <a href="#" onclick="showSection('fees')" class="block"><i class="fas fa-money-bill-wave"></i> Fees</a>
-        <a href="#" onclick="showSection('grades')" class="block"><i class="fas fa-graduation-cap"></i> Grades</a>
-        <a href="#" onclick="showSection('hostels')" class="block"><i class="fas fa-hotel"></i> Hostels</a>
-        <a href="#" onclick="showSection('announcements')" class="block"><i class="fas fa-bullhorn"></i> Announcements</a>
-        <a href="#" onclick="showSection('adminUsers')" class="block"><i class="fas fa-user-shield"></i> Admin Users</a>
-        <a href="#" onclick="showSection('settings')" class="block"><i class="fas fa-cog"></i> Settings</a>
-      </nav>
-    </aside>
+    <!-- Login Section -->
+    <div id="loginSection" class="login-container hidden">
+      <div class="login-form-box">
+        <div class="login-logo-container">
+          <img src="myschoollogo.png" alt="University Logo" class="login-logo mx-auto" />
+        </div>
+        <h2 class="text-3xl font-extrabold text-green-800 mb-6">Admin Login</h2>
 
-    <!-- Main Content Area -->
-    <main id="content" class="content-area flex-1 p-6 lg:ml-64 transition-all duration-300">
-      <!-- Content will be loaded here dynamically -->
-      <div class="flex justify-center items-center h-full text-gray-500 text-xl">
-        Loading admin dashboard...
+        <form id="adminLoginForm" onsubmit="loginAdmin(event)">
+          <input type="email" id="loginEmail" placeholder="Admin Email" required class="login-input-field" />
+          <div class="relative-password-container">
+            <input type="password" id="loginPassword" placeholder="Password" required class="login-input-field pr-10" />
+            <span class="toggle-password" onclick="togglePasswordVisibility('loginPassword')">👁️</span>
+          </div>
+          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow w-full">Login</button>
+        </form>
       </div>
-    </main>
-  </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="flex flex-1 flex-col hidden">
+      <!-- Header Bar -->
+      <header class="header-bar p-4 flex justify-between items-center fixed w-full top-0">
+        <div class="flex items-center gap-4">
+          <button id="menuToggle" class="lg:hidden text-green-800 text-2xl focus:outline-none">
+            &#9776;
+          </button>
+          <img src="myschoollogo.png" alt="University Logo" class="h-10" />
+          <h1 class="text-2xl font-bold text-green-800">Admin Portal</h1>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-green-800 font-semibold" id="adminUserName">Admin</span>
+          <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow transition duration-200">
+            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+          </button>
+        </div>
+      </header>
+
+      <div class="flex flex-1 mt-16"> <!-- mt-16 to offset fixed header -->
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 lg:relative lg:translate-x-0 p-4 pt-8 overflow-y-auto">
+          <h3 class="text-xl font-bold mb-6 pb-3 border-b border-green-300">Admin Menu</h3>
+          <nav class="space-y-2">
+            <a href="#" onclick="showSection('dashboard')" class="block"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="#" onclick="showSection('students')" class="block"><i class="fas fa-users"></i> Students</a>
+            <a href="#" onclick="showSection('courses')" class="block"><i class="fas fa-book-open"></i> Courses</a>
+            <a href="#" onclick="showSection('registrations')" class="block"><i class="fas fa-clipboard-list"></i> Registrations</a>
+            <a href="#" onclick="showSection('fees')" class="block"><i class="fas fa-money-bill-wave"></i> Fees</a>
+            <a href="#" onclick="showSection('grades')" class="block"><i class="fas fa-graduation-cap"></i> Grades</a>
+            <a href="#" onclick="showSection('hostels')" class="block"><i class="fas fa-hotel"></i> Hostels</a>
+            <a href="#" onclick="showSection('announcements')" class="block"><i class="fas fa-bullhorn"></i> Announcements</a>
+            <a href="#" onclick="showSection('adminUsers')" class="block"><i class="fas fa-user-shield"></i> Admin Users</a>
+            <a href="#" onclick="showSection('settings')" class="block"><i class="fas fa-cog"></i> Settings</a>
+          </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main id="content" class="content-area flex-1 p-6 lg:ml-64 transition-all duration-300">
+          <!-- Content will be loaded here dynamically -->
+          <div class="flex justify-center items-center h-full text-gray-500 text-xl">
+            Loading admin dashboard...
+          </div>
+        </main>
+      </div>
+    </div>
+
+  </div> <!-- End of #appContainer -->
 
   <!-- Custom Modal for Alerts/Confirms -->
   <div id="customModal" class="modal">
@@ -262,9 +337,10 @@
               <label for="studentEmail">Email:</label>
               <input type="email" id="studentEmail" required class="form-control">
             </div>
-            <div class="form-group">
+            <div class="form-group relative-password-container">
               <label for="studentPassword">Password (for new student):</label>
-              <input type="password" id="studentPassword" class="form-control" placeholder="Leave empty to keep current">
+              <input type="password" id="studentPassword" class="form-control pr-10" placeholder="Leave empty to keep current">
+              <span class="toggle-password" onclick="togglePasswordVisibility('studentPassword')">👁️</span>
             </div>
             <div class="form-group">
               <label for="studentRegNo">Reg. No:</label>
@@ -420,16 +496,27 @@
     window.closeModal = closeModal;
     // --- End Custom Modal Functions ---
 
+    // --- Password Visibility Toggle for Login and Student Forms ---
+    function togglePasswordVisibility(fieldId) {
+      const passwordInput = document.getElementById(fieldId);
+      const type = passwordInput.getAttribute("type");
+      passwordInput.setAttribute("type", type === "password" ? "text" : "password");
+    }
+    window.togglePasswordVisibility = togglePasswordVisibility;
+
     // --- Authentication and Admin Check ---
     onAuthStateChanged(auth, async (user) => {
+      const loginSection = document.getElementById('loginSection');
+      const dashboardSection = document.getElementById('dashboardSection');
+
       if (user) {
         console.log("User detected by onAuthStateChanged:", user.email);
-        // Ensure user.email exists before calling toLowerCase
         if (!user.email) {
           console.warn("User object has no email. Logging out as cannot verify admin privileges.");
           await auth.signOut();
           await alert("Access Denied: Your account does not have a verifiable email for admin access.");
-          window.location.replace(window.location.origin + "/admin-login.html");
+          loginSection.classList.remove('hidden');
+          dashboardSection.classList.add('hidden');
           return;
         }
         
@@ -442,24 +529,106 @@
             document.getElementById("adminUserName").innerText = currentAdminData.name || user.email;
             console.log("Admin privileges confirmed. Loading dashboard.");
             await populateInitialPublicData(); // Ensure public data exists for admin to manage
+            loginSection.classList.add('hidden');
+            dashboardSection.classList.remove('hidden');
             showSection('dashboard'); // Load dashboard once authenticated and authorized
           } else {
-            console.warn("User is not an authorized admin. Logging out and redirecting.");
+            console.warn("User is not an authorized admin. Logging out and showing login form.");
             await auth.signOut();
             await alert("Access Denied: You do not have administrator privileges.");
-            window.location.replace(window.location.origin + "/admin-login.html");
+            loginSection.classList.remove('hidden');
+            dashboardSection.classList.add('hidden');
           }
         } catch (error) {
           console.error("Error checking admin privileges:", error);
           await alert("An error occurred during admin check. Please try again.");
           await auth.signOut();
-          window.location.replace(window.location.origin + "/admin-login.html");
+          loginSection.classList.remove('hidden');
+          dashboardSection.classList.add('hidden');
         }
       } else {
-        console.log("No user signed in. Redirecting to admin login page.");
-        window.location.replace(window.location.origin + "/admin-login.html");
+        console.log("No user signed in. Displaying admin login page.");
+        loginSection.classList.remove('hidden');
+        dashboardSection.classList.add('hidden');
       }
     });
+
+    // --- Initial Custom Token Sign-in (for Canvas environment) ---
+    // This is called once on page load to attempt silent sign-in if a token is provided.
+    // The onAuthStateChanged listener above will then handle showing the correct section.
+    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+      console.log("Custom token found. Attempting silent sign-in with custom token.");
+      auth.signInWithCustomToken(__initial_auth_token)
+        .then(() => {
+          console.log("Signed in with custom token. onAuthStateChanged will verify admin access.");
+        })
+        .catch(async (error) => {
+          console.error("Error signing in with custom token:", error);
+          await alert("Failed to auto-login. Please sign in manually.");
+          // onAuthStateChanged will then show the login form
+        });
+    } else {
+      console.log("No custom token found or not in Canvas environment. Displaying login.");
+      // If no custom token, onAuthStateChanged will run and display login form
+    }
+
+    // --- Admin Login Function ---
+    async function loginAdmin(event) {
+      event.preventDefault(); // Prevent default form submission
+
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      const password = document.getElementById("loginPassword").value.trim();
+
+      if (!email || !password) {
+        await alert("Please enter both email and password.");
+        return;
+      }
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        console.log("Firebase login successful:", user.email);
+
+        // After successful Firebase login, immediately check admin status
+        if (!user.email) {
+          console.warn("User object has no email after login. Logging out as cannot verify admin privileges.");
+          await auth.signOut(); // Log out user with no email
+          await alert("Access Denied: Your account does not have a verifiable email for admin access.");
+          return; // Stay on login form
+        }
+
+        const adminDocRef = doc(db, `artifacts/${appId}/public/data/admins`, user.email.toLowerCase());
+        const adminDocSnap = await getDoc(adminDocRef);
+
+        if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
+          console.log("Admin privileges confirmed. Displaying admin dashboard.");
+          currentAdminId = user.uid;
+          currentAdminData = adminDocSnap.data();
+          document.getElementById("adminUserName").innerText = currentAdminData.name || user.email;
+          document.getElementById('loginSection').classList.add('hidden');
+          document.getElementById('dashboardSection').classList.remove('hidden');
+          await populateInitialPublicData(); // Ensure public data is available
+          showSection('dashboard');
+        } else {
+          // User is authenticated but not an admin
+          console.warn("Attempted login by non-admin user:", user.email, "Logging out.");
+          await auth.signOut(); // Log out the user immediately
+          await alert("Access Denied: You do not have administrator privileges.");
+          // Remain on login form
+        }
+
+      } catch (error) {
+        console.error("Firebase login error:", error);
+        let errorMessage = "❌ Login failed. Please check your credentials.";
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          errorMessage = "❌ Incorrect Email or Password.";
+        } else if (error.code === 'auth/too-many-requests') {
+          errorMessage = "❌ Too many failed login attempts. Please try again later.";
+        }
+        await alert(errorMessage);
+      }
+    }
+    window.loginAdmin = loginAdmin; // Expose to global scope
 
     // --- Logout Function ---
     async function confirmLogout() {
@@ -467,7 +636,9 @@
       if (response) {
         try {
           await signOut(auth);
-          // Redirection is handled by onAuthStateChanged listener
+          // UI update is handled by onAuthStateChanged listener
+          document.getElementById('loginEmail').value = ''; // Clear login form fields
+          document.getElementById('loginPassword').value = '';
         } catch (error) {
           console.error("Error signing out:", error);
           await alert("Error logging out. Please try again.");
@@ -498,7 +669,7 @@
     async function showSection(sectionName) {
       if (!currentAdminId) {
         console.log("Admin not authenticated. Cannot show section.");
-        window.location.replace(window.location.origin + "/admin-login.html");
+        // Redirect to login handled by onAuthStateChanged
         return;
       }
 
