@@ -582,7 +582,95 @@
     const storage = getStorage(app);
 
     let currentUserId = null;
-    let currentUserData = null; // Store fetched user data
+    let currentUserData = null;
+    let authCheckCompleted = false; // New flag to track if initial auth check is done
+
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.querySelector('#loadingOverlay .loading-text');
+
+    // Function to handle redirection
+    function redirectToLogin(message = "Session expired or not logged in. Redirecting...") {
+        loadingText.innerText = message;
+        loadingOverlay.style.display = 'flex'; // Ensure loading overlay is visible
+        setTimeout(() => {
+            window.location.href = window.location.origin + "/index.html"; // Changed here
+        }, 1500); // Give user a moment to read the message
+    }
+
+    // Attempt initial sign-in with custom token if available
+    // This runs *before* onAuthStateChanged potentially sees a null user
+    (async () => {
+        loadingText.innerText = "Authenticating...";
+        loadingOverlay.style.display = 'flex'; // Ensure it's shown from the start
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            try {
+                await signInWithCustomToken(auth, __initial_auth_token);
+                // If successful, onAuthStateChanged will handle the rest
+            } catch (error) {
+                console.error("Error signing in with custom token:", error);
+                // If custom token fails, explicitly mark check as complete and redirect
+                authCheckCompleted = true;
+                redirectToLogin("Authentication failed. Please log in again. (Error: auth/custom-token-mismatch)");
+            }
+        } else {
+            // No custom token provided, proceed to check auth state via listener
+            // This is crucial for environments where __initial_auth_token is not always present.
+            authCheckCompleted = true; // Mark as complete since we won't try custom token
+            // The onAuthStateChanged will handle if user is null after this.
+            console.log("No custom token found. Checking existing session.");
+        }
+    })();
+
+
+    // Authentication state listener
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUserId = user.uid;
+            console.log("User authenticated:", user.uid);
+            const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
+            const studentDocSnap = await getDoc(studentDocRef);
+
+            if (studentDocSnap.exists()) {
+                currentUserData = studentDocSnap.data();
+                document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+                const profileImgElement = document.querySelector('#profile-img-preview');
+                if (profileImgElement && currentUserData.profilePhotoURL) {
+                    profileImgElement.src = currentUserData.profilePhotoURL;
+                }
+            } else {
+                await setDoc(studentDocRef, {
+                    email: user.email,
+                    name: user.email.split("@")[0],
+                    regNo: "N/A",
+                    programme: "N/A",
+                    campus: "Main Campus",
+                    dob: "N/A",
+                    gender: "N/A",
+                    address: "N/A",
+                    profilePhotoURL: "",
+                    initialized: true
+                }, { merge: true });
+                currentUserData = (await getDoc(studentDocRef)).data();
+                document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
+            }
+            loadingOverlay.style.display = 'none'; // Hide loading overlay
+            showSection('home');
+            populateInitialData();
+            authCheckCompleted = true; // Mark as complete after successful auth
+        } else {
+            // User is signed out or not logged in
+            if (authCheckCompleted) {
+                // Only redirect if the initial check (including custom token attempt) has finished
+                console.log("User signed out. Redirecting to login.");
+                redirectToLogin("You have been signed out. Redirecting to login...");
+            } else {
+                // This state might occur briefly before signInWithCustomToken resolves or if it's explicitly not called.
+                // We'll let the initial IIFE or subsequent onAuthStateChanged calls handle the final state.
+                console.log("onAuthStateChanged: User is null, but initial auth check might still be in progress or just starting.");
+            }
+        }
+    });
 
     // --- Custom Modal Functions (replaces alert/confirm) ---
     let resolveModalPromise;
@@ -609,71 +697,6 @@
     // --- End Custom Modal Functions ---
 
 
-    // --- Firebase Authentication Handling ---
-    // Get the loading overlay element
-    const loadingOverlay = document.getElementById('loadingOverlay');
-
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUserId = user.uid;
-        console.log("User authenticated:", user.uid);
-        // Fetch user data from Firestore
-        const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
-        const studentDocSnap = await getDoc(studentDocRef);
-
-        if (studentDocSnap.exists()) {
-          currentUserData = studentDocSnap.data();
-          document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-          const profileImgElement = document.querySelector('#profile-img-preview');
-          if (profileImgElement && currentUserData.profilePhotoURL) {
-            profileImgElement.src = currentUserData.profilePhotoURL;
-          }
-        } else {
-          // If user doc doesn't exist, create a basic one (should ideally be done during signup)
-          await setDoc(studentDocRef, {
-            email: user.email,
-            name: user.email.split("@")[0], // Placeholder name
-            regNo: "N/A",
-            programme: "N/A",
-            campus: "Main Campus",
-            dob: "N/A",
-            gender: "N/A",
-            address: "N/A",
-            profilePhotoURL: "",
-            initialized: true // Mark as initialized
-          });
-          currentUserData = (await getDoc(studentDocRef)).data();
-          document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
-        }
-        loadingOverlay.style.display = 'none'; // Hide loading overlay
-        showSection('home'); // Show dashboard content once authenticated and data loaded
-        populateInitialData(); // Populate dummy data if not already present
-      } else {
-        // User is signed out or not logged in, redirect to login page
-        console.log("No user authenticated. Redirecting to login.");
-        loadingOverlay.style.display = 'none'; // Hide loading overlay immediately on unauth
-        window.location.href = "index.html"; // Changed from replace to href and removed leading slash
-      }
-    });
-
-    // Initial sign-in with custom token if available (for Canvas environment)
-    console.log("Attempting initial sign-in...");
-    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-      // Custom token sign-in
-      signInWithCustomToken(auth, __initial_auth_token)
-        .catch((error) => {
-          console.error("Error signing in with custom token:", error);
-          // If custom token fails, redirect to login as anonymous sign-in is restricted.
-          loadingOverlay.style.display = 'none'; // Hide loading overlay on error
-          window.location.href = "index.html"; // Changed from replace to href and removed leading slash
-        });
-    } else {
-      // If no custom token is provided (e.g., in a non-Canvas deployed environment),
-      // we still wait for onAuthStateChanged to resolve before redirecting.
-      // The onAuthStateChanged listener will handle the redirect if no user is found.
-    }
-
-
     // --- Dashboard Specific Functions (Adapted for Firestore) ---
 
     // Logout function
@@ -682,6 +705,7 @@
       if (response) {
         try {
           loadingOverlay.style.display = 'flex'; // Show loading during logout
+          loadingText.innerText = "Logging out...";
           await signOut(auth);
           // Redirection handled by onAuthStateChanged
         } catch (error) {
@@ -702,7 +726,7 @@
 
     document.getElementById('menuToggle').addEventListener('click', function() {
       const sidebar = document.querySelector('.sidebar');
-      sidebar.classList.toggle('active');
+      if (sidebar) sidebar.classList.toggle('active'); // Null check
     });
 
     // Helper to generate breadcrumbs
@@ -721,7 +745,7 @@
 
       if (!currentUserId) {
         console.log("currentUserId is null. Redirecting to login from showSection.");
-        window.location.href = "index.html"; // Changed from replace to href and removed leading slash
+        redirectToLogin("Not logged in. Redirecting to login..."); // Use the unified redirect
         return;
       }
 
@@ -751,12 +775,12 @@
                 <i class="fas fa-search search-icon"></i>
             </div>
           </div>`;
-          content.innerHTML = sectionContent;
+          if (content) content.innerHTML = sectionContent; // Null check for content
           // Load announcements
           onSnapshot(collection(db, `artifacts/${appId}/public/data/announcements`), (snapshot) => {
               const announcements = snapshot.docs.map(doc => doc.data());
               const notificationList = document.querySelector('#notifications-panel');
-              if (notificationList) { // Add null check
+              if (notificationList) {
                   if (announcements.length > 0) {
                       notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> Latest Announcements</h4><ul>${announcements.map(ann => `<li>${ann.title}: ${new Date(ann.date).toLocaleDateString()} - ${ann.message}</li>`).join('')}</ul>`;
                   } else {
@@ -836,7 +860,7 @@
               </tbody>
             </table>
           </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           // Dynamically update units data
           onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`), (snapshot) => {
@@ -894,11 +918,11 @@
               <div id="unitFormArea" style="margin-top: 20px;"></div>
             </div>
           `;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           window.renderUnits = async function () {
-            const semester = document.getElementById("semesterSelect").value;
+            const semester = document.getElementById("semesterSelect")?.value; // Null check
             const formArea = document.getElementById("unitFormArea");
-            if (!formArea || !semester) { // Null check for formArea
+            if (!formArea || !semester) {
               if(formArea) formArea.innerHTML = "";
               return;
             }
@@ -944,7 +968,7 @@
             `;
 
             const unitForm = document.getElementById("unitForm");
-            if (unitForm) { // Null check for unitForm
+            if (unitForm) {
                 unitForm.onsubmit = async function(e) {
                   e.preventDefault();
                   const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
@@ -1026,13 +1050,13 @@
                 </tbody>
               </table>
             </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + timetableHtml;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + timetableHtml;
           break;
 
         case 'evaluation':
           breadcrumbTitle = 'Course Evaluation';
           sectionContent = `<div class="card"><h2>Course Evaluation</h2><div class="no-records">No Records Found</div></div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'graduation':
@@ -1071,12 +1095,12 @@
               <button class="pay-btn" onclick="submitGraduationRequest()">Submit Request</button>
             </div>
           `;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           window.submitGraduationRequest = async function() {
-            const type = document.getElementById('gradType').value;
-            const date = document.getElementById('gradDate').value;
-            const disability = document.getElementById('disability').value;
-            const confirmed = document.getElementById('declaration').checked;
+            const type = document.getElementById('gradType')?.value; // Null check
+            const date = document.getElementById('gradDate')?.value; // Null check
+            const disability = document.getElementById('disability')?.value; // Null check
+            const confirmed = document.getElementById('declaration')?.checked; // Null check
 
             if (!type || !date || !disability || !confirmed) {
               await alert("⚠️ Please fill out all fields and confirm declaration.");
@@ -1114,7 +1138,7 @@
                 <p>Your clearance request is being reviewed. Check back later for updates.</p>
               </div>
             `;
-            content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+            if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
             return;
           }
 
@@ -1145,16 +1169,16 @@
               </form>
             </div>
           `;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           // Handle form submission
           const clearanceForm = document.getElementById("clearanceForm");
-          if(clearanceForm) { // Null check
+          if(clearanceForm) {
             clearanceForm.onsubmit = async function (e) {
               e.preventDefault();
               const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
                 .map(el => el.value);
-              const declaration = document.getElementById("clearDeclaration")?.checked; // Null check for declaration
+              const declaration = document.getElementById("clearDeclaration")?.checked;
 
               if (checked.length === 0) {
                 await alert("⚠️ Please select at least one department.");
@@ -1170,7 +1194,7 @@
                 // Optionally upload file to storage if selected
                 let fileURL = '';
                 const uploadFileInput = document.getElementById('uploadFile');
-                if (uploadFileInput && uploadFileInput.files.length > 0) { // Null check for uploadFileInput
+                if (uploadFileInput && uploadFileInput.files.length > 0) {
                     const file = uploadFileInput.files[0];
                     const storageRef = ref(storage, `clearance_forms/${currentUserId}/${file.name}`);
                     const uploadTask = await uploadBytes(storageRef, file);
@@ -1241,7 +1265,7 @@
             </table>
             <p style="margin-top: 15px; font-weight: bold;">Current Balance: KES ${feeBalance.toFixed(2)}</p>
           </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'receipts':
@@ -1287,7 +1311,7 @@
               </tbody>
             </table>
           </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'examCard':
@@ -1301,7 +1325,7 @@
                 <h2>Exam Card</h2>
                 <p style="color:red;">❌ You cannot generate an Exam Card until you clear your fee balance (KES ${totalFeeBalance.toFixed(2)}).</p>
               </div>`;
-            content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+            if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
             return;
           }
 
@@ -1320,7 +1344,7 @@
                 <h2>Exam Card</h2>
                 <p style="color:red;">❌ You haven't registered any units yet. Please register your units first.</p>
               </div>`;
-            content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+            if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
             return;
           }
 
@@ -1356,7 +1380,7 @@
               </table>
               <button class="red-btn" onclick="generateExamCardPDF()"><i class="fas fa-print"></i> Print Exam Card</button>
             </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'examTimetable':
@@ -1372,7 +1396,7 @@
               <br/>
               <button class="red-btn" style="margin-top: 20px;"><i class="fas fa-download"></i> Download</button>
             </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'transcripts':
@@ -1417,7 +1441,7 @@
               </table>
               <button class="red-btn" style="margin-top: 20px;" onclick="generateTranscriptPDF()"><i class="fas fa-download"></i> Download Transcript</button>
             </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'hostelBooking':
@@ -1448,25 +1472,23 @@
               <button class="red-btn" style="margin-top: 20px;" onclick="bookHostel()">Book</button>
               <div id="hostelBookedMsg" style="margin-top: 15px; font-weight: bold; color: #006400;"></div>
             </div>`;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           // After rendering, pre-select the booked hostel if already saved
           if (savedHostelId) {
             const hostelSelect = document.getElementById("hostelSelect");
-            if (hostelSelect) { // Null check
+            if (hostelSelect) {
                 hostelSelect.value = savedHostelId;
                 const selectedHostelName = availableHostels.find(h => h.id === savedHostelId)?.name || 'Unknown';
                 const hostelBookedMsgElement = document.getElementById("hostelBookedMsg");
                 if(hostelBookedMsgElement) hostelBookedMsgElement.innerText = `🏨 You already booked: ${selectedHostelName}`;
-                // Disable select and button if already booked
-                hostelSelect.disabled = true;
                 const bookHostelButton = document.querySelector("button[onclick='bookHostel()']");
                 if(bookHostelButton) bookHostelButton.disabled = true;
             }
           }
 
           window.bookHostel = async function() {
-            const selectedHostelId = document.getElementById("hostelSelect")?.value; // Null check
+            const selectedHostelId = document.getElementById("hostelSelect")?.value;
             if (!selectedHostelId) {
               await alert("⚠️ Please select a hostel.");
               return;
@@ -1540,12 +1562,12 @@
               ` : ''}
             </div>
           `;
-          content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           window.changePassword = async function() {
-            const current = document.getElementById('currentPassword')?.value; // Null check
-            const newPass = document.getElementById('newPassword')?.value; // Null check
-            const confirmPass = document.getElementById('confirmPassword')?.value; // Null check
+            const current = document.getElementById('currentPassword')?.value;
+            const newPass = document.getElementById('newPassword')?.value;
+            const confirmPass = document.getElementById('confirmPassword')?.value;
 
             if (!current || !newPass || !confirmPass) {
               await alert("Please fill in all fields.");
@@ -1565,14 +1587,11 @@
             try {
               const user = auth.currentUser;
               if (user) {
-                // Note: updatePassword requires user to be recently authenticated.
-                // In a real app, you might need to re-authenticate them first if it's been a while.
                 await updatePassword(user, newPass);
                 await alert("Password updated successfully!");
               } else {
                 await alert("No user logged in to change password.");
               }
-              // Reset fields
               const currentPasswordElement = document.getElementById('currentPassword');
               const newPasswordElement = document.getElementById('newPassword');
               const confirmPasswordElement = document.getElementById('confirmPassword');
@@ -1593,9 +1612,6 @@
             const response = await confirm("This will delete ALL user data in Firestore! Are you absolutely sure? This action is irreversible.");
             if (response) {
               try {
-                // This is a placeholder for actual admin data deletion,
-                // which would involve iterating and deleting subcollections.
-                // For safety in a client-side environment, this remains simulated.
                 await alert("Simulated: All user data cleared (conceptual). In a real application, this would be handled by a secure backend function.");
               } catch (error) {
                 console.error("Error clearing all data:", error);
@@ -1606,18 +1622,18 @@
           break;
 
         default:
-          content.innerHTML = `<div class="card"><h2>Page Not Found</h2><p>The requested section does not exist.</p></div>`;
+          sectionContent = `<div class="card"><h2>Page Not Found</h2><p>The requested section does not exist.</p></div>`;
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
       }
-      // New: Close sidebar if on mobile after section is shown
       if (window.innerWidth <= 768) {
         const sidebar = document.querySelector('.sidebar');
-        if (sidebar && sidebar.classList.contains('active')) { // Null check for sidebar
+        if (sidebar && sidebar.classList.contains('active')) {
           sidebar.classList.remove('active');
         }
       }
     }
-    window.showSection = showSection; // Expose to global scope for HTML onclick
+    window.showSection = showSection;
 
     // Function to upload profile picture to Firebase Storage
     window.uploadProfilePicture = async function() {
@@ -1627,7 +1643,7 @@
       }
 
       const fileInput = document.getElementById('profile-picture-upload');
-      const file = fileInput?.files[0]; // Null check
+      const file = fileInput?.files[0];
 
       if (!file) {
         await alert("Please select a file to upload.");
@@ -1655,14 +1671,11 @@
     };
 
     // --- PDF Generation Functions ---
-    // School logo for PDF - you should upload your myschoollogo.png to Firebase Storage
-    // and get its download URL, then replace this placeholder.
-    let schoolLogoBase64 = null; // To store base64 representation of the logo
+    let schoolLogoBase64 = null;
 
     async function getSchoolLogoBase64() {
         if (schoolLogoBase64) return schoolLogoBase64;
         try {
-            // Assuming you upload myschoollogo.png to 'assets/myschoollogo.png' in Storage
             const logoRef = ref(storage, 'assets/myschoollogo.png');
             const url = await getDownloadURL(logoRef);
             const response = await fetch(url);
@@ -1677,16 +1690,12 @@
                 reader.readAsDataURL(blob);
             });
         }
-        // In a real application, you might provide a default base64 image or handle
-        // the error more gracefully if the logo is critical.
-        // For now, it will just not include the image if it fails to fetch.
         catch (error) {
             console.warn("Could not fetch school logo from Storage. Using fallback or no logo.", error);
             return null; 
         }
     }
 
-    // Helper for common PDF header/footer
     async function addPdfHeaderFooter(doc, title, student, includeWatermark = false) {
       const logo = await getSchoolLogoBase64();
       if (logo) {
@@ -1698,24 +1707,21 @@
       
       doc.setFont('times', 'bold');
       doc.setFontSize(18);
-      doc.text("Prince Alex Design University", 105, 25, { align: 'center' }); // University Name
+      doc.text("Prince Alex Design University", 105, 25, { align: 'center' });
       doc.setFontSize(16);
-      doc.text(title, 105, 35, { align: 'center' }); // Page Title
+      doc.text(title, 105, 35, { align: 'center' });
 
       doc.setFont('times', 'normal');
       doc.setFontSize(10);
-      doc.text(`Name: ${student?.name || 'N/A'}`, 15, 50); // Null check
-      doc.text(`Reg No: ${student?.regNo || 'N/A'}`, 15, 56); // Null check
-      doc.text(`Email: ${student?.email || 'N/A'}`, 15, 62); // Null check
-      doc.text(`Programme: ${student?.programme || 'N/A'}`, 105, 50); // Null check
+      doc.text(`Name: ${student?.name || 'N/A'}`, 15, 50);
+      doc.text(`Reg No: ${student?.regNo || 'N/A'}`, 15, 56);
+      doc.text(`Email: ${student?.email || 'N/A'}`, 15, 62);
+      doc.text(`Programme: ${student?.programme || 'N/A'}`, 105, 50);
 
-      // Watermark (simulated) - requires a base64 image of the crest
       if (includeWatermark) {
-          // Replace 'watermark_image_base64' with your actual semi-transparent school crest base64 image
-          // doc.addImage('watermark_image_base64', 'PNG', 50, 100, 100, 100, undefined, 'FAST', 0.1); // Adjust position and opacity
+          // Add watermark logic here if you have a base64 image
       }
 
-      // Footer
       const pageCount = doc.internal.getNumberOfPages();
       for(let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
@@ -1729,7 +1735,7 @@
       const student = currentUserData;
       const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
       const feesSnapshot = await getDocs(feesCollectionRef);
-      const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date)); // Sort by date
+      const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
 
       if (!student || feesData.length === 0) {
         await alert("No student data or fees records found to generate PDF.");
@@ -1757,7 +1763,7 @@
       doc.autoTable({
         head: [["Posting Date", "Ref #", "Description", "Debit (KES)", "Credit (KES)", "Running Balance (KES)"]],
         body: tableData,
-        startY: 75, // Adjust startY after header
+        startY: 75,
         styles: { font: 'times', fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
         headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
       });
@@ -1824,7 +1830,7 @@
       await addPdfHeaderFooter(doc, "Exam Card", student);
 
       const tableData = allRegisteredUnits.map((unit, i) => [
-        i + 1, unit.code, unit.name, "Room TBA", "Time TBA" // Placeholder for room/time
+        i + 1, unit.code, unit.name, "Room TBA", "Time TBA"
       ]);
 
       doc.autoTable({
@@ -1835,7 +1841,6 @@
         headStyles: { fillColor: [228, 245, 233], textColor: [0, 77, 0], fontStyle: 'bold' }
       });
 
-      // Add a simulated official stamp/signature placeholder
       const finalY = doc.autoTable.previous.finalY;
       doc.setFontSize(10);
       doc.text("_________________________", 15, finalY + 20);
@@ -1861,13 +1866,12 @@
 
       await addPdfHeaderFooter(doc, "Academic Transcript", student);
 
-      // Calculate GPA for transcript
       let totalPoints = 0;
       let totalUnits = 0;
-      const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 }; // Simple grade mapping
+      const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
       const tableData = gradesData.map(item => {
         const points = gradeMap[item.grade] || 0;
-        const units = 1; // Assuming each unit is 1 credit for simplicity
+        const units = 1;
         totalPoints += points * units;
         totalUnits += units;
         return [item.unitCode, item.unitName, item.catScore, item.examScore, item.grade];
@@ -1917,12 +1921,11 @@
                 dob: "2000-01-01",
                 gender: "Male",
                 address: "N/A",
-                profilePhotoURL: "", // Default empty
-                initialized: true // Flag to prevent re-initialization
+                profilePhotoURL: "",
+                initialized: true
             }, { merge: true });
-            currentUserData = (await getDoc(studentRef)).data(); // Refresh currentUserData
+            currentUserData = (await getDoc(studentRef)).data();
 
-            // Add dummy courses if not already present in public data
             const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
             const coursesSnap = await getDocs(coursesCol);
             if (coursesSnap.empty) {
@@ -1935,7 +1938,6 @@
                 await addDoc(coursesCol, { code: "CSC102", name: "Web Development Basics", semester: "Semester 2", lecturer: "Mr. Green", schedule: { day: "Monday", time: "13:00-14:00" }, timetableURL: "http://example.com/csc102_timetable.pdf" });
             }
 
-            // Add dummy fees data if not already present
             const feesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
             const feesSnap = await getDocs(feesCol);
             if (feesSnap.empty) {
@@ -1948,7 +1950,6 @@
                 await addDoc(feesCol, { date: "2025-06-20", ref: "RCPT002", description: "Bank Deposit", debit: 0, credit: 10000, runningBalance: 12000 });
             }
 
-            // Add dummy grades data if not already present
             const gradesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
             const gradesSnap = await getDocs(gradesCol);
             if (gradesSnap.empty) {
@@ -1957,7 +1958,6 @@
                 await addDoc(gradesCol, { unitCode: "CSC101", unitName: "Introduction to Computing", catScore: 18, examScore: 72, grade: "A" });
             }
 
-             // Add dummy public hostels data if not already present
             const publicHostelsCol = collection(db, `artifacts/${appId}/public/data/hostels`);
             const publicHostelsSnap = await getDocs(publicHostelsCol);
             if (publicHostelsSnap.empty) {
@@ -1965,11 +1965,10 @@
                 await addDoc(publicHostelsCol, { name: "Greenfields Hostel", price: 15000, availableRooms: 5 });
                 await addDoc(publicHostelsCol, { name: "Sunrise Hostel", price: 13500, availableRooms: 3 });
                 await addDoc(publicHostelsCol, { name: "Lakeview Hostel", price: 14200, availableRooms: 8 });
-                await addDoc(publicHostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 }); // Example unavailable
+                await addDoc(publicHostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 });
                 await addDoc(publicHostelsCol, { name: "Riverbend Hostel", price: 12800, availableRooms: 2 });
             }
 
-            // Add dummy announcements if not already present
             const announcementsCol = collection(db, `artifacts/${appId}/public/data/announcements`);
             const announcementsSnap = await getDocs(announcementsCol);
             if (announcementsSnap.empty) {
@@ -1978,15 +1977,14 @@
                 await addDoc(announcementsCol, { title: "Holiday Break", message: "University will be closed from July 1st to July 5th.", date: "2025-06-20" });
             }
 
-            // Add a dummy admin record for demonstration of isAdmin check
             const adminsCol = collection(db, `artifacts/${appId}/public/data/admins`);
             const adminSnap = await getDoc(doc(adminsCol, "senerwaalex@gmail.com"));
             if (!adminSnap.exists()) {
-                await setDoc(doc(adminsCol, "senerwaalex@gmail.com"), { role: "admin", isAdmin: true }); // Ensure isAdmin is set to true
+                await setDoc(doc(adminsCol, "senerwaalex@gmail.com"), { role: "admin", isAdmin: true });
             }
 
             console.log("Initial data population complete.");
-            showSection('home'); // Refresh to show updated data
+            showSection('home');
         }
     }
   </script>
