@@ -13,6 +13,21 @@
       font-family: 'Inter', sans-serif;
       background: url('myschoolgate.png') no-repeat center center fixed;
       background-size: cover;
+      /* Removed h-screen flex items-center justify-center from body */
+    }
+    /* Centering forms with new wrapper */
+    .auth-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh; /* Ensures it takes full viewport height for centering */
+      padding: 20px; /* Provides padding around the form */
+      overflow-y: auto; /* Allows scrolling on small screens if content overflows */
+    }
+    .form-wrapper.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
     }
     .gpa-circle-container {
       position: relative;
@@ -57,9 +72,34 @@
         -ms-overflow-style: none;  /* IE and Edge */
         scrollbar-width: none;  /* Firefox */
     }
+    /* General table styling */
+    .styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    .styled-table thead tr {
+      background-color: #e2e8f0; /* Light gray for header */
+      text-align: left;
+    }
+    .styled-table th, .styled-table td {
+      padding: 12px 15px;
+      border: 1px solid #cbd5e0; /* Light border */
+    }
+    .styled-table tbody tr:nth-of-type(even) {
+      background-color: #f8fafc; /* Lighter alternating row */
+    }
+    .styled-table tbody tr:hover {
+      background-color: #eff6ff; /* Blue tint on hover */
+    }
+    .styled-table tbody tr.no-data-row td {
+      text-align: center;
+      font-style: italic;
+      color: #718096;
+    }
   </style>
 </head>
-<body class="h-screen flex items-center justify-center">
+<body>
   <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col justify-center items-center z-[2000] hidden">
     <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-700"></div>
     <div id="loadingText" class="mt-4 text-xl text-green-700">Loading...</div>
@@ -76,76 +116,86 @@
     </div>
   </div>
 
-  <div id="authContainer" class="p-4 w-full h-full flex justify-center items-center">
-    <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5 active">
-      <form id="login-form">
-        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Login</h2>
-        <div class="mb-6 text-left">
-          <label for="email-login" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
-          <input type="email" id="email-login" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-          <p id="email-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
-        </div>
-        <div class="mb-6 text-left">
-          <label for="password-login" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
-          <input type="password" id="password-login" placeholder="Enter your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-          <p id="password-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
-        </div>
-        <button type="submit" id="login-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Login</button>
-        <div class="mt-6 text-sm flex justify-center space-x-4">
-          <a href="#" onclick="showForm('signup')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Don't have an account? Sign Up</a>
-          <a href="#" onclick="showForm('forgot-password')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Forgot Password?</a>
-        </div>
-      </form>
+  <!-- Authentication Forms Container -->
+  <div id="authContainer" class="hidden">
+    <!-- Login Form Wrapper -->
+    <div class="auth-wrapper">
+      <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-[420px] text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5 active">
+        <form id="login-form">
+          <h2 class="text-4xl font-extrabold text-green-800 mb-8">Login</h2>
+          <div class="mb-6 text-left">
+            <label for="email-login" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+            <input type="email" id="email-login" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+            <p id="email-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <div class="mb-6 text-left">
+            <label for="password-login" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+            <input type="password" id="password-login" placeholder="Enter your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+            <p id="password-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <button type="submit" id="login-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Login</button>
+          <div class="mt-6 text-sm flex justify-center space-x-4">
+            <a href="#" onclick="showForm('signup')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Don't have an account? Sign Up</a>
+            <a href="#" onclick="showForm('forgot-password')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Forgot Password?</a>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <div id="signup-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
-      <form id="signup-form">
-        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Sign Up</h2>
-        <div class="mb-6 text-left">
-          <label for="full-name-signup" class="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
-          <input type="text" id="full-name-signup" placeholder="Enter your full name" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-        </div>
-        <div class="mb-6 text-left">
-          <label for="email-signup" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
-          <input type="email" id="email-signup" placeholder="Enter your email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-          <p id="email-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
-        </div>
-        <div class="mb-6 text-left">
-          <label for="password-signup" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
-          <input type="password" id="password-signup" placeholder="Create a password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-          <p id="password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
-        </div>
-        <div class="mb-6 text-left">
-          <label for="confirm-password-signup" class="block text-gray-700 text-sm font-medium mb-2">Confirm Password</label>
-          <input type="password" id="confirm-password-signup" placeholder="Confirm your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-          <p id="confirm-password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
-        </div>
-        <button type="submit" id="signup-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Sign Up</button>
-        <div class="mt-6 text-sm">
-          <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Already have an account? Login</a>
-        </div>
-      </form>
+    <!-- Signup Form Wrapper -->
+    <div class="auth-wrapper">
+      <div id="signup-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-[420px] text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
+        <form id="signup-form">
+          <h2 class="text-4xl font-extrabold text-green-800 mb-8">Sign Up</h2>
+          <div class="mb-6 text-left">
+            <label for="full-name-signup" class="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
+            <input type="text" id="full-name-signup" placeholder="Enter your full name" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          </div>
+          <div class="mb-6 text-left">
+            <label for="email-signup" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+            <input type="email" id="email-signup" placeholder="Enter your email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+            <p id="email-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <div class="mb-6 text-left">
+            <label for="password-signup" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+            <input type="password" id="password-signup" placeholder="Create a password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+            <p id="password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <div class="mb-6 text-left">
+            <label for="confirm-password-signup" class="block text-gray-700 text-sm font-medium mb-2">Confirm Password</label>
+            <input type="password" id="confirm-password-signup" placeholder="Confirm your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+            <p id="confirm-password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <button type="submit" id="signup-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Sign Up</button>
+          <div class="mt-6 text-sm">
+            <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Already have an account? Login</a>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <div id="forgot-password-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
-      <form id="forgot-password-form">
-        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Forgot Password</h2>
-        <div class="mb-6 text-left">
-          <label for="email-forgot" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
-          <input type="email" id="email-forgot" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
-          <p id="email-forgot-error" class="text-red-500 text-sm mt-1 hidden"></p>
-        </div>
-        <button type="submit" id="recover-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Recover Password</button>
-        <div class="mt-6 text-sm">
-          <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Back to Login</a>
-        </div>
-      </form>
+    <!-- Forgot Password Form Wrapper -->
+    <div class="auth-wrapper">
+      <div id="forgot-password-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-[420px] text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
+        <form id="forgot-password-form">
+          <h2 class="text-4xl font-extrabold text-green-800 mb-8">Forgot Password</h2>
+          <div class="mb-6 text-left">
+            <label for="email-forgot" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+            <input type="email" id="email-forgot" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+            <p id="email-forgot-error" class="text-red-500 text-sm mt-1 hidden"></p>
+          </div>
+          <button type="submit" id="recover-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Recover Password</button>
+          <div class="mt-6 text-sm">
+            <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Back to Login</a>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
   <div id="dashboardContainer" class="hidden h-screen flex flex-col bg-gray-100 w-full">
     <header class="bg-white text-green-800 p-4 flex justify-between items-center shadow-md sticky top-0 z-10 lg:px-8">
-      <img src="myschoollogo.png" alt="University Logo" class="h-12 w-auto">
+      <img src="https://placehold.co/150x50/34D399/FFFFFF?text=Logo" alt="University Logo" class="h-12 w-auto">
       <button id="menuToggle" class="lg:hidden text-2xl p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
         <i class="fas fa-bars"></i>
       </button>
@@ -171,8 +221,10 @@
 
         <a onclick="toggleSubmenu('academics-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-book mr-3"></i> Academics <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="academics-submenu" class="ml-6 py-2 hidden">
-          <a onclick="showDashboardSection('courseReg')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
+          <a onclick="showDashboardSection('courses')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-book-open mr-3"></i> All Courses</a>
+          <a onclick="showDashboardSection('registrations')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
           <a onclick="showDashboardSection('timetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-calendar-alt mr-3"></i> Timetable</a>
+          <a onclick="showDashboardSection('grades')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clipboard-check mr-3"></i> Grades</a>
           <a onclick="showDashboardSection('evaluation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clipboard-list mr-3"></i> Course Evaluation</a>
           <a onclick="showDashboardSection('graduation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-graduation-cap mr-3"></i> Graduation Request</a>
           <a onclick="showDashboardSection('clearance')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-check-circle mr-3"></i> Clearance Request</a>
@@ -180,7 +232,7 @@
 
         <a onclick="toggleSubmenu('finance-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-money-bill-wave mr-3"></i> Finance <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="finance-submenu" class="ml-6 py-2 hidden">
-          <a onclick="showDashboardSection('feesStatement')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-credit-card mr-3"></i> Fees Statement</a>
+          <a onclick="showDashboardSection('fees')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-credit-card mr-3"></i> Fees Statement</a>
           <a onclick="showDashboardSection('receipts')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-receipt mr-3"></i> Receipts</a>
           <a onclick="showDashboardSection('examCard')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-id-card mr-3"></i> Exam Card</a>
         </div>
@@ -190,7 +242,8 @@
           <a onclick="showDashboardSection('examTimetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clock mr-3"></i> Timetable</a>
           <a onclick="showDashboardSection('transcripts')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-invoice mr-3"></i> Transcripts</a>
         </div>
-        <a onclick="showDashboardSection('hostelBooking')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-hotel mr-3"></i> Accommodation</a>
+        <a onclick="showDashboardSection('hostels')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-hotel mr-3"></i> Accommodation</a>
+        <a onclick="showDashboardSection('announcements')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-bullhorn mr-3"></i> Announcements</a>
         <a onclick="showDashboardSection('settings')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-cog mr-3"></i> Settings</a>
       </nav>
 
@@ -222,7 +275,7 @@
     // Global variables from Canvas environment
     const appId = typeof __app_id !== 'undefined' ? __app_id : hardcodedFirebaseConfig.projectId; // Kept for consistency if needed, though not directly in new Firestore paths
     const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Fixed: Use __initial_auth_token here
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
     let app;
     if (firebaseConfigFromCanvas) {
@@ -318,17 +371,23 @@
 
     // Function to show specific authentication form and hide others
     window.showForm = function(formId) {
+      const allAuthWrappers = document.querySelectorAll('.auth-wrapper');
+      allAuthWrappers.forEach(wrapper => wrapper.classList.add('hidden')); // Hide all auth wrappers initially
+
       const forms = document.querySelectorAll('.form-wrapper');
       forms.forEach(form => {
         form.classList.remove('active');
         form.classList.add('opacity-0', 'invisible', 'translate-y-5');
       });
-      const activeForm = document.getElementById(`${formId}-form-wrapper`);
-      if (activeForm) {
-        activeForm.classList.remove('opacity-0', 'invisible', 'translate-y-5');
-        activeForm.classList.add('active');
+
+      const activeFormWrapper = document.getElementById(`${formId}-form-wrapper`);
+      if (activeFormWrapper) {
+        // Show the parent auth-wrapper
+        activeFormWrapper.closest('.auth-wrapper').classList.remove('hidden');
+        activeFormWrapper.classList.remove('opacity-0', 'invisible', 'translate-y-5');
+        activeFormWrapper.classList.add('active');
         // Autofocus the first input in the new form
-        const firstInput = activeForm.querySelector('input:not([type="hidden"]), select, textarea');
+        const firstInput = activeFormWrapper.querySelector('input:not([type="hidden"]), select, textarea');
         if (firstInput) {
           firstInput.focus();
         }
@@ -458,11 +517,11 @@
         }
 
         // --- UI Transition to Dashboard ---
-        authContainer.classList.add('hidden'); // Hide auth forms
+        authContainer.classList.add('hidden'); // Hide auth forms container
         dashboardContainer.classList.remove('hidden'); // Show dashboard
         loadingOverlay.classList.add('hidden'); // Hide loading overlay
 
-        // Check if essential profile data is incomplete
+        // Check if essential profile data is incomplete (adjust as needed for what constitutes 'incomplete')
         if (currentUserData.regNo === 'N/A' || currentUserData.programme === 'N/A' || currentUserData.dob === 'N/A' || currentUserData.gender === 'N/A') {
             await showCustomModal("Welcome", "Please complete your profile information.");
             showDashboardSection('profile'); // Direct user to profile page
@@ -472,7 +531,7 @@
 
       } else {
         // User is signed out or not logged in, show login page
-        authContainer.classList.remove('hidden'); // Show auth forms
+        authContainer.classList.remove('hidden'); // Show auth forms container
         dashboardContainer.classList.add('hidden'); // Hide dashboard
         loadingOverlay.classList.add('hidden'); // Hide loading overlay
         showForm('login'); // Ensure login form is visible
@@ -676,6 +735,11 @@
       </div>`;
     }
 
+    // Helper to generate a "No data available" row
+    function generateNoDataRow(colSpan) {
+        return `<tr class="no-data-row"><td colspan="${colSpan}" class="py-3 px-6">No data available.</td></tr>`;
+    }
+
     // New: Calculate GPA
     function calculateGPA(grades) {
         let totalPoints = 0;
@@ -695,46 +759,52 @@
     // New: Load Home Dashboard Data
     async function loadHomeDashboard() {
         showLoading("Loading dashboard summary...");
-        const announcementsRef = collection(db, `announcements`);
-        const gradesRef = collection(db, `grades`);
-        const feesRef = collection(db, `fees`);
-        const registrationsRef = collection(db, `registrations`);
-
+        const content = document.getElementById("dashboardContent");
         try {
+            // Fetch student profile info
+            const studentDocRef = doc(db, `students`, currentUserId);
+            const studentDocSnap = await getDoc(studentDocRef);
+            const studentProfile = studentDocSnap.exists() ? studentDocSnap.data() : { name: "User", regNo: "N/A", programme: "N/A", profilePhotoURL: 'https://placehold.co/100x100/eeeeee/333333?text=Avatar' };
+
             // Fetch latest 3 announcements
+            const announcementsRef = collection(db, `announcements`);
             const announcementsQuery = query(announcementsRef, orderBy("date", "desc"), limit(3));
             const announcementsSnapshot = await getDocs(announcementsQuery);
-            const announcements = announcementsSnapshot.docs.map(doc => doc.data());
+            const announcements = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // Fetch fees data
-            const feesDocRef = doc(db, feesRef, currentUserId);
+            // Fetch fees data to get outstanding balance
+            const feesDocRef = doc(db, `fees`, currentUserId);
             const feesSnapshot = await getDoc(feesDocRef);
-            const feesData = feesSnapshot.exists() ? feesSnapshot.data() : { balance: 0 };
+            const feesData = feesSnapshot.exists() ? feesSnapshot.data() : { totalFees: 0, payments: [] };
+            const totalPayments = feesData.payments.reduce((sum, p) => sum + p.amount, 0);
+            const outstandingBalance = feesData.totalFees - totalPayments;
 
-            // Fetch grades
+            // Fetch grades for GPA
+            const gradesRef = collection(db, `grades`);
             const gradesQuery = query(gradesRef, where("studentId", "==", currentUserId));
             const gradesSnapshot = await getDocs(gradesQuery);
             const grades = gradesSnapshot.docs.map(doc => doc.data());
             const gpa = calculateGPA(grades);
             const latestGrade = grades.length > 0 ? grades.sort((a,b) => new Date(b.date) - new Date(a.date))[0] : null;
 
-            // Fetch registrations to find upcoming deadlines
-            const registrationsDocRef = doc(db, registrationsRef, currentUserId);
-            const registrationsSnap = await getDoc(registrationsDocRef);
-            const registrationsData = registrationsSnap.exists() ? registrationsSnap.data().courses : [];
-            let upcomingDeadline = "No upcoming deadlines.";
+            // Fetch registrations to find next upcoming course/registration
+            const registrationsRef = collection(db, `registrations`);
+            const registrationsQuery = query(registrationsRef, where("studentId", "==", currentUserId));
+            const registrationsSnapshot = await getDocs(registrationsQuery);
+            const registrationsData = registrationsSnapshot.docs.map(doc => doc.data().courses || []).flat();
+
+            let nextUpcomingCourse = "No upcoming registrations.";
             const now = new Date();
-            const futureDeadlines = registrationsData.filter(reg => new Date(reg.registrationDeadline) > now);
-            if (futureDeadlines.length > 0) {
-                futureDeadlines.sort((a,b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
-                const nextDeadline = futureDeadlines[0];
-                upcomingDeadline = `${nextDeadline.courseName} Registration Deadline: ${new Date(nextDeadline.registrationDeadline).toLocaleDateString()}`;
+            const futureRegistrations = registrationsData.filter(reg => new Date(reg.registrationDeadline) > now);
+            if (futureRegistrations.length > 0) {
+                futureRegistrations.sort((a,b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
+                const nextReg = futureRegistrations[0];
+                nextUpcomingCourse = `${nextReg.courseName} (Deadline: ${new Date(nextReg.registrationDeadline).toLocaleDateString()})`;
             }
 
-            const content = document.getElementById("dashboardContent");
-            const balanceColorClass = feesData.balance > 0 ? 'text-red-600' : 'text-green-600';
-            const balanceText = feesData.balance > 0 ? `GHS ${feesData.balance.toFixed(2)}` : `GHS ${feesData.balance.toFixed(2)} (Paid in Full)`;
-            const latestGradeHtml = latestGrade ? `Your latest grade is a **${latestGrade.grade}** in **${latestGrade.courseCode}**. <br/> ` : '';
+            const balanceColorClass = outstandingBalance > 0 ? 'text-red-600' : 'text-green-600';
+            const balanceText = outstandingBalance > 0 ? `GHS ${outstandingBalance.toFixed(2)}` : `GHS ${outstandingBalance.toFixed(2)} (Paid in Full)`;
+            const latestGradeHtml = latestGrade ? `Your latest grade is a **${latestGrade.grade}** in **${latestGrade.courseName || latestGrade.courseCode}**. ` : '';
 
             let announcementsHtml = `<p class="text-gray-600 text-center py-4">No new announcements at this time.</p>`;
             if (announcements.length > 0) {
@@ -748,13 +818,21 @@
             }
 
             const homeContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-lg mb-6 flex flex-col md:flex-row items-center">
+                    <img src="${studentProfile.profilePhotoURL}" alt="Profile" class="w-24 h-24 rounded-full object-cover mr-4 mb-4 md:mb-0 border-4 border-green-200">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-green-800 mb-2">Welcome, ${studentProfile.name}!</h2>
+                        <p class="text-gray-700 text-lg">Reg No: <span class="font-semibold">${studentProfile.regNo}</span> | Programme: <span class="font-semibold">${studentProfile.programme}</span></p>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-lg text-center">
                         <h3 class="text-xl font-semibold text-green-800 mb-2">Current GPA</h3>
                         <div class="gpa-circle-container">
                             <svg class="gpa-circle-svg" width="120" height="120">
                                 <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${gpa / 4 * 314};"></circle>
+                                <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${(gpa / 4) * (2 * Math.PI * 50)};"></circle>
                             </svg>
                             <span class="gpa-text">${gpa}</span>
                         </div>
@@ -771,11 +849,11 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-xl shadow-lg text-center">
-                        <h3 class="text-xl font-semibold text-green-800 mb-2">Next Deadline</h3>
+                        <h3 class="text-xl font-semibold text-green-800 mb-2">Next Upcoming</h3>
                         <div class="my-6">
                             <i class="fas fa-calendar-alt text-5xl text-blue-600"></i>
                         </div>
-                        <p class="text-xl font-bold text-gray-800">${upcomingDeadline}</p>
+                        <p class="text-xl font-bold text-gray-800">${nextUpcomingCourse}</p>
                         <p class="text-gray-600 text-sm mt-2">Don't miss a key date!</p>
                     </div>
                 </div>
@@ -805,169 +883,620 @@
         const profileDocRef = doc(db, `students`, currentUserId);
         try {
             const profileSnap = await getDoc(profileDocRef);
-            const studentData = profileSnap.exists() ? profileSnap.data() : {};
+            const studentData = profileSnap.exists() ? profileSnap.data() : {
+                name: "N/A", email: "N/A", regNo: "N/A", programme: "N/A", campus: "N/A",
+                dob: "N/A", gender: "N/A", address: "N/A", profilePhotoURL: 'https://placehold.co/100x100/eeeeee/333333?text=Avatar'
+            };
+
             let profilePhotoURL = studentData.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
-            
-            const profileHtml = `...`; // Existing profile HTML
+
+            const profileHtml = `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Personal Profile</h2>
+                    <form id="profile-form" class="space-y-6">
+                        <div class="flex flex-col items-center mb-6">
+                            <img id="profile-photo-preview" src="${profilePhotoURL}" alt="Profile Photo" class="w-32 h-32 rounded-full object-cover border-4 border-green-300 shadow-md mb-4">
+                            <input type="file" id="profile-photo-upload" accept="image/*" class="hidden">
+                            <label for="profile-photo-upload" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg cursor-pointer transition duration-300 ease-in-out">
+                                <i class="fas fa-camera mr-2"></i>Upload Photo
+                            </label>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="profile-name" class="block text-gray-700 font-semibold mb-2">Full Name</label>
+                                <input type="text" id="profile-name" value="${studentData.name || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                            </div>
+                            <div>
+                                <label for="profile-email" class="block text-gray-700 font-semibold mb-2">Email</label>
+                                <input type="email" id="profile-email" value="${studentData.email || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed" readonly>
+                            </div>
+                            <div>
+                                <label for="profile-regNo" class="block text-gray-700 font-semibold mb-2">Registration Number</label>
+                                <input type="text" id="profile-regNo" value="${studentData.regNo || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="profile-programme" class="block text-gray-700 font-semibold mb-2">Programme</label>
+                                <input type="text" id="profile-programme" value="${studentData.programme || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="profile-campus" class="block text-gray-700 font-semibold mb-2">Campus</label>
+                                <input type="text" id="profile-campus" value="${studentData.campus || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="profile-dob" class="block text-gray-700 font-semibold mb-2">Date of Birth</label>
+                                <input type="date" id="profile-dob" value="${studentData.dob || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="profile-gender" class="block text-gray-700 font-semibold mb-2">Gender</label>
+                                <select id="profile-gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" ${studentData.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                    <option value="Female" ${studentData.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                    <option value="Other" ${studentData.gender === 'Other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="profile-address" class="block text-gray-700 font-semibold mb-2">Address</label>
+                                <textarea id="profile-address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">${studentData.address || ''}</textarea>
+                            </div>
+                        </div>
+                        <button type="submit" id="save-profile-btn" class="mt-8 w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">
+                            <i class="fas fa-save mr-2"></i>Save Profile
+                        </button>
+                    </form>
+                </div>
+            `;
             content.innerHTML = generateBreadcrumb('Personal Profile') + profileHtml;
 
-            // Existing logic to handle profile form submission, etc.
+            // Add event listeners after HTML is rendered
+            document.getElementById('profile-photo-upload').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                showLoading("Uploading photo...");
+                try {
+                    const storageRef = ref(storage, `profilePhotos/${currentUserId}/${file.name}`);
+                    await uploadBytes(storageRef, file);
+                    const photoURL = await getDownloadURL(storageRef);
+
+                    await updateDoc(profileDocRef, { profilePhotoURL: photoURL });
+                    document.getElementById('profile-photo-preview').src = photoURL;
+                    await showCustomModal("Success", "Profile photo updated successfully!");
+                } catch (error) {
+                    console.error("Error uploading profile photo:", error);
+                    await showCustomModal("Error", "Failed to upload profile photo.");
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            document.getElementById('profile-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const saveBtn = document.getElementById('save-profile-btn');
+                setButtonLoading(saveBtn, true);
+                try {
+                    await updateDoc(profileDocRef, {
+                        name: document.getElementById('profile-name').value,
+                        regNo: document.getElementById('profile-regNo').value,
+                        programme: document.getElementById('profile-programme').value,
+                        campus: document.getElementById('profile-campus').value,
+                        dob: document.getElementById('profile-dob').value,
+                        gender: document.getElementById('profile-gender').value,
+                        address: document.getElementById('profile-address').value,
+                    });
+                    await showCustomModal("Success", "Profile updated successfully!");
+                    // Update current user data in memory
+                    currentUserData = (await getDoc(profileDocRef)).data();
+                    document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+                    const userNameMobile = document.getElementById("userNameMobile");
+                    if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+                } catch (error) {
+                    console.error("Error updating profile:", error);
+                    await showCustomModal("Error", "Failed to update profile.");
+                } finally {
+                    setButtonLoading(saveBtn, false);
+                }
+            });
+
         } catch(e) {
-            content.innerHTML = `<p class="text-center text-gray-500 py-8">Error loading profile data.</p>`;
+            content.innerHTML = generateBreadcrumb('Personal Profile') + `<p class="text-center text-gray-500 py-8">Error loading profile data.</p>`;
             await showCustomModal("Error", "Failed to load personal profile. Please try again.");
         } finally {
             hideLoading();
         }
     }
 
-    async function loadCourseRegistration() {
-        showLoading("Loading course registration...");
+    async function loadCourses() {
+        showLoading("Loading all courses...");
         const content = document.getElementById("dashboardContent");
         const coursesRef = collection(db, `courses`);
-        const registrationsDocRef = doc(db, `registrations`, currentUserId);
-
         try {
             const coursesSnapshot = await getDocs(coursesRef);
-            const allCourses = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const registrationsSnap = await getDoc(registrationsDocRef);
-            const registeredCourseIds = registrationsSnap.exists() ? registrationsSnap.data().courses.map(c => c.id) : [];
+            let courses = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            let courseContentHtml = `<p class="text-center text-gray-500 py-8">No courses available for registration.</p>`;
-            if (allCourses.length > 0) {
-                courseContentHtml = `<p>... Courses List HTML ...</p>`; // HTML for displaying courses
+            let courseTableRows = '';
+            if (courses.length > 0) {
+                // Sort courses by courseCode for better readability
+                courses.sort((a, b) => a.courseCode.localeCompare(b.courseCode));
+                courseTableRows = courses.map(course => `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6">${course.courseCode}</td>
+                        <td class="py-3 px-6">${course.courseName}</td>
+                        <td class="py-3 px-6 text-center">${course.creditHours}</td>
+                        <td class="py-3 px-6">${course.department}</td>
+                    </tr>
+                `).join('');
+            } else {
+                courseTableRows = generateNoDataRow(4); // 4 columns in the table
             }
 
-            content.innerHTML = generateBreadcrumb('Course Registration') + courseContentHtml;
-            // Existing logic to handle form submissions
+            const coursesHtml = `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">All Available Courses</h2>
+                    <div class="mb-4">
+                        <input type="text" id="course-search" placeholder="Search by course code or name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-3 px-6 text-left">Course Code</th>
+                                    <th class="py-3 px-6 text-left">Course Name</th>
+                                    <th class="py-3 px-6 text-center">Credit Hours</th>
+                                    <th class="py-3 px-6 text-left">Department</th>
+                                </tr>
+                            </thead>
+                            <tbody id="courses-table-body">
+                                ${courseTableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            content.innerHTML = generateBreadcrumb('All Courses') + coursesHtml;
+
+            // Add search functionality
+            document.getElementById('course-search').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredCourses = courses.filter(course =>
+                    course.courseCode.toLowerCase().includes(searchTerm) ||
+                    course.courseName.toLowerCase().includes(searchTerm)
+                );
+                let filteredRows = '';
+                if (filteredCourses.length > 0) {
+                    filteredRows = filteredCourses.map(course => `
+                        <tr class="border-b border-gray-200 hover:bg-gray-100">
+                            <td class="py-3 px-6">${course.courseCode}</td>
+                            <td class="py-3 px-6">${course.courseName}</td>
+                            <td class="py-3 px-6 text-center">${course.creditHours}</td>
+                            <td class="py-3 px-6">${course.department}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    filteredRows = generateNoDataRow(4);
+                }
+                document.getElementById('courses-table-body').innerHTML = filteredRows;
+            });
+
         } catch(e) {
-            content.innerHTML = `<p class="text-center text-gray-500 py-8">Error loading courses or registration data.</p>`;
-            await showCustomModal("Error", "Failed to load course registration. Please try again.");
+            console.error("Error loading courses:", e);
+            content.innerHTML = generateBreadcrumb('All Courses') + `<p class="text-center text-gray-500 py-8">Error loading courses data.</p>`;
+            await showCustomModal("Error", "Failed to load courses. Please try again.");
         } finally {
             hideLoading();
         }
     }
 
-    async function loadFeesStatement() {
+    async function loadRegistrations() {
+        showLoading("Loading registered courses...");
+        const content = document.getElementById("dashboardContent");
+        const registrationsDocRef = doc(db, `registrations`, currentUserId); // Path: /registrations/{uid}
+
+        try {
+            const registrationsSnap = await getDoc(registrationsDocRef);
+            const registeredCourses = registrationsSnap.exists() ? registrationsSnap.data().courses || [] : [];
+
+            let registrationsTableRows = '';
+            if (registeredCourses.length > 0) {
+                // Sort by academicYear, then semester, then courseCode
+                registeredCourses.sort((a, b) => {
+                    if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
+                    if (a.semester !== b.semester) return a.semester.localeCompare(b.semester);
+                    return a.courseCode.localeCompare(b.courseCode);
+                });
+
+                registrationsTableRows = registeredCourses.map(course => `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6">${course.academicYear}</td>
+                        <td class="py-3 px-6">${course.semester}</td>
+                        <td class="py-3 px-6">${course.courseCode}</td>
+                        <td class="py-3 px-6">${course.courseName}</td>
+                        <td class="py-3 px-6 text-center">${course.status}</td>
+                        <td class="py-3 px-6 text-center">${course.registrationDate ? new Date(course.registrationDate).toLocaleDateString() : 'N/A'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                registrationsTableRows = generateNoDataRow(6); // 6 columns
+            }
+
+            const registrationsHtml = `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">My Course Registrations</h2>
+                    <div class="overflow-x-auto">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-3 px-6 text-left">Academic Year</th>
+                                    <th class="py-3 px-6 text-left">Semester</th>
+                                    <th class="py-3 px-6 text-left">Course Code</th>
+                                    <th class="py-3 px-6 text-left">Course Name</th>
+                                    <th class="py-3 px-6 text-center">Status</th>
+                                    <th class="py-3 px-6 text-center">Registration Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${registrationsTableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            content.innerHTML = generateBreadcrumb('Course Registrations') + registrationsHtml;
+
+        } catch(e) {
+            console.error("Error loading registrations:", e);
+            content.innerHTML = generateBreadcrumb('Course Registrations') + `<p class="text-center text-gray-500 py-8">Error loading registration data.</p>`;
+            await showCustomModal("Error", "Failed to load course registrations. Please try again.");
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function loadFees() {
         showLoading("Loading fees statement...");
         const content = document.getElementById("dashboardContent");
-        const feesDocRef = doc(db, `fees`, currentUserId);
+        const feesDocRef = doc(db, `fees`, currentUserId); // Path: /fees/{uid}
         try {
             const feesSnap = await getDoc(feesDocRef);
             if (!feesSnap.exists()) {
-                content.innerHTML = generateBreadcrumb('Fees Statement') + `<p class="text-center text-gray-500 py-8">No data found.</p>`;
+                content.innerHTML = generateBreadcrumb('Fees Statement') + `
+                    <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                        <h2 class="text-3xl font-bold text-green-800 mb-6">Fees Statement</h2>
+                        <p class="text-center text-gray-500 py-8">No fees data found for your account.</p>
+                        <p class="text-gray-600">Please contact the finance department if you believe this is an error.</p>
+                    </div>
+                `;
                 return;
             }
             const feesData = feesSnap.data();
-            const totalPayments = feesData.payments.reduce((sum, p) => sum + p.amount, 0);
+            // Ensure payments is an array, default to empty if not found
+            const payments = Array.isArray(feesData.payments) ? feesData.payments : [];
+            const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
             const balance = feesData.totalFees - totalPayments;
             const balanceColorClass = balance > 0 ? 'text-red-600' : 'text-green-600';
+
+            let paymentHistoryRows = '';
+            if (payments.length > 0) {
+                // Sort payments by date descending
+                payments.sort((a,b) => new Date(b.date) - new Date(a.date));
+                paymentHistoryRows = payments.map(p => `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6">${new Date(p.date).toLocaleDateString()}</td>
+                        <td class="py-3 px-6">${p.description}</td>
+                        <td class="py-3 px-6 text-right">${p.amount.toFixed(2)}</td>
+                        <td class="py-3 px-6 text-right">${p.transactionId || 'N/A'}</td>
+                    </tr>`).join('');
+            } else {
+                paymentHistoryRows = generateNoDataRow(4); // 4 columns
+            }
 
             const feesHtml = `
                 <div class="bg-white p-8 rounded-xl shadow-lg">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Fees Statement</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8">
                         <div class="bg-blue-50 p-6 rounded-lg shadow-inner">
-                            <h4 class="text-lg font-semibold text-blue-700">Total Fees</h4>
-                            <p class="text-3xl font-bold text-blue-900 mt-2">GHS ${feesData.totalFees.toFixed(2)}</p>
+                            <h4 class="text-lg font-semibold text-blue-700">Total Fees Due</h4>
+                            <p class="text-3xl font-bold text-blue-900 mt-2">GHS ${feesData.totalFees ? feesData.totalFees.toFixed(2) : '0.00'}</p>
                         </div>
                         <div class="bg-green-50 p-6 rounded-lg shadow-inner">
                             <h4 class="text-lg font-semibold text-green-700">Total Payments</h4>
                             <p class="text-3xl font-bold text-green-900 mt-2">GHS ${totalPayments.toFixed(2)}</p>
                         </div>
                         <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
-                            <h4 class="text-lg font-semibold text-gray-700">Balance</h4>
+                            <h4 class="text-lg font-semibold text-gray-700">Outstanding Balance</h4>
                             <p class="text-3xl font-bold ${balanceColorClass} mt-2">GHS ${balance.toFixed(2)}</p>
                         </div>
                     </div>
+                    <div class="flex justify-end mb-6">
+                        <button id="download-fees-pdf-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                            <i class="fas fa-download mr-2"></i>Download PDF Statement
+                        </button>
+                    </div>
                     <div class="mt-8">
                         <h3 class="text-2xl font-semibold text-green-700 mb-4">Payment History</h3>
-                        ${feesData.payments.length > 0 ? `
                         <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white rounded-lg shadow-md">
-                                <thead class="bg-gray-200 text-gray-700">
+                            <table class="styled-table">
+                                <thead>
                                     <tr>
                                         <th class="py-3 px-6 text-left">Date</th>
                                         <th class="py-3 px-6 text-left">Description</th>
                                         <th class="py-3 px-6 text-right">Amount (GHS)</th>
+                                        <th class="py-3 px-6 text-left">Transaction ID</th>
                                     </tr>
                                 </thead>
-                                <tbody class="text-gray-600">
-                                    ${feesData.payments.map(p => `
-                                    <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                        <td class="py-3 px-6">${new Date(p.date).toLocaleDateString()}</td>
-                                        <td class="py-3 px-6">${p.description}</td>
-                                        <td class="py-3 px-6 text-right">${p.amount.toFixed(2)}</td>
-                                    </tr>`).join('')}
+                                <tbody>
+                                    ${paymentHistoryRows}
                                 </tbody>
                             </table>
                         </div>
-                        ` : `<p class="text-center text-gray-500 py-4">No payments recorded.</p>`}
                     </div>
                 </div>
             `;
             content.innerHTML = generateBreadcrumb('Fees Statement') + feesHtml;
+
+            // PDF Download functionality
+            document.getElementById('download-fees-pdf-btn').addEventListener('click', async () => {
+                showLoading("Generating PDF...");
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    // Fetch student profile for PDF header
+                    const studentDocRef = doc(db, `students`, currentUserId);
+                    const studentDocSnap = await getDoc(studentDocRef);
+                    const studentProfile = studentDocSnap.exists() ? studentDocSnap.data() : {};
+
+                    doc.setFontSize(18);
+                    doc.text("Fees Statement - Prince Alex Design University", 14, 20);
+                    doc.setFontSize(12);
+                    doc.text(`Student Name: ${studentProfile.name || 'N/A'}`, 14, 30);
+                    doc.text(`Registration No: ${studentProfile.regNo || 'N/A'}`, 14, 37);
+                    doc.text(`Email: ${studentProfile.email || 'N/A'}`, 14, 44);
+
+                    doc.setFontSize(14);
+                    doc.text("Summary:", 14, 60);
+                    doc.setFontSize(12);
+                    doc.text(`Total Fees Due: GHS ${feesData.totalFees ? feesData.totalFees.toFixed(2) : '0.00'}`, 14, 68);
+                    doc.text(`Total Payments: GHS ${totalPayments.toFixed(2)}`, 14, 75);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(`Outstanding Balance: GHS ${balance.toFixed(2)}`, 14, 82);
+                    doc.setFont("helvetica", "normal");
+
+
+                    doc.setFontSize(14);
+                    doc.text("Payment History:", 14, 98);
+
+                    const tableColumn = ["Date", "Description", "Amount (GHS)", "Transaction ID"];
+                    const tableRows = [];
+
+                    payments.forEach(p => {
+                        const rowData = [
+                            new Date(p.date).toLocaleDateString(),
+                            p.description,
+                            p.amount.toFixed(2),
+                            p.transactionId || 'N/A'
+                        ];
+                        tableRows.push(rowData);
+                    });
+
+                    // Add autoTable for payment history
+                    doc.autoTable(tableColumn, tableRows, {
+                        startY: 105,
+                        headStyles: { fillColor: [52, 73, 94] },
+                        footStyles: { fillColor: [52, 73, 94] },
+                        alternateRowStyles: { fillColor: [240, 240, 240] },
+                        styles: { font: 'Inter', fontSize: 10, cellPadding: 3 },
+                        margin: { top: 10 },
+                    });
+
+                    doc.save(`Fees_Statement_${studentProfile.regNo || 'N/A'}.pdf`);
+                    await showCustomModal("Success", "Fees statement downloaded!");
+                } catch (error) {
+                    console.error("Error generating PDF:", error);
+                    await showCustomModal("Error", "Failed to generate PDF statement.");
+                } finally {
+                    hideLoading();
+                }
+            });
+
         } catch(e) {
             console.error("Error loading fees data:", e);
-            content.innerHTML = `<p class="text-center text-gray-500 py-8">Error loading fees data.</p>`;
+            content.innerHTML = generateBreadcrumb('Fees Statement') + `<p class="text-center text-gray-500 py-8">Error loading fees data.</p>`;
             await showCustomModal("Error", "Failed to load fees statement. Please try again.");
         } finally {
             hideLoading();
         }
     }
 
-    async function loadTranscripts() {
-        showLoading("Loading transcripts...");
+    async function loadGrades() {
+        showLoading("Loading grades...");
         const content = document.getElementById("dashboardContent");
-        const gradesRef = collection(db, `grades`);
+        const gradesRef = collection(db, `grades`); // Path: /grades
         try {
-            const gradesQuery = query(gradesRef, where("studentId", "==", currentUserId), orderBy("courseCode"));
+            const gradesQuery = query(gradesRef, where("studentId", "==", currentUserId));
             const gradesSnapshot = await getDocs(gradesQuery);
             const grades = gradesSnapshot.docs.map(doc => doc.data());
 
-            let gradesContent = `<p class="text-center text-gray-500 py-8">No data found.</p>`;
+            let gradesTableRows = '';
+            let gpa = "0.00";
+
             if (grades.length > 0) {
-                const gpa = calculateGPA(grades);
-                gradesContent = `
+                gpa = calculateGPA(grades);
+                // Sort grades by academicYear, then semester, then courseCode
+                grades.sort((a, b) => {
+                    if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
+                    if (a.semester !== b.semester) return a.semester.localeCompare(b.semester);
+                    return a.courseCode.localeCompare(b.courseCode);
+                });
+
+                gradesTableRows = grades.map(grade => `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6">${grade.academicYear || 'N/A'}</td>
+                        <td class="py-3 px-6">${grade.semester || 'N/A'}</td>
+                        <td class="py-3 px-6">${grade.courseCode}</td>
+                        <td class="py-3 px-6">${grade.courseName}</td>
+                        <td class="py-3 px-6 text-center">${grade.grade}</td>
+                        <td class="py-3 px-6 text-center">${grade.courseUnit || 'N/A'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                gradesTableRows = generateNoDataRow(6); // 6 columns
+            }
+
+            const gradesHtml = `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">My Grades</h2>
                     <div class="flex justify-center my-6">
-                        <div class="bg-white p-6 rounded-xl shadow-lg text-center w-64">
+                        <div class="bg-green-50 p-6 rounded-xl shadow-inner text-center w-64">
                             <h3 class="text-xl font-semibold text-green-800 mb-2">Overall GPA</h3>
                             <div class="gpa-circle-container">
                                 <svg class="gpa-circle-svg" width="120" height="120">
                                     <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                    <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${gpa / 4 * 314};"></circle>
+                                    <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${(gpa / 4) * (2 * Math.PI * 50)};"></circle>
                                 </svg>
                                 <span class="gpa-text">${gpa}</span>
                             </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto mt-8">
-                        <table class="min-w-full bg-white rounded-lg shadow-md">
-                            <thead class="bg-gray-200 text-gray-700">
+                        <table class="styled-table">
+                            <thead>
                                 <tr>
+                                    <th class="py-3 px-6 text-left">Academic Year</th>
+                                    <th class="py-3 px-6 text-left">Semester</th>
                                     <th class="py-3 px-6 text-left">Course Code</th>
                                     <th class="py-3 px-6 text-left">Course Name</th>
                                     <th class="py-3 px-6 text-center">Grade</th>
                                     <th class="py-3 px-6 text-center">Credit Hours</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-gray-600">
-                                ${grades.map(grade => `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td class="py-3 px-6">${grade.courseCode}</td>
-                                    <td class="py-3 px-6">${grade.courseName}</td>
-                                    <td class="py-3 px-6 text-center">${grade.grade}</td>
-                                    <td class="py-3 px-6 text-center">${grade.courseUnit}</td>
-                                </tr>`).join('')}
+                            <tbody>
+                                ${gradesTableRows}
                             </tbody>
                         </table>
                     </div>
-                `;
-            }
-            content.innerHTML = generateBreadcrumb('Academic Transcripts') + `<div class="bg-white p-8 rounded-xl shadow-lg"><h2 class="text-3xl font-bold text-green-800 mb-6">Academic Transcripts</h2>${gradesContent}</div>`;
+                </div>
+            `;
+            content.innerHTML = generateBreadcrumb('My Grades') + gradesHtml;
         } catch(e) {
-            console.error("Error loading transcripts:", e);
-            content.innerHTML = `<p class="text-center text-gray-500 py-8">Error loading transcripts.</p>`;
-            await showCustomModal("Error", "Failed to load transcripts. Please try again.");
+            console.error("Error loading grades:", e);
+            content.innerHTML = generateBreadcrumb('My Grades') + `<p class="text-center text-gray-500 py-8">Error loading grades data.</p>`;
+            await showCustomModal("Error", "Failed to load grades. Please try again.");
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function loadHostels() {
+        showLoading("Loading hostel information...");
+        const content = document.getElementById("dashboardContent");
+        const hostelsRef = collection(db, `hostels`); // Path: /hostels
+        try {
+            const hostelsSnapshot = await getDocs(hostelsRef);
+            const hostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            let hostelsHtml = '';
+            if (hostels.length > 0) {
+                hostelsHtml = hostels.map(hostel => `
+                    <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center text-center">
+                        <img src="${hostel.imageUrl || 'https://placehold.co/200x150/e0e0e0/333333?text=Hostel'}" alt="${hostel.name}" class="w-full h-40 object-cover rounded-lg mb-4">
+                        <h3 class="text-xl font-semibold text-green-800 mb-2">${hostel.name}</h3>
+                        <p class="text-gray-700 mb-2">${hostel.location}</p>
+                        <div class="flex justify-between items-center w-full mb-4">
+                            <span class="text-md font-medium text-gray-600">Capacity: ${hostel.capacity}</span>
+                            <span class="text-md font-bold ${hostel.availableSpaces > 0 ? 'text-green-600' : 'text-red-600'}">Available: ${hostel.availableSpaces}</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">${hostel.description || ''}</p>
+                        <button onclick="applyForHostel('${hostel.id}', '${hostel.name}')" ${hostel.availableSpaces <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm ${hostel.availableSpaces <= 0 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <i class="fas fa-bed mr-2"></i>Apply Now
+                        </button>
+                    </div>
+                `).join('');
+                hostelsHtml = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${hostelsHtml}</div>`;
+            } else {
+                hostelsHtml = `<p class="text-center text-gray-500 py-8">No hostel information available at this time.</p>`;
+            }
+
+            content.innerHTML = generateBreadcrumb('Accommodation') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Hostel Accommodation</h2>
+                    ${hostelsHtml}
+                </div>
+            `;
+
+            window.applyForHostel = async (hostelId, hostelName) => {
+                const confirmed = await showCustomModal("Confirm Application", `Are you sure you want to apply for ${hostelName}?`, true);
+                if (confirmed) {
+                    showLoading(`Applying for ${hostelName}...`);
+                    try {
+                        const applicationRef = collection(db, `hostelApplications`); // New collection for applications
+                        await addDoc(applicationRef, {
+                            studentId: currentUserId,
+                            studentName: currentUserData.name,
+                            hostelId: hostelId,
+                            hostelName: hostelName,
+                            applicationDate: new Date().toISOString(),
+                            status: "Pending" // Initial status
+                        });
+                        await showCustomModal("Application Submitted", `Your application for ${hostelName} has been submitted successfully! We will notify you of the status.`);
+                    } catch (error) {
+                        console.error("Error applying for hostel:", error);
+                        await showCustomModal("Error", "Failed to submit hostel application. Please try again.");
+                    } finally {
+                        hideLoading();
+                        // Re-load hostels to update available spaces if necessary (requires server-side rule to decrement)
+                        loadHostels();
+                    }
+                }
+            };
+
+        } catch(e) {
+            console.error("Error loading hostels:", e);
+            content.innerHTML = generateBreadcrumb('Accommodation') + `<p class="text-center text-gray-500 py-8">Error loading hostel data.</p>`;
+            await showCustomModal("Error", "Failed to load hostel information. Please try again.");
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function loadAnnouncements() {
+        showLoading("Loading announcements...");
+        const content = document.getElementById("dashboardContent");
+        const announcementsRef = collection(db, `announcements`); // Path: /announcements
+        try {
+            const announcementsQuery = query(announcementsRef, orderBy("date", "desc"));
+            const announcementsSnapshot = await getDocs(announcementsQuery);
+            const announcements = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            let announcementsListHtml = '';
+            if (announcements.length > 0) {
+                announcementsListHtml = `<ul class="space-y-4">`;
+                announcementsListHtml += announcements.map(ann => `
+                    <li class="bg-green-50 p-4 rounded-lg shadow-sm border border-green-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-xl font-semibold text-green-800">${ann.title}</h3>
+                            <span class="text-sm text-gray-500">${new Date(ann.date).toLocaleDateString()}</span>
+                        </div>
+                        <p class="text-gray-700">${ann.message}</p>
+                        ${ann.detailsLink ? `<a href="${ann.detailsLink}" target="_blank" class="text-blue-600 hover:underline mt-2 inline-block">Read More <i class="fas fa-external-link-alt ml-1 text-xs"></i></a>` : ''}
+                    </li>
+                `).join('');
+                announcementsListHtml += `</ul>`;
+            } else {
+                announcementsListHtml = `<p class="text-center text-gray-500 py-8">No announcements available at this time.</p>`;
+            }
+
+            content.innerHTML = generateBreadcrumb('Announcements') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">University Announcements</h2>
+                    ${announcementsListHtml}
+                </div>
+            `;
+        } catch(e) {
+            console.error("Error loading announcements:", e);
+            content.innerHTML = generateBreadcrumb('Announcements') + `<p class="text-center text-gray-500 py-8">Error loading announcements data.</p>`;
+            await showCustomModal("Error", "Failed to load announcements. Please try again.");
         } finally {
             hideLoading();
         }
@@ -976,31 +1505,88 @@
     async function loadGraduationRequest() {
         showLoading("Loading graduation requests...");
         const content = document.getElementById("dashboardContent");
-        const graduationRef = doc(db, `graduationRequests`, currentUserId);
-        try {
-            const gradSnap = await getDoc(graduationRef);
-            let gradStatusHtml = `<p class="text-center text-gray-500 py-8">No data found.</p>`;
-            if (gradSnap.exists()) {
-                const status = gradSnap.data().status;
-                let statusColor = '';
-                if (status === 'Pending') statusColor = 'text-yellow-600';
-                else if (status === 'Approved') statusColor = 'text-green-600';
-                else if (status === 'Denied') statusColor = 'text-red-600';
+        const graduationRequestDocRef = doc(db, `graduationRequests`, currentUserId); // Path: /graduationRequests/{uid}
 
-                gradStatusHtml = `
-                    <p class="text-lg">Your graduation request status is: <span class="font-bold ${statusColor}">${status}</span></p>
-                    <p class="text-gray-600 mt-2">${gradSnap.data().notes || ''}</p>
+        try {
+            const gradSnap = await getDoc(graduationRequestDocRef);
+            const requestData = gradSnap.exists() ? gradSnap.data() : null;
+
+            let statusHtml = '';
+            let formHtml = '';
+
+            if (requestData) {
+                let statusColorClass = 'text-gray-700';
+                if (requestData.status === 'Pending') statusColorClass = 'text-yellow-600';
+                else if (requestData.status === 'Approved') statusColorClass = 'text-green-600';
+                else if (requestData.status === 'Denied') statusColorClass = 'text-red-600';
+
+                statusHtml = `
+                    <div class="mb-8 p-6 bg-green-50 rounded-lg border border-green-200 shadow-sm">
+                        <h3 class="text-xl font-semibold text-green-800 mb-4">Your Request Status</h3>
+                        <p class="text-lg mb-2">Status: <span class="font-bold ${statusColorClass}">${requestData.status}</span></p>
+                        <p class="text-gray-700 mb-2">Submitted On: ${new Date(requestData.submissionDate).toLocaleDateString()}</p>
+                        <p class="text-gray-700">Notes: ${requestData.notes || 'N/A'}</p>
+                    </div>
                 `;
+                formHtml = `<p class="text-center text-gray-600 mt-4">You have an active graduation request. Only one request is allowed at a time.</p>`;
             } else {
-                 gradStatusHtml = `
-                    <p class="text-lg">You have not submitted a graduation request yet.</p>
-                    <p class="text-gray-600 mt-2">Please ensure all your requirements are met before submitting.</p>
-                    `;
+                formHtml = `
+                    <form id="graduation-request-form" class="space-y-6">
+                        <p class="text-gray-700 mb-4">Please fill out the form below to submit your graduation request. Ensure all academic and financial requirements are met before submission.</p>
+                        <div>
+                            <label for="grad-academic-year" class="block text-gray-700 font-semibold mb-2">Academic Year of Graduation</label>
+                            <input type="text" id="grad-academic-year" placeholder="e.g., 2024/2025" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <div>
+                            <label for="grad-program" class="block text-gray-700 font-semibold mb-2">Program of Study</label>
+                            <input type="text" id="grad-program" value="${currentUserData.programme || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <div>
+                            <label for="grad-notes" class="block text-gray-700 font-semibold mb-2">Additional Notes (Optional)</label>
+                            <textarea id="grad-notes" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Any specific requests or information..."></textarea>
+                        </div>
+                        <button type="submit" id="submit-grad-request-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">
+                            <i class="fas fa-paper-plane mr-2"></i>Submit Request
+                        </button>
+                    </form>
+                `;
             }
-            content.innerHTML = generateBreadcrumb('Graduation Request') + `<div class="bg-white p-8 rounded-xl shadow-lg"><h2 class="text-3xl font-bold text-green-800 mb-6">Graduation Request</h2>${gradStatusHtml}</div>`;
+
+            content.innerHTML = generateBreadcrumb('Graduation Request') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Graduation Request</h2>
+                    ${statusHtml}
+                    ${formHtml}
+                </div>
+            `;
+
+            if (!requestData) { // Only attach listener if form is visible
+                document.getElementById('graduation-request-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const submitBtn = document.getElementById('submit-grad-request-btn');
+                    setButtonLoading(submitBtn, true);
+                    try {
+                        await setDoc(graduationRequestDocRef, { // Using setDoc to create/overwrite
+                            studentId: currentUserId,
+                            academicYear: document.getElementById('grad-academic-year').value,
+                            program: document.getElementById('grad-program').value,
+                            notes: document.getElementById('grad-notes').value,
+                            submissionDate: new Date().toISOString(),
+                            status: 'Pending'
+                        });
+                        await showCustomModal("Request Submitted", "Your graduation request has been submitted successfully!");
+                        loadGraduationRequest(); // Re-load section to show status
+                    } catch (error) {
+                        console.error("Error submitting graduation request:", error);
+                        await showCustomModal("Error", "Failed to submit graduation request. Please try again.");
+                    } finally {
+                        setButtonLoading(submitBtn, false);
+                    }
+                });
+            }
         } catch(e) {
             console.error("Error loading graduation requests:", e);
-            content.innerHTML = `<p class="text-center text-gray-500 py-8">Error loading graduation requests.</p>`;
+            content.innerHTML = generateBreadcrumb('Graduation Request') + `<p class="text-center text-gray-500 py-8">Error loading graduation requests data.</p>`;
             await showCustomModal("Error", "Failed to load graduation requests. Please try again.");
         } finally {
             hideLoading();
@@ -1010,36 +1596,121 @@
     async function loadClearanceRequest() {
         showLoading("Loading clearance requests...");
         const content = document.getElementById("dashboardContent");
-        const clearanceRef = doc(db, `clearanceRequests`, currentUserId);
-        try {
-            const clearanceSnap = await getDoc(clearanceRef);
-            let clearanceStatusHtml = `<p class="text-center text-gray-500 py-8">No data found.</p>`;
-            if (clearanceSnap.exists()) {
-                const status = clearanceSnap.data().status;
-                let statusColor = '';
-                if (status === 'Pending') statusColor = 'text-yellow-600';
-                else if (status === 'Approved') statusColor = 'text-green-600';
-                else if (status === 'Denied') statusColor = 'text-red-600';
+        const clearanceRequestDocRef = doc(db, `clearanceRequests`, currentUserId); // Path: /clearanceRequests/{uid}
 
-                clearanceStatusHtml = `
-                    <p class="text-lg">Your clearance request status is: <span class="font-bold ${statusColor}">${status}</span></p>
-                    <p class="text-gray-600 mt-2">${clearanceSnap.data().notes || ''}</p>
+        try {
+            const clearanceSnap = await getDoc(clearanceRequestDocRef);
+            const requestData = clearanceSnap.exists() ? clearanceSnap.data() : null;
+
+            let statusHtml = '';
+            let formHtml = '';
+
+            if (requestData) {
+                let statusColorClass = 'text-gray-700';
+                if (requestData.status === 'Pending') statusColorClass = 'text-yellow-600';
+                else if (requestData.status === 'Approved') statusColorClass = 'text-green-600';
+                else if (requestData.status === 'Denied') statusColorClass = 'text-red-600';
+
+                statusHtml = `
+                    <div class="mb-8 p-6 bg-green-50 rounded-lg border border-green-200 shadow-sm">
+                        <h3 class="text-xl font-semibold text-green-800 mb-4">Your Request Status</h3>
+                        <p class="text-lg mb-2">Status: <span class="font-bold ${statusColorClass}">${requestData.status}</span></p>
+                        <p class="text-gray-700 mb-2">Submitted On: ${new Date(requestData.submissionDate).toLocaleDateString()}</p>
+                        <p class="text-gray-700">Uploaded Document: ${requestData.documentURL ? `<a href="${requestData.documentURL}" target="_blank" class="text-blue-600 hover:underline">View Document <i class="fas fa-external-link-alt ml-1 text-xs"></i></a>` : 'N/A'}</p>
+                        <p class="text-gray-700">Notes: ${requestData.notes || 'N/A'}</p>
+                    </div>
                 `;
+                formHtml = `<p class="text-center text-gray-600 mt-4">You have an active clearance request. Only one request is allowed at a time.</p>`;
             } else {
-                 clearanceStatusHtml = `
-                    <p class="text-lg">You have not submitted a clearance request yet.</p>
-                    <p class="text-gray-600 mt-2">Please ensure all your outstanding payments and library books are returned before submitting.</p>
-                    `;
+                formHtml = `
+                    <form id="clearance-request-form" class="space-y-6">
+                        <p class="text-gray-700 mb-4">To apply for clearance, please upload any required documents (e.g., completed clearance form) and provide any relevant notes.</p>
+                        <div>
+                            <label for="clearance-document-upload" class="block text-gray-700 font-semibold mb-2">Upload Clearance Document (PDF only)</label>
+                            <input type="file" id="clearance-document-upload" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            <p id="clearance-document-name" class="text-sm text-gray-500 mt-2">No file chosen.</p>
+                        </div>
+                        <div>
+                            <label for="clearance-notes" class="block text-gray-700 font-semibold mb-2">Additional Notes (Optional)</label>
+                            <textarea id="clearance-notes" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Any specific requests or information..."></textarea>
+                        </div>
+                        <button type="submit" id="submit-clearance-request-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">
+                            <i class="fas fa-upload mr-2"></i>Submit Request
+                        </button>
+                    </form>
+                `;
             }
-            content.innerHTML = generateBreadcrumb('Clearance Request') + `<div class="bg-white p-8 rounded-xl shadow-lg"><h2 class="text-3xl font-bold text-green-800 mb-6">Clearance Request</h2>${clearanceStatusHtml}</div>`;
+
+            content.innerHTML = generateBreadcrumb('Clearance Request') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Clearance Request</h2>
+                    ${statusHtml}
+                    ${formHtml}
+                </div>
+            `;
+
+            if (!requestData) { // Only attach listener if form is visible
+                let uploadedFile = null;
+                document.getElementById('clearance-document-upload').addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type === 'application/pdf') {
+                        uploadedFile = file;
+                        document.getElementById('clearance-document-name').innerText = `Selected: ${file.name}`;
+                    } else {
+                        uploadedFile = null;
+                        document.getElementById('clearance-document-name').innerText = `No file chosen. (Please select a PDF)`;
+                        showCustomModal("Invalid File Type", "Please upload a PDF document for clearance.");
+                    }
+                });
+
+                document.getElementById('clearance-request-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const submitBtn = document.getElementById('submit-clearance-request-btn');
+                    setButtonLoading(submitBtn, true);
+
+                    let documentURL = '';
+                    if (uploadedFile) {
+                        showLoading("Uploading document...");
+                        try {
+                            const storageRef = ref(storage, `clearanceDocuments/${currentUserId}/${uploadedFile.name}`);
+                            await uploadBytes(storageRef, uploadedFile);
+                            documentURL = await getDownloadURL(storageRef);
+                        } catch (uploadError) {
+                            console.error("Error uploading clearance document:", uploadError);
+                            await showCustomModal("Upload Failed", "Failed to upload clearance document. Please try again.");
+                            setButtonLoading(submitBtn, false);
+                            return;
+                        }
+                    }
+
+                    showLoading("Submitting request...");
+                    try {
+                        await setDoc(clearanceRequestDocRef, { // Using setDoc to create/overwrite
+                            studentId: currentUserId,
+                            documentURL: documentURL,
+                            notes: document.getElementById('clearance-notes').value,
+                            submissionDate: new Date().toISOString(),
+                            status: 'Pending'
+                        });
+                        await showCustomModal("Request Submitted", "Your clearance request has been submitted successfully!");
+                        loadClearanceRequest(); // Re-load section to show status
+                    } catch (error) {
+                        console.error("Error submitting clearance request:", error);
+                        await showCustomModal("Error", "Failed to submit clearance request. Please try again.");
+                    } finally {
+                        setButtonLoading(submitBtn, false);
+                    }
+                });
+            }
         } catch(e) {
             console.error("Error loading clearance requests:", e);
-            content.innerHTML = `<p class="text-center text-gray-500 py-8">Error loading clearance requests.</p>`;
+            content.innerHTML = generateBreadcrumb('Clearance Request') + `<p class="text-center text-gray-500 py-8">Error loading clearance requests data.</p>`;
             await showCustomModal("Error", "Failed to load clearance requests. Please try again.");
         } finally {
             hideLoading();
         }
     }
+
 
     function showLoading(text) {
         loadingText.innerText = text;
@@ -1073,14 +1744,23 @@
         case 'profile':
           await loadProfile();
           break;
-        case 'courseReg':
-          await loadCourseRegistration();
+        case 'courses': // New case for 'All Courses'
+          await loadCourses();
           break;
-        case 'feesStatement':
-          await loadFeesStatement();
+        case 'registrations': // New case for 'Course Registration' (My Registrations)
+          await loadRegistrations();
           break;
-        case 'transcripts':
-          await loadTranscripts();
+        case 'fees': // Renamed from feesStatement
+          await loadFees();
+          break;
+        case 'grades': // New case for 'Grades'
+          await loadGrades();
+          break;
+        case 'hostels': // Renamed from hostelBooking
+          await loadHostels();
+          break;
+        case 'announcements': // New case for 'Announcements'
+          await loadAnnouncements();
           break;
         case 'graduation':
           await loadGraduationRequest();
@@ -1088,7 +1768,27 @@
         case 'clearance':
           await loadClearanceRequest();
           break;
-        // Add other cases here
+        case 'timetable':
+            content.innerHTML = generateBreadcrumb('Timetable') + `<p class="text-center text-gray-500 py-8">Timetable section is under development.</p>`;
+            break;
+        case 'evaluation':
+            content.innerHTML = generateBreadcrumb('Course Evaluation') + `<p class="text-center text-gray-500 py-8">Course Evaluation section is under development.</p>`;
+            break;
+        case 'receipts':
+            content.innerHTML = generateBreadcrumb('Receipts') + `<p class="text-center text-gray-500 py-8">Receipts section is under development.</p>`;
+            break;
+        case 'examCard':
+            content.innerHTML = generateBreadcrumb('Exam Card') + `<p class="text-center text-gray-500 py-8">Exam Card section is under development.</p>`;
+            break;
+        case 'examTimetable':
+            content.innerHTML = generateBreadcrumb('Exam Timetable') + `<p class="text-center text-gray-500 py-8">Exam Timetable section is under development.</p>`;
+            break;
+        case 'transcripts':
+          await loadTranscripts();
+          break;
+        case 'settings':
+            content.innerHTML = generateBreadcrumb('Settings') + `<p class="text-center text-gray-500 py-8">Settings section is under development.</p>`;
+            break;
         default:
           content.innerHTML = generateBreadcrumb(section.charAt(0).toUpperCase() + section.slice(1)) + `<p class="text-center text-gray-500 py-8">Content for this section is coming soon.</p>`;
           break;
@@ -1100,13 +1800,9 @@
         // This function can be modified to create initial data if it doesn't exist
         // or can be removed if all data is created during signup.
     }
-    async function loadTimetable() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Timetable') + `<p class="text-center text-gray-500 py-8">Timetable section is under development.</p>`;
-    }
+    
     // Existing functions (evaluation, receipts, examCard, examTimetable, hostelBooking, settings)
     // can be updated similarly with dedicated load functions and data fetching logic.
-    window.loadTimetable = loadTimetable; // Expose to the global scope if needed
     window.showDashboardSection = showDashboardSection; // Expose to the global scope
   </script>
 </body>
