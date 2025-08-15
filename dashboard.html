@@ -566,7 +566,8 @@
       apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
       authDomain: "universityweb-19e1e.firebaseapp.com",
       projectId: "universityweb-19e1e",
-      storageBucket: "universityweb-19e1e.firebasestorage.app",
+      // Fix storageBucket: Updated to use the correct Firebase storage bucket domain.
+      storageBucket: "universityweb-19e1e.appspot.com",
       messagingSenderId: "401942926589",
       appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
     };
@@ -636,34 +637,36 @@
         currentUserId = user.uid;
         console.log("User authenticated:", user.email, user.uid);
         
-        // Fetch user data from Firestore
-        const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
-        const studentDocSnap = await getDoc(studentDocRef);
+        // A. Change main profile fetch path & B. Update the onAuthStateChanged profile fetch
+        // Fetch user data from Firestore directly from the user's root document
+        const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+        const profileDocSnap = await getDoc(profileDocRef);
 
-        if (studentDocSnap.exists()) {
-          currentUserData = studentDocSnap.data();
+        if (profileDocSnap.exists()) {
+          currentUserData = profileDocSnap.data();
+          // C. When displaying the name in greeting: Add safe fallback for .split()
           document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
           const profileImgElement = document.querySelector('#profile-img-preview');
           if (profileImgElement && currentUserData.profilePhotoURL) {
             profileImgElement.src = currentUserData.profilePhotoURL;
           }
         } else {
-          // If user doc doesn't exist, create a basic one (should ideally be done during signup)
-          // This ensures new Firebase Auth users get a basic Firestore profile
-          await setDoc(studentDocRef, {
+          // E. Remove fallback that re-creates profile in students path.
+          // Now creates the document directly under the user ID, not a subcollection.
+          await setDoc(profileDocRef, {
             email: user.email,
             name: user.email.split("@")[0], // Placeholder name
             regNo: "N/A",
             programme: "N/A",
             campus: "Main Campus",
-            dob: "N/A",
-            gender: "N/A",
+            dob: "2000-01-01",
+            gender: "Male",
             address: "N/A",
             profilePhotoURL: "",
             initialized: true // Mark as initialized
           });
-          currentUserData = (await getDoc(studentDocRef)).data(); // Refresh currentUserData after creation
-          document.getElementById("userName").innerText = currentUserData.name.split(" ")[0];
+          currentUserData = (await getDoc(profileDocRef)).data(); // Refresh currentUserData after creation
+          document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
           console.log("Created basic user profile during dashboard load fallback.");
         }
         
@@ -729,7 +732,8 @@
         return;
       }
 
-      const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
+      // Referencing the profileDocRef for consistency.
+      const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
 
       switch (section) {
         case 'home':
@@ -778,12 +782,13 @@
 
         case 'profile':
           breadcrumbTitle = 'Personal Profile';
-          const studentSnap = await getDoc(studentDocRef);
-          const studentData = studentSnap.exists() ? studentSnap.data() : {};
+          // Use profileDocRef and profileDocSnap
+          const profileSnap = await getDoc(profileDocRef);
+          const studentData = profileSnap.exists() ? profileSnap.data() : {};
           
           let profilePhotoURL = studentData.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
 
-          // Calculate GPA from grades
+          // D. Keep student subcollection fetches as they are: grades data
           let totalPoints = 0;
           let totalUnits = 0;
           const gradesSnapshot = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/grades`));
@@ -842,7 +847,7 @@
           </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
-          // Dynamically update units data
+          // D. Keep student subcollection fetches as they are: registrations data
           onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`), (snapshot) => {
               let attempted = 0;
               let registered = 0;
@@ -861,7 +866,7 @@
               console.error("Error fetching registration data for profile:", error);
           });
 
-          // Dynamically update fee data
+          // D. Keep student subcollection fetches as they are: fees data
           onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/fees`), (snapshot) => {
               let totalBilled = 0;
               let totalPaid = 0;
@@ -907,7 +912,7 @@
               return;
             }
 
-            // Fetch registered units for the selected semester
+            // D. Keep student subcollection fetches as they are: registrations data
             const regDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/registrations`, semester);
             const regDocSnap = await getDoc(regDocRef);
             const registeredUnits = regDocSnap.exists() ? regDocSnap.data().units : [];
@@ -921,7 +926,7 @@
               return;
             }
 
-            // Fetch available courses from Firestore
+            // Fetch available courses from public data
             const coursesCollection = collection(db, `artifacts/${appId}/public/data/courses`);
             const q = query(coursesCollection, where("semester", "==", semester));
             const querySnapshot = await getDocs(q);
@@ -992,7 +997,7 @@
 
         case 'timetable':
           breadcrumbTitle = 'Timetable';
-          // Fetch courses to build a dynamic timetable
+          // Fetch courses to build a dynamic timetable from public data
           const coursesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/courses`));
           const courses = coursesSnapshot.docs.map(doc => doc.data());
 
@@ -1041,7 +1046,8 @@
 
         case 'graduation':
           breadcrumbTitle = 'Graduation Request';
-          const currentStudentData = (await getDoc(studentDocRef)).data();
+          // Fetch current student data from the main profile document
+          const currentStudentData = (await getDoc(profileDocRef)).data();
           sectionContent = `
             <div class="card">
               <h2>Graduation Request</h2>
@@ -1088,6 +1094,7 @@
             }
 
             try {
+              // D. Keep student subcollection fetches as they are: graduationRequest
               const graduationDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/graduationRequest`, 'currentRequest');
               await setDoc(graduationDocRef, {
                   type,
@@ -1106,6 +1113,7 @@
 
         case 'clearance':
           breadcrumbTitle = 'Clearance Request';
+          // D. Keep student subcollection fetches as they are: clearance data
           const clearanceDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/clearance`, currentUserId);
           const clearanceSnap = await getDoc(clearanceDocRef);
           const requestStatus = clearanceSnap.exists() ? clearanceSnap.data().status : "none";
@@ -1194,6 +1202,7 @@
 
         case 'feesStatement':
           breadcrumbTitle = 'Fees Statement';
+          // D. Keep student subcollection fetches as they are: fees data
           const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
           const feesSnapshot = await getDocs(feesCollectionRef);
           const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date)); // Sort by date
@@ -1250,6 +1259,7 @@
 
         case 'receipts':
           breadcrumbTitle = 'Receipts';
+          // D. Keep student subcollection fetches as they are: fees (receipts) data
           const receiptsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
           const receiptsSnapshot = await getDocs(receiptsCollectionRef);
           const receiptsData = receiptsSnapshot.docs
@@ -1296,6 +1306,7 @@
 
         case 'examCard':
           breadcrumbTitle = 'Exam Card';
+          // D. Keep student subcollection fetches as they are: fees and registrations for exam card
           const feesSnapForExamCard = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/fees`));
           const totalFeeBalance = feesSnapForExamCard.docs.reduce((acc, doc) => acc + (doc.data().debit || 0) - (doc.data().credit || 0), 0);
 
@@ -1381,6 +1392,7 @@
 
         case 'transcripts':
           breadcrumbTitle = 'Student Transcripts';
+          // D. Keep student subcollection fetches as they are: grades for transcripts
           const transcriptGradesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
           const transcriptGradesSnapshot = await getDocs(transcriptGradesCollectionRef);
           const transcriptGradesData = transcriptGradesSnapshot.docs.map(doc => doc.data());
@@ -1426,10 +1438,12 @@
 
         case 'hostelBooking':
           breadcrumbTitle = 'Hostel Accommodation';
+          // Fetch public hostels data
           const hostelsCollectionRef = collection(db, `artifacts/${appId}/public/data/hostels`);
           const hostelsSnapshot = await getDocs(hostelsCollectionRef);
           const availableHostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+          // D. Keep student subcollection fetches as they are: hostelBookings
           const studentBookingDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/hostelBookings`, 'currentBooking');
           const studentBookingSnap = await getDoc(studentBookingDocRef);
           const savedHostelId = studentBookingSnap.exists() ? studentBookingSnap.data().hostelId : "";
@@ -1485,7 +1499,7 @@
                 return;
               }
 
-              // Re-fetch hostel data to check real-time availability
+              // Re-fetch hostel data to check real-time availability from public data
               const publicHostelDocRef = doc(db, `artifacts/${appId}/public/data/hostels`, selectedHostelId);
               const hostelLiveSnap = await getDoc(publicHostelDocRef);
               const hostelLive = hostelLiveSnap.exists() ? hostelLiveSnap.data() : null;
@@ -1643,8 +1657,9 @@
         const uploadTask = await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(uploadTask.ref);
 
-        const studentDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
-        await updateDoc(studentDocRef, { profilePhotoURL: downloadURL });
+        // Updated to set profile photo URL directly on the user's root document
+        const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+        await updateDoc(profileDocRef, { profilePhotoURL: downloadURL });
 
         const profileImgPreview = document.getElementById('profile-img-preview');
         if(profileImgPreview) profileImgPreview.src = downloadURL;
@@ -1718,6 +1733,7 @@
 
     window.generateFeesPDF = async function() {
       const student = currentUserData;
+      // D. Keep student subcollection fetches as they are: fees for PDF
       const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
       const feesSnapshot = await getDocs(feesCollectionRef);
       const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -1768,6 +1784,7 @@
 
     window.generateReceiptPDF = async function(receiptRef) {
       const student = currentUserData;
+      // D. Keep student subcollection fetches as they are: fees (receipts) for PDF
       const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
       const feesSnapshot = await getDocs(feesCollectionRef);
       const receiptData = feesSnapshot.docs.map(doc => doc.data()).find(item => item.ref === receiptRef && (item.credit || 0) > 0);
@@ -1795,6 +1812,7 @@
 
     window.generateExamCardPDF = async function() {
       const student = currentUserData;
+      // D. Keep student subcollection fetches as they are: registrations for exam card PDF
       const registeredUnitsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`));
       let allRegisteredUnits = [];
       registeredUnitsSnap.forEach(doc => {
@@ -1837,6 +1855,7 @@
 
     window.generateTranscriptPDF = async function() {
       const student = currentUserData;
+      // D. Keep student subcollection fetches as they are: grades for transcript PDF
       const gradesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
       const gradesSnapshot = await getDocs(gradesCollectionRef);
       const gradesData = gradesSnapshot.docs.map(doc => doc.data());
@@ -1893,12 +1912,13 @@
             return;
         }
 
-        const studentRef = doc(db, `artifacts/${appId}/users/${currentUserId}/students`, currentUserId);
-        const studentSnap = await getDoc(studentRef);
+        // Updated to set student data directly on the user's root document
+        const profileRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+        const profileSnap = await getDoc(profileRef);
         // Only populate if the student data is new or not yet initialized
-        if (!studentSnap.exists() || !studentSnap.data().initialized) {
+        if (!profileSnap.exists() || !profileSnap.data().initialized) {
             console.log("Initializing student data...");
-            await setDoc(studentRef, {
+            await setDoc(profileRef, {
                 email: auth.currentUser.email, // Use Firebase Auth email
                 name: auth.currentUser.email.split("@")[0], // Derive name from email
                 regNo: "ENG/94/25",
@@ -1910,7 +1930,7 @@
                 profilePhotoURL: "", // Default empty
                 initialized: true // Flag to prevent re-initialization
             }, { merge: true });
-            currentUserData = (await getDoc(studentRef)).data(); // Refresh currentUserData
+            currentUserData = (await getDoc(profileRef)).data(); // Refresh currentUserData
 
             // Add dummy courses if not already present in public data
             const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
