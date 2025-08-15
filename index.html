@@ -283,7 +283,7 @@
     // Global variables from Canvas environment
     const appId = typeof __app_id !== 'undefined' ? __app_id : hardcodedFirebaseConfig.projectId; // Kept for consistency if needed, though not directly in new Firestore paths
     const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Fixed typo: use initialAuthToken directly
 
     let app;
     if (firebaseConfigFromCanvas) {
@@ -425,8 +425,9 @@
                 await signInAnonymously(auth);
                 console.log("Signed in anonymously.");
             } catch (error) {
-                console.error("Error signing in anonymously:", error);
-                await showCustomModal("Error", "Failed to initialize anonymous session. Please refresh.");
+                // Log the error but do not show an intrusive modal for anonymous sign-in failure.
+                // The onAuthStateChanged listener will naturally transition to the login page.
+                console.error("Error signing in anonymously during initialization:", error);
             }
         }
     }
@@ -961,7 +962,7 @@
                                 <input type="text" id="profile-regNo" value="${studentData.regNo || 'Not set yet'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                             </div>
                             <div>
-                                <label for="profile-programme" class="block text-gray-700 font-semibold mb-2">Programme</label>
+                                <label for="profile-programme" class="block text-gray-700 font-semibold mb-2">Program Of Study</label>
                                 <input type="text" id="profile-programme" value="${studentData.programme || 'Not set yet'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                             </div>
                             <div>
