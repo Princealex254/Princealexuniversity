@@ -278,6 +278,12 @@
                             <h3 class="text-xl font-bold text-gray-700">Outstanding Fees</h3>
                             <p id="outstanding-fees-count" class="text-3xl font-extrabold text-green-800 mt-2">0</p>
                         </div>
+                        <!-- New: Seed Demo Data Card -->
+                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                            <i class="fas fa-seedling text-4xl text-purple-600 mb-4"></i>
+                            <h3 class="text-xl font-bold text-gray-700">Seed Demo Data</h3>
+                            <button onclick="seedDemoData()" class="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Seed Data</button>
+                        </div>
                     </div>
                 </div>
 
@@ -576,7 +582,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ✅ Step 1: Add global admin flag
+        // ✅ Add global admin flag
         let isAdminUser = false;
 
         // UI Elements
@@ -731,11 +737,10 @@
 
         // Dashboard Navigation
         let currentSection = 'dashboardSection'; // Initialize with dashboard
-        // ✅ Step 3: Replace showAdminSection() with this
+        
         async function showAdminSection(sectionId) {
             showLoading('Loading section...');
 
-            // ✅ Quick check without hitting Firestore
             if (!isAdminUser) {
                 showCustomModal('Permission Denied', 'You are not an administrator.', false);
                 hideLoading();
@@ -766,18 +771,16 @@
                         await fetchCourses();
                         break;
                     case 'fees':
+                        // For fees and grades, we only show the search input initially
                         document.getElementById('feesContent').classList.add('hidden');
                         document.getElementById('feesSearch').value = '';
-                        // Fees and Grades sections do not have a direct 'fetch' until a student is searched
-                        // So we hide loading immediately
-                        hideLoading(); 
+                        hideLoading(); // Hide loading as no data fetch happens yet
                         break;
                     case 'grades':
+                        // For fees and grades, we only show the search input initially
                         document.getElementById('gradesContent').classList.add('hidden');
                         document.getElementById('gradesSearch').value = '';
-                        // Fees and Grades sections do not have a direct 'fetch' until a student is searched
-                        // So we hide loading immediately
-                        hideLoading();
+                        hideLoading(); // Hide loading as no data fetch happens yet
                         break;
                     case 'hostels':
                         await fetchHostels();
@@ -800,11 +803,8 @@
                 }
             } else {
                 console.error(`Section with ID ${sectionId}Section not found.`);
-                hideLoading(); // Ensure loading is hidden even if section is not found
+                hideLoading(); 
             }
-            // Note: hideLoading is explicitly called in each fetch function, or above for sections without immediate fetch.
-            // This global hideLoading() here would only be necessary if a case didn't have its own await or explicit hideLoading.
-            // Given the current structure, it's safer to leave it within the switch or the fetch functions.
         }
 
         // Data Management Functions (CRUD & Fetching)
@@ -923,12 +923,11 @@
         async function fetchStudents() {
             showLoading('Fetching student records...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const studentsRef = collection(db, 'students');
                 const snapshot = await getDocs(studentsRef);
                 const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
 
-                const columns = ['name', 'email', 'programme', 'year', 'contact']; // Updated column names
+                const columns = ['name', 'email', 'programme', 'year', 'contact']; 
                 const actions = [
                     { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (student) => editStudentModal(student) },
                     { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (student) => deleteStudent(student.uid) }
@@ -968,7 +967,6 @@
         async function addStudent(studentData) {
             showLoading('Adding student...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await setDoc(doc(db, 'students', studentData.email), studentData);
                 showCustomModal('Success', 'Student added successfully.', false);
                 fetchStudents();
@@ -1004,7 +1002,6 @@
         async function updateStudent(uid, studentData) {
             showLoading('Updating student...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await updateDoc(doc(db, 'students', uid), studentData);
                 showCustomModal('Success', 'Student updated successfully.', false);
                 fetchStudents();
@@ -1020,7 +1017,6 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this student record? This action cannot be undone.', true, async () => {
                 showLoading('Deleting student...');
                 try {
-                    // No need for isAdminUser check here, as showAdminSection already filtered
                     await deleteDoc(doc(db, 'students', uid));
                     showCustomModal('Success', 'Student deleted successfully.', false);
                     fetchStudents();
@@ -1037,7 +1033,6 @@
             const searchTerm = e.target.value.toLowerCase();
             showLoading('Searching students...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const studentsRef = collection(db, 'students');
                 const snapshot = await getDocs(studentsRef);
                 const allStudents = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
@@ -1066,7 +1061,6 @@
         async function fetchCourses() {
             showLoading('Fetching course records...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const coursesRef = collection(db, 'courses');
                 const snapshot = await getDocs(coursesRef);
                 const courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1113,7 +1107,6 @@
         async function addCourse(courseData) {
             showLoading('Adding course...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 // Use courseCode (which is 'code') as the document ID for courses
                 await setDoc(doc(db, 'courses', courseData.code), courseData);
                 showCustomModal('Success', 'Course added successfully.', false);
@@ -1151,7 +1144,6 @@
         async function updateCourse(id, courseData) {
             showLoading('Updating course...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await updateDoc(doc(db, 'courses', id), courseData);
                 showCustomModal('Success', 'Course updated successfully.', false);
                 fetchCourses();
@@ -1167,7 +1159,6 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this course record? This action cannot be undone.', true, async () => {
                 showLoading('Deleting course...');
                 try {
-                    // No need for isAdminUser check here, as showAdminSection already filtered
                     await deleteDoc(doc(db, 'courses', id));
                     showCustomModal('Success', 'Course deleted successfully.', false);
                     fetchCourses();
@@ -1184,7 +1175,6 @@
             const searchTerm = e.target.value.toLowerCase();
             showLoading('Searching courses...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const coursesRef = collection(db, 'courses');
                 const snapshot = await getDocs(coursesRef);
                 const allCourses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1219,7 +1209,6 @@
             }
             showLoading(`Searching for ${email}'s fees...`);
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const studentsRef = collection(db, 'students');
                 const studentQuerySnapshot = await getDocs(query(studentsRef, where('email', '==', email)));
 
@@ -1321,7 +1310,6 @@
         async function addFeeTransaction(uid, amount, description, type) {
             showLoading('Updating fee record...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const feesDocRef = doc(db, 'fees', uid);
                 const feesSnap = await getDoc(feesDocRef);
                 let currentFees = feesSnap.exists() ? feesSnap.data() : { studentId: uid, totalFees: 0, balance: 0, payments: [] };
@@ -1369,7 +1357,6 @@
             }
             showLoading(`Searching for ${email}'s grades...`);
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const studentsRef = collection(db, 'students');
                 const studentQuerySnapshot = await getDocs(query(studentsRef, where('email', '==', email)));
 
@@ -1406,7 +1393,6 @@
             }
             showLoading('Fetching current grades for editing...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const gradesQuerySnapshot = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid)));
                 const grades = gradesQuerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -1449,7 +1435,6 @@
         async function updateStudentGrades(gradesToUpdate) {
             showLoading('Updating grades...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const batch = writeBatch(db);
                 gradesToUpdate.forEach(grade => {
                     const gradeRef = doc(db, 'grades', grade.id);
@@ -1470,7 +1455,6 @@
         async function fetchHostels() {
             showLoading('Fetching hostel records...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const hostelsRef = collection(db, 'hostels');
                 const snapshot = await getDocs(hostelsRef);
                 const hostels = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1512,7 +1496,6 @@
         async function addHostel(hostelData) {
             showLoading('Adding hostel...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await setDoc(doc(db, 'hostels', hostelData.name), hostelData); // Using name as ID for simplicity
                 showCustomModal('Success', 'Hostel added successfully.', false);
                 fetchHostels();
@@ -1545,7 +1528,6 @@
         async function updateHostel(id, hostelData) {
             showLoading('Updating hostel...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await updateDoc(doc(db, 'hostels', id), hostelData);
                 showCustomModal('Success', 'Hostel updated successfully.', false);
                 fetchHostels();
@@ -1561,7 +1543,6 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this hostel record? This action cannot be undone.', true, async () => {
                 showLoading('Deleting hostel...');
                 try {
-                    // No need for isAdminUser check here, as showAdminSection already filtered
                     await deleteDoc(doc(db, 'hostels', id));
                     showCustomModal('Success', 'Hostel deleted successfully.', false);
                     fetchHostels();
@@ -1577,7 +1558,6 @@
         async function toggleHostelApplications() {
             showLoading('Toggling hostel applications...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const settingsDocRef = doc(db, 'settings', 'hostelApplications');
                 const settingsSnap = await getDoc(settingsDocRef);
                 let currentStatus = true; // Default to open if not set
@@ -1621,7 +1601,6 @@
         async function fetchAnnouncements() {
             showLoading('Fetching announcements...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const announcementsRef = collection(db, 'announcements');
                 const snapshot = await getDocs(query(announcementsRef, orderBy('createdAt', 'desc'))); // Use createdAt for ordering
                 const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1666,7 +1645,6 @@
         async function addAnnouncement(announcementData) {
             showLoading('Adding announcement...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await addDoc(collection(db, 'announcements'), announcementData); // Use addDoc for auto-ID
                 showCustomModal('Success', 'Announcement added successfully.', false);
                 fetchAnnouncements();
@@ -1697,7 +1675,6 @@
         async function updateAnnouncement(id, announcementData) {
             showLoading('Updating announcement...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await updateDoc(doc(db, 'announcements', id), announcementData);
                 showCustomModal('Success', 'Announcement updated successfully.', false);
                 fetchAnnouncements();
@@ -1713,7 +1690,6 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this announcement? This action cannot be undone.', true, async () => {
                 showLoading('Deleting announcement...');
                 try {
-                    // No need for isAdminUser check here, as showAdminSection already filtered
                     await deleteDoc(doc(db, 'announcements', id));
                     showCustomModal('Success', 'Announcement deleted successfully.', false);
                     fetchAnnouncements();
@@ -1731,7 +1707,6 @@
         async function fetchGraduationRequests() {
             showLoading('Fetching graduation requests...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const requestsRef = collection(db, 'graduationRequests');
                 const snapshot = await getDocs(requestsRef);
                 const requests = [];
@@ -1766,7 +1741,6 @@
         async function updateGraduationRequestStatus(id, status) {
             showLoading(`Updating request to ${status}...`);
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await updateDoc(doc(db, 'graduationRequests', id), { status: status });
                 showCustomModal('Success', `Graduation request ${status} successfully.`, false);
                 fetchGraduationRequests();
@@ -1782,7 +1756,6 @@
         async function fetchClearanceRequests() {
             showLoading('Fetching clearance requests...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const requestsRef = collection(db, 'clearanceRequests');
                 const snapshot = await getDocs(requestsRef);
                 const requests = [];
@@ -1817,7 +1790,6 @@
         async function updateClearanceRequestStatus(id, status) {
             showLoading(`Updating request to ${status}...`);
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 await updateDoc(doc(db, 'clearanceRequests', id), { status: status });
                 showCustomModal('Success', `Clearance request ${status} successfully.`, false);
                 fetchClearanceRequests();
@@ -1833,7 +1805,6 @@
         async function fetchAdmins() {
             showLoading('Fetching admin users...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 const adminsRef = collection(db, 'admins');
                 const snapshot = await getDocs(adminsRef);
                 // Map to include id (which is UID) and email field
@@ -1880,7 +1851,6 @@
         async function addNewAdmin(email, password) {
             showLoading('Adding new admin...');
             try {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 
                 // 1. Create user in Firebase Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -1910,7 +1880,6 @@
 
         async function removeAdmin(uid) {
             showCustomModal('Confirm Removal', `Are you sure you want to remove this admin? This action cannot be undone.`, true, async () => {
-                // No need for isAdminUser check here, as showAdminSection already filtered
                 if (auth.currentUser && uid === auth.currentUser.uid) {
                     showCustomModal('Error', 'You cannot remove yourself as an admin.', false);
                     return;
@@ -1928,6 +1897,134 @@
                     hideLoading();
                 }
             });
+        }
+
+        // --- Seed Demo Data ---
+        async function seedDemoData() {
+            showLoading('Seeding demo data...');
+            try {
+                const batch = writeBatch(db);
+
+                // Students
+                const student1Email = 'student1@example.com';
+                const student2Email = 'student2@example.com';
+                const student3Email = 'student3@example.com';
+
+                const student1Ref = doc(db, 'students', student1Email);
+                const student2Ref = doc(db, 'students', student2Email);
+                const student3Ref = doc(db, 'students', student3Email);
+
+                // Check if students already exist before adding
+                const [s1Snap, s2Snap, s3Snap] = await Promise.all([
+                    getDoc(student1Ref), getDoc(student2Ref), getDoc(student3Ref)
+                ]);
+
+                if (!s1Snap.exists()) batch.set(student1Ref, { name: 'Sarah Connor', email: student1Email, programme: 'Product Design', year: 3, contact: '111-222-3333', createdAt: serverTimestamp() });
+                if (!s2Snap.exists()) batch.set(student2Ref, { name: 'Kyle Reese', email: student2Email, programme: 'Game Design', year: 2, contact: '444-555-6666', createdAt: serverTimestamp() });
+                if (!s3Snap.exists()) batch.set(student3Ref, { name: 'John Doe', email: student3Email, programme: 'Fashion Design', year: 1, contact: '777-888-9999', createdAt: serverTimestamp() });
+
+
+                // Courses
+                const course1Code = 'PD101';
+                const course2Code = 'GD201';
+                const course3Code = 'FD301';
+
+                const course1Ref = doc(db, 'courses', course1Code);
+                const course2Ref = doc(db, 'courses', course2Code);
+                const course3Ref = doc(db, 'courses', course3Code);
+
+                const [c1Snap, c2Snap, c3Snap] = await Promise.all([
+                    getDoc(course1Ref), getDoc(course2Ref), getDoc(course3Ref)
+                ]);
+                if (!c1Snap.exists()) batch.set(course1Ref, { code: course1Code, title: 'Intro to Product Design', credits: 3, lecturer: 'Dr. A. Smith', schedule: 'Mon,Wed 10-12', createdAt: serverTimestamp() });
+                if (!c2Snap.exists()) batch.set(course2Ref, { code: course2Code, title: 'Advanced Game Mechanics', credits: 4, lecturer: 'Prof. B. Jones', schedule: 'Tue,Thu 14-16', createdAt: serverTimestamp() });
+                if (!c3Snap.exists()) batch.set(course3Ref, { code: course3Code, title: 'Textile Innovations', credits: 3, lecturer: 'Ms. C. Davis', schedule: 'Fri 09-12', createdAt: serverTimestamp() });
+
+
+                // Fees for student1@example.com (student1Email)
+                const fee1Ref = doc(db, 'fees', student1Email);
+                const fee1Snap = await getDoc(fee1Ref);
+                if (!fee1Snap.exists()) {
+                    batch.set(fee1Ref, {
+                        studentId: student1Email,
+                        totalFees: 5000,
+                        balance: 5000,
+                        payments: [
+                            { date: new Date().toISOString(), description: "Tuition Fee - Semester 1", amount: 5000, type: 'charge' }
+                        ],
+                        createdAt: serverTimestamp()
+                    });
+                }
+
+                // Grades for student1@example.com (student1Email)
+                const gradesForS1Q = query(collection(db, 'grades'), where('studentId', '==', student1Email), where('courseCode', '==', course1Code));
+                const gradesForS1Snap = await getDocs(gradesForS1Q);
+                if (gradesForS1Snap.empty) {
+                    batch.add(collection(db, 'grades'), { 
+                        studentId: student1Email,
+                        courseCode: course1Code,
+                        courseName: 'Intro to Product Design',
+                        grade: 'A',
+                        createdAt: serverTimestamp()
+                    });
+                }
+                const gradesForS1_2Q = query(collection(db, 'grades'), where('studentId', '==', student1Email), where('courseCode', '==', course2Code));
+                const gradesForS1_2Snap = await getDocs(gradesForS1_2Q);
+                if (gradesForS1_2Snap.empty) {
+                     batch.add(collection(db, 'grades'), { 
+                        studentId: student1Email,
+                        courseCode: course2Code,
+                        courseName: 'Advanced Game Mechanics',
+                        grade: 'B+',
+                        createdAt: serverTimestamp()
+                    });
+                }
+
+
+                // Hostels
+                const hostel1Ref = doc(db, 'hostels', 'Main Campus Hostel');
+                const hostel2Ref = doc(db, 'hostels', 'Off-Campus Annex');
+                const [h1Snap, h2Snap] = await Promise.all([
+                    getDoc(hostel1Ref), getDoc(hostel2Ref)
+                ]);
+                if (!h1Snap.exists()) batch.set(hostel1Ref, { name: 'Main Campus Hostel', capacity: 100, availableRooms: 75, createdAt: serverTimestamp() });
+                if (!h2Snap.exists()) batch.set(hostel2Ref, { name: 'Off-Campus Annex', capacity: 50, availableRooms: 20, createdAt: serverTimestamp() });
+
+
+                // Announcements
+                const ann1Snap = await getDocs(query(collection(db, 'announcements'), where('title', '==', 'Important Exam Dates')));
+                if (ann1Snap.empty) {
+                    batch.add(collection(db, 'announcements'), { title: 'Important Exam Dates', body: 'Final exams will be held from Dec 15-20. Check your portal for schedule.', createdAt: serverTimestamp() });
+                }
+                const ann2Snap = await getDocs(query(collection(db, 'announcements'), where('title', '==', 'Winter Break Schedule')));
+                if (ann2Snap.empty) {
+                    batch.add(collection(db, 'announcements'), { title: 'Winter Break Schedule', body: 'University will be closed from Dec 24 to Jan 2.', createdAt: serverTimestamp() });
+                }
+
+
+                // Graduation Requests (for student3Email - John Doe)
+                const gradReqSnap = await getDocs(query(collection(db, 'graduationRequests'), where('studentId', '==', student3Email)));
+                if (gradReqSnap.empty) {
+                    batch.add(collection(db, 'graduationRequests'), { studentId: student3Email, date: new Date().toISOString(), status: 'Pending', createdAt: serverTimestamp() });
+                }
+
+                // Clearance Requests (for student2Email - Kyle Reese)
+                const clearanceReqSnap = await getDocs(query(collection(db, 'clearanceRequests'), where('studentId', '==', student2Email)));
+                if (clearanceReqSnap.empty) {
+                    batch.add(collection(db, 'clearanceRequests'), { studentId: student2Email, date: new Date().toISOString(), status: 'Pending', createdAt: serverTimestamp() });
+                }
+
+                // Commit the batch
+                await batch.commit();
+
+                showCustomModal('Success', 'Demo data seeded successfully!', false);
+                await fetchDashboardCounts(); // Refresh dashboard data
+            } catch (err) {
+                showCustomModal('Error', 'Failed to seed demo data: ' + err.message, false);
+                console.error("Seed failed:", err);
+            } finally {
+                hideLoading();
+            }
         }
 
         // Export and Print Functions
