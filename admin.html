@@ -1,2334 +1,636 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Dashboard — University Portal (Upgraded)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        /* New Variables from the provided admin.html for consistency */
-        :root {
-            --bg:#f6f8fb; 
-            --card:#ffffff; 
-            --text:#1f2937; 
-            --muted:#6b7280; 
-            --primary:#065f46; 
-            --primary-600:#047857; 
-            --ring:rgba(0,0,0,.06);
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            /* Adopted image path from your provided admin.html: myschoolgate.png */
-            background: url('myschoolgate.png') no-repeat center center fixed; 
-            background-size: cover;
-            margin: 0; /* Ensure no default body margin */
-            color: var(--text); /* Use text color from variables */
-        }
-
-        /* Styles for the new login section from admin.html */
-        #login { 
-            display:none; 
-            max-width:380px; 
-            margin:48px auto; 
-            background: var(--card); 
-            padding:24px; 
-            border-radius:16px; 
-            box-shadow:0 10px 24px var(--ring); 
-            border:1px solid #e5e7eb; 
-        }
-        #login h2 { 
-            margin:0 0 12px; 
-        }
-        #login .field { 
-            display:flex; /* Use flex for label and input arrangement */
-            flex-direction:column; /* Stack label above input */
-            gap:6px; /* Space between label and input */
-            margin-bottom:10px; 
-        }
-        #login .field label {
-            font-size:.9rem; 
-            color: var(--muted);
-        }
-        #login .field input {
-            padding:10px 12px; 
-            border:1px solid #e5e7eb; 
-            border-radius:10px; 
-            background:#fff;
-            width: 100%; /* Ensure inputs take full width */
-        }
-        /* Buttons from admin.html */
-        .btn { 
-            display:inline-flex; 
-            align-items:center; 
-            gap:8px; 
-            padding:10px 14px; 
-            border-radius:10px; 
-            border:1px solid #e5e7eb; 
-            background:#fff; 
-            cursor:pointer; 
-        }
-        .btn.primary { 
-            background: var(--primary); 
-            border-color: var(--primary); 
-            color:#fff; 
-        }
-        .btn.primary:hover { 
-            background: var(--primary-600);
-        }
-        
-        /* Dashboard Container and Layout */
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar: Default for mobile is hidden, but can be shown with .active */
-        .sidebar {
-            width: 250px;
-            background-color: #0c431b; /* Darker green for a stronger admin feel */
-            color: white;
-            padding: 1.5rem;
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 50;
-            transform: translateX(-100%); /* Hidden by default on small screens */
-            transition: transform 0.3s ease-in-out;
-        }
-
-        .sidebar.active {
-            transform: translateX(0); /* Shown when 'active' class is added (mobile toggle) */
-        }
-
-        /* Main content area: Default for mobile is full width */
-        .content-area {
-            margin-left: 0;
-            padding: 2rem;
-            flex-grow: 1;
-            background-color: #f3f4f6;
-        }
-        
-        .main-content {
-            padding: 2rem;
-        }
-
-        /* Styles for large screens (desktop) */
-        @media (min-width: 1024px) { /* Equivalent to Tailwind's lg breakpoint */
-            .sidebar {
-                transform: translateX(0) !important; /* Override and always show on desktop */
-            }
-
-            .content-area {
-                margin-left: 250px; /* Push content to the right to make space for sidebar */
-            }
-
-            /* Hide the mobile menu toggle button on desktop */
-            #menuToggle {
-                display: none;
-            }
-
-            /* The mobile header itself has lg:hidden already in HTML, ensuring it's not displayed */
-            header.lg\:hidden {
-                display: none;
-            }
-        }
-        
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        /* No-Data Message Styles */
-        .no-data-message {
-            padding: 1.5rem;
-            background-color: #ecfdf5; /* Light green background */
-            border: 1px solid #a7f3d0; /* Green border */
-            color: #065f46; /* Dark green text */
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .no-data-message h3 {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 0.75rem;
-            color: #047857; /* Primary green */
-        }
-        .no-data-message p {
-            font-size: 1rem;
-            line-height: 1.5;
-            margin-bottom: 0.5rem;
-        }
-        .no-data-message p:last-child {
-            margin-bottom: 0;
-        }
-        .no-data-message .note {
-            font-size: 0.875rem;
-            color: #064e3b; /* Even darker green */
-            margin-top: 1rem;
-        }
-        /* Table Styles */
-        .data-container .table-container {
-            overflow-x: auto;
-        }
-        .data-container table {
-            width: 100%;
-            min-width: 800px;
-            border-collapse: collapse;
-            background-color: white; /* Ensure table background is white */
-            border-radius: 0.5rem; /* Match card styling */
-            overflow: hidden; /* For rounded corners */
-        }
-        .data-container th, .data-container td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .data-container thead th {
-            background-color: #1a4f32;
-            color: white;
-            text-transform: uppercase;
-        }
-        .data-container tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .data-container tbody tr:hover {
-            background-color: #f1f1f1;
-        }
-        .data-container .text-red-600 {
-            color: #dc2626;
-        }
-        .data-container .text-green-600 {
-            color: #16a34a;
-        }
-        .data-container .flex.space-x-2 button {
-            margin-right: 0.5rem; /* Space between buttons */
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard — University Portal (Upgraded)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0f0d;
+      --card: #0f172a;
+      --muted: #8b98a5;
+      --ring: rgba(0,0,0,.08);
+      --pri: #10b981; /* emerald */
+      --pri-700: #047857;
+    }
+    html, body { height: 100%; }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0b1020; color: #e5e7eb; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); }
+    .sidebar { width: 280px; }
+    .navlink { @apply flex items-center gap-3 rounded-xl px-3 py-2 transition; }
+    .navlink:hover { background: rgba(255,255,255,.06); }
+    .navlink.active { background: rgba(16,185,129,.15); color: #fff; border: 1px solid rgba(16,185,129,.25); }
+    .skeleton { position: relative; overflow: hidden; background: rgba(255,255,255,.06); border-radius: .75rem; }
+    .skeleton:after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+    .no-data { background: rgba(16,185,129,.08); border: 1px dashed rgba(16,185,129,.4); color: #c7f8e7; }
+    .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border transition; border-color: rgba(255,255,255,.14); }
+    .btn-primary { background: var(--pri); color: #08130f; border-color: transparent; }
+    .btn-primary:hover { background: #34d399; }
+    .btn-muted { background: rgba(255,255,255,.06); }
+    .table-wrap { overflow-x: auto; }
+    table.data { width: 100%; min-width: 880px; border-collapse: collapse; }
+    table.data th, table.data td { text-align: left; padding: .9rem 1rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+    table.data thead th { position: sticky; top: 0; background: #0f172a; z-index: 1; text-transform: uppercase; font-size: .75rem; letter-spacing: .05em; color: #9ca3af; }
+    .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs; background: rgba(255,255,255,.08); }
+    /* Mobile tweaks */
+    @media (min-width: 1024px){ #burger { display:none; } }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <!-- Loading Overlay and Modals -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col justify-center items-center z-[2000] hidden">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-700"></div>
-        <div id="loadingText" class="mt-4 text-xl text-green-700">Loading...</div>
+<body>
+  <!-- Loading overlay -->
+  <div id="loading" class="fixed inset-0 hidden place-items-center z-[100]">
+    <div class="w-72 glass p-6 rounded-2xl shadow-2xl text-center">
+      <div class="mx-auto mb-4 h-12 w-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+      <div id="loadingText" class="text-emerald-300 font-semibold">Loading…</div>
     </div>
+  </div>
 
-    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-[10000] hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-300">
-            <h3 id="modalTitle" class="text-2xl font-semibold mb-4 text-green-800"></h3>
-            <p id="modalMessage" class="mb-6 text-gray-700"></p>
-            <div class="flex justify-center gap-4">
-                <button id="modalConfirmBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">OK</button>
-                <button id="modalCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out hidden">Cancel</button>
-            </div>
+  <!-- Auth / Login Card -->
+  <div id="loginView" class="min-h-screen grid place-items-center p-6">
+    <div class="w-full max-w-md glass rounded-3xl p-6 shadow-2xl">
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <div class="h-10 w-10 rounded-2xl bg-emerald-500 grid place-items-center text-slate-900"><i class="fa-solid fa-shield"></i></div>
+        <h1 class="text-2xl font-bold">Admin Login</h1>
+      </div>
+      <p class="text-sm text-slate-400 mb-6">Sign in with an account whose UID exists in <span class="font-mono">admins/{uid}</span> and has <span class="font-mono">isAdmin: true</span>.</p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Email</label>
+          <input id="email" type="email" class="w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="admin@example.com" />
         </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Password</label>
+          <input id="password" type="password" class="w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="••••••••" />
+        </div>
+        <button id="loginBtn" class="btn btn-primary w-full justify-center"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Login View -->
-    <section id="login">
-        <h2 class="text-center">Admin Login</h2>
-        <div class="field"><label>Email</label><input id="email" type="email" placeholder="admin@example.com" /></div>
-        <div class="field"><label>Password</label><input id="password" type="password" placeholder="••••••••" /></div>
-        <button class="btn primary w-full" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
-        <div id="loginHint" class="muted text-center" style="margin-top:10px; font-size:.9rem; color:var(--muted);">Use a Firebase Auth user whose UID exists in <code>admins/{uid}</code> with <code>isAdmin: true</code>.</div>
-    </section>
+  <!-- App Shell -->
+  <div id="app" class="hidden min-h-screen">
+    <!-- Topbar (mobile) -->
+    <header class="lg:hidden sticky top-0 z-40 px-4 py-3 flex items-center justify-between glass">
+      <button id="burger" class="btn btn-muted px-3 py-2"><i class="fa-solid fa-bars"></i></button>
+      <div class="flex items-center gap-2 font-semibold"><i class="fa-solid fa-graduation-cap text-emerald-400"></i> Admin Portal</div>
+      <button id="logoutBtn" class="btn btn-muted"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+    </header>
 
-    <!-- Admin Dashboard -->
-    <div id="dashboardContainer" class="hidden dashboard-container">
-        <!-- Sidebar Navigation -->
-        <nav id="sidebar" class="sidebar">
-            <h3 class="text-2xl font-bold mb-6 pb-3 border-b border-green-700">Admin Panel</h3>
-            <ul class="space-y-2">
-                <li><a href="#" onclick="showAdminSection('dashboard')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-home mr-3"></i>Dashboard</a></li>
-                <li><a href="#" onclick="showAdminSection('students')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-users mr-3"></i>Manage Students</a></li>
-                <li><a href="#" onclick="showAdminSection('courses')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-book mr-3"></i>Manage Courses</a></li>
-                <li><a href="#" onclick="showAdminSection('fees')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-money-bill-wave mr-3"></i>Manage Fees</a></li>
-                <li><a href="#" onclick="showAdminSection('grades')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-award mr-3"></i>Manage Grades</a></li>
-                <li><a href="#" onclick="showAdminSection('hostels')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-building mr-3"></i>Hostel Management</a></li>
-                <li><a href="#" onclick="showAdminSection('announcements')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-bullhorn mr-3"></i>Announcements</a></li>
-                <li><a href="#" onclick="showAdminSection('graduation')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-graduation-cap mr-3"></i>Graduation Requests</a></li>
-                <li><a href="#" onclick="showAdminSection('clearance')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-check-circle mr-3"></i>Clearance Requests</a></li>
-                <li><a href="#" onclick="showAdminSection('admins')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-user-shield mr-3"></i>Admin Management</a></li>
-            </ul>
-            <div class="mt-auto pt-6 border-t border-green-700">
-                <!-- Logout button for dashboard -->
-                <button id="logoutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
-            </div>
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-[calc(100vh)] glass p-4 flex flex-col gap-4 -translate-x-full lg:translate-x-0 transition-transform z-50">
+        <div class="hidden lg:flex items-center gap-3 px-2">
+          <div class="h-9 w-9 rounded-xl bg-emerald-500 grid place-items-center text-slate-900"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div>
+            <div class="font-semibold leading-tight">University Admin</div>
+            <div class="text-xs text-slate-400">Control Center</div>
+          </div>
+        </div>
+        <nav class="mt-2 space-y-1">
+          <a data-section="dashboard" class="navlink active" href="#"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a>
+          <a data-section="students" class="navlink" href="#"><i class="fa-solid fa-users"></i><span>Students</span></a>
+          <a data-section="courses" class="navlink" href="#"><i class="fa-solid fa-book"></i><span>Courses</span></a>
+          <a data-section="fees" class="navlink" href="#"><i class="fa-solid fa-money-bill-wave"></i><span>Fees</span></a>
+          <a data-section="grades" class="navlink" href="#"><i class="fa-solid fa-award"></i><span>Grades</span></a>
+          <a data-section="hostels" class="navlink" href="#"><i class="fa-solid fa-building"></i><span>Hostels</span></a>
+          <a data-section="announcements" class="navlink" href="#"><i class="fa-solid fa-bullhorn"></i><span>Announcements</span></a>
+          <a data-section="graduation" class="navlink" href="#"><i class="fa-solid fa-graduation-cap"></i><span>Graduation</span></a>
+          <a data-section="clearance" class="navlink" href="#"><i class="fa-solid fa-check-circle"></i><span>Clearance</span></a>
+          <a data-section="admins" class="navlink" href="#"><i class="fa-solid fa-user-shield"></i><span>Admins</span></a>
         </nav>
-
-        <!-- Main Content Area -->
-        <div class="content-area">
-            <!-- Mobile Header and Toggler -->
-            <header class="bg-white p-4 flex justify-between items-center shadow-md sticky top-0 z-40 lg:hidden">
-                <button id="menuToggle" class="text-2xl p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <span class="text-lg font-semibold text-green-700">Admin Portal</span>
-                <!-- Adopted image path from your provided admin.html: myschoollogo.png -->
-                <img src="myschoollogo.png" alt="University Logo" class="h-10 w-auto">
-            </header>
-
-            <div class="main-content">
-                <h1 class="text-3xl font-bold text-gray-800 mb-6 pb-2 border-b-2 border-green-700">Admin Dashboard</h1>
-
-                <!-- Dashboard Section -->
-                <div id="dashboardSection" class="dashboard-section hidden">
-                    <div class="data-container">
-                        <!-- Content for dashboard will be loaded here by JS -->
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
-                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                            <i class="fas fa-users text-4xl text-green-600 mb-4"></i>
-                            <h3 class="text-xl font-bold text-gray-700">Total Students</h3>
-                            <p id="student-count" class="text-3xl font-extrabold text-green-800 mt-2">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                            <i class="fas fa-book-open text-4xl text-green-600 mb-4"></i>
-                            <h3 class="text-xl font-bold text-gray-700">Total Courses</h3>
-                            <p id="course-count" class="text-3xl font-extrabold text-green-800 mt-2">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                            <i class="fas fa-hourglass-half text-4xl text-yellow-600 mb-4"></i>
-                            <h3 class="text-xl font-bold text-gray-700">Pending Graduation</h3>
-                            <p id="graduation-pending-count" class="text-3xl font-extrabold text-green-800 mt-2">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                            <i class="fas fa-hourglass-end text-4xl text-yellow-600 mb-4"></i>
-                            <h3 class="text-xl font-bold text-gray-700">Pending Clearance</h3>
-                            <p id="clearance-pending-count" class="text-3xl font-extrabold text-green-800 mt-2">0</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                            <i class="fas fa-exclamation-triangle text-4xl text-red-600 mb-4"></i>
-                            <h3 class="text-xl font-bold text-gray-700">Outstanding Fees</h3>
-                            <p id="outstanding-fees-count" class="text-3xl font-extrabold text-green-800 mt-2">0</p>
-                        </div>
-                        <!-- New: Seed Demo Data Card -->
-                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                            <i class="fas fa-seedling text-4xl text-purple-600 mb-4"></i>
-                            <h3 class="text-xl font-bold text-gray-700">Seed Demo Data</h3>
-                            <button onclick="seedDemoData()" class="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Seed Data</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manage Students Section -->
-                <div id="studentsSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Students</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                        <div class="flex flex-col md:flex-row justify-between items-center mb-4 mt-4">
-                            <input type="text" id="studentSearch" placeholder="Search students..." class="px-4 py-2 border rounded-lg mb-2 md:mb-0 w-full md:w-auto">
-                            <div class="flex space-x-2">
-                                <button onclick="addStudentModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Student</button>
-                                <button onclick="exportTable('studentsTable', 'Students')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('studentsTable', 'Students')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manage Courses Section -->
-                <div id="coursesSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Courses</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                         <div class="flex flex-col md:flex-row justify-between items-center mb-4 mt-4">
-                            <input type="text" id="courseSearch" placeholder="Search courses..." class="px-4 py-2 border rounded-lg mb-2 md:mb-0 w-full md:w-auto">
-                            <div class="flex space-x-2">
-                                <button onclick="addCourseModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Course</button>
-                                <button onclick="exportTable('coursesTable', 'Courses')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('coursesTable', 'Courses')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manage Fees Section -->
-                <div id="feesSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Fees</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS (initial message or fees content) -->
-                        </div>
-                        <div id="feesSearchContainer" class="flex justify-between items-center mb-4 mt-4">
-                            <input type="text" id="feesSearch" placeholder="Search student by email..." class="px-4 py-2 border rounded-lg w-full md:w-auto">
-                            <button onclick="searchStudentForFees()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-2">Search</button>
-                        </div>
-                        <div id="feesContent" class="hidden mt-4">
-                            <h3 class="text-xl font-bold text-green-800 mb-2">Fee Statement for <span id="studentNameFees"></span></h3>
-                            <div class="flex space-x-2 mb-4">
-                                <button onclick="addFeeTransactionModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Transaction</button>
-                                <button onclick="exportTable('feesTable', 'Fee Statement')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('feesTable', 'Fee Statement')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                            <div class="table-container">
-                                <table id="feesTable" class="min-w-full bg-white">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Description</th>
-                                            <th>Amount</th>
-                                            <th>Balance</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Fee records dynamically loaded -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manage Grades Section -->
-                <div id="gradesSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Grades</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS (initial message or grades content) -->
-                        </div>
-                        <div id="gradesSearchContainer" class="flex justify-between items-center mb-4 mt-4">
-                            <input type="text" id="gradesSearch" placeholder="Search student by email..." class="px-4 py-2 border rounded-lg w-full md:w-auto">
-                            <button onclick="searchStudentForGrades()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-2">Search</button>
-                        </div>
-                        <div id="gradesContent" class="hidden mt-4">
-                            <h3 class="text-xl font-bold text-green-800 mb-2">Grades for <span id="studentNameGrades"></span></h3>
-                            <div class="flex space-x-2 mb-4">
-                                <button onclick="editGradesModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Edit Grades</button>
-                                <button onclick="exportTable('gradesTable', 'Grades Report')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('gradesTable', 'Grades Report')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                            <div class="table-container">
-                                <table id="gradesTable" class="min-w-full bg-white">
-                                    <thead>
-                                        <tr>
-                                            <th>Course Code</th>
-                                            <th>Course Name</th>
-                                            <th>Grade</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Grade records dynamically loaded -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hostel Management Section -->
-                <div id="hostelsSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Hostel Management</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                        <div class="flex flex-col md:flex-row justify-between items-center mb-4 mt-4">
-                            <div class="flex space-x-2">
-                                <button onclick="addHostelModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Hostel</button>
-                                <button onclick="toggleHostelApplications()" id="toggleHostelAppBtn" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">Toggle Applications</button>
-                            </div>
-                            <div class="flex space-x-2 mt-2 md:mt-0">
-                                <button onclick="exportTable('hostelsTable', 'Hostel List')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('hostelsTable', 'Hostel List')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Announcements Section -->
-                <div id="announcementsSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Announcements</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                         <div class="flex flex-col md:flex-row justify-end items-center mb-4 mt-4">
-                             <button onclick="addAnnouncementModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Announcement</button>
-                         </div>
-                    </div>
-                </div>
-
-                <!-- Graduation Requests Section -->
-                <div id="graduationSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Graduation Requests</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                        <div class="flex flex-col md:flex-row justify-end items-center mb-4 mt-4">
-                            <div class="flex space-x-2">
-                                <button onclick="exportTable('graduationRequestsTable', 'Graduation Requests')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('graduationRequestsTable', 'Graduation Requests')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Clearance Requests Section -->
-                <div id="clearanceSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Clearance Requests</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                        <div class="flex flex-col md:flex-row justify-end items-center mb-4 mt-4">
-                            <div class="flex space-x-2">
-                                <button onclick="exportTable('clearanceRequestsTable', 'Clearance Requests')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
-                                <button onclick="printTable('clearanceRequestsTable', 'Clearance Requests')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Print</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Management Section -->
-                <div id="adminsSection" class="dashboard-section hidden">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Management</h2>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <div class="data-container">
-                            <!-- Content generated by JS -->
-                        </div>
-                        <div class="flex flex-col md:flex-row justify-end items-center mb-4 mt-4">
-                             <button onclick="addAdminModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add New Admin</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="mt-auto">
+          <button id="logoutBtn2" class="btn w-full justify-center"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
         </div>
+      </aside>
+
+      <!-- Main area -->
+      <main class="flex-1 min-h-[100dvh] lg:ml-[280px] p-4 lg:p-8 space-y-6">
+        <div class="hidden lg:flex items-center justify-between">
+          <h1 class="text-2xl lg:text-3xl font-bold">Admin Dashboard</h1>
+          <div class="text-sm text-slate-400" id="adminBadge"><span class="chip">Not verified</span></div>
+        </div>
+
+        <!-- Sections -->
+        <section id="dashboardSection" class="space-y-6"></section>
+        <section id="studentsSection" class="hidden space-y-4"></section>
+        <section id="coursesSection" class="hidden space-y-4"></section>
+        <section id="feesSection" class="hidden space-y-4"></section>
+        <section id="gradesSection" class="hidden space-y-4"></section>
+        <section id="hostelsSection" class="hidden space-y-4"></section>
+        <section id="announcementsSection" class="hidden space-y-4"></section>
+        <section id="graduationSection" class="hidden space-y-4"></section>
+        <section id="clearanceSection" class="hidden space-y-4"></section>
+        <section id="adminsSection" class="hidden space-y-4"></section>
+      </main>
     </div>
+  </div>
 
-    <!-- Firebase SDK and custom script -->
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <!-- Firebase + App Code -->
+  <script type="module">
+    /* =========================
+       Firebase Setup
+    ==========================*/
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your web app's Firebase configuration (kept from original admin-dashboard-html)
-        const firebaseConfig = {
-          apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
-          authDomain: "universityweb-19e1e.firebaseapp.com",
-          projectId: "universityweb-19e1e",
-          storageBucket: "universityweb-19e1e.firebaseostorage.app",
-          messagingSenderId: "401942926589",
-          appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+      authDomain: "universityweb-19e1e.firebaseapp.com",
+      projectId: "universityweb-19e1e",
+      storageBucket: "universityweb-19e1e.firebaseostorage.app",
+      messagingSenderId: "401942926589",
+      appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Single admin check flag (set ONCE after login)
+    let isAdminUser = false;
+
+    /* =========================
+       DOM helpers
+    ==========================*/
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+
+    const show = el => el.classList.remove('hidden');
+    const hide = el => el.classList.add('hidden');
+
+    const setLoading = (on, text='Loading…') => {
+      const overlay = $('#loading');
+      $('#loadingText').textContent = text;
+      on ? overlay.classList.remove('hidden') : overlay.classList.add('hidden');
+    };
+
+    const renderPlaceholder = (container, { title, icon, lines = [], note }) => {
+      container.innerHTML = `
+        <div class="no-data rounded-2xl p-4">
+          <h3 class="text-lg font-semibold mb-1"><i class="${icon} mr-2 text-emerald-400"></i>${title}</h3>
+          ${lines.map(l => `<p class="text-sm text-emerald-200/90">${l}</p>`).join('')}
+          ${note ? `<p class="text-xs mt-2 text-emerald-200/70">${note}</p>`: ''}
+        </div>`;
+    };
+
+    const renderSkeletonCards = (container, n=4) => {
+      container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">${
+        Array.from({length:n}).map(() => `<div class="skeleton h-28"></div>`).join('')
+      }</div>`;
+    };
+
+    const table = (headers, rows) => `
+      <div class="table-wrap glass rounded-2xl">
+        <table class="data">
+          <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${rows.length ? rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${headers.length}" class="py-6 text-center text-slate-400">No data available.</td></tr>`}
+          </tbody>
+        </table>
+      </div>`;
+
+    const exportTable = (tableId, filename) => {
+      const tbl = document.getElementById(tableId);
+      if(!tbl) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(tbl);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+    };
+
+    /* =========================
+       Auth flow (single admin check)
+    ==========================*/
+    const loginView = $('#loginView');
+    const appShell = $('#app');
+
+    const showApp = () => { hide(loginView); show(appShell); };
+    const showLogin = () => { show(loginView); hide(appShell); };
+
+    onAuthStateChanged(auth, async (user) => {
+      if(!user){ isAdminUser=false; showLogin(); return; }
+      setLoading(true, 'Verifying administrator…');
+      try {
+        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+        if(adminDoc.exists() && adminDoc.data().isAdmin === true){
+          isAdminUser = true; // ✅ set once
+          $('#adminBadge').innerHTML = '<span class="chip bg-emerald-600/30">Admin verified</span>';
+          showApp();
+          // default section
+          activateSection('dashboard');
+        } else {
+          await signOut(auth);
+          alert('Your account is not authorized as an administrator.');
+        }
+      } catch(err){
+        console.error(err);
+        alert('Login verification failed: '+err.message);
+      } finally { setLoading(false); }
+    });
+
+    $('#loginBtn').addEventListener('click', async() => {
+      const email = $('#email').value.trim();
+      const password = $('#password').value;
+      if(!email || !password){ alert('Enter email and password.'); return; }
+      setLoading(true, 'Signing in…');
+      try{ await signInWithEmailAndPassword(auth, email, password); } catch(e){ alert(e.message); } finally{ setLoading(false); }
+    });
+
+    const doLogout = async () => { try{ await signOut(auth); } catch(e){ alert('Logout failed: '+e.message);} };
+    $('#logoutBtn').addEventListener('click', doLogout);
+    $('#logoutBtn2').addEventListener('click', doLogout);
+
+    // Mobile sidebar toggle
+    $('#burger').addEventListener('click', ()=> {
+      const sb = $('#sidebar');
+      const open = !sb.classList.contains('-translate-x-full');
+      if(open) sb.classList.add('-translate-x-full'); else sb.classList.remove('-translate-x-full');
+    });
+
+    /* =========================
+       Navigation + sections
+    ==========================*/
+    const activateSection = (key) => {
+      // links
+      $$(".navlink").forEach(a=>{
+        if(a.dataset.section===key) a.classList.add('active'); else a.classList.remove('active');
+      });
+      // sections
+      const ids = ['dashboard','students','courses','fees','grades','hostels','announcements','graduation','clearance','admins'];
+      ids.forEach(id => { const sec = document.getElementById(id+"Section"); id===key ? show(sec) : hide(sec); });
+      // render immediate placeholders (never blocked by Firestore)
+      preloadSection(key);
+      // then fetch
+      fetchSection(key);
+      // close mobile sidebar
+      $('#sidebar').classList.add('-translate-x-full');
+    };
+
+    $$(".navlink").forEach(a => a.addEventListener('click', e => { e.preventDefault(); activateSection(a.dataset.section); }));
+
+    const preloadSection = (key) => {
+      const sec = document.getElementById(key+"Section");
+      if(!sec) return;
+      sec.innerHTML = '';
+      // Always show an informative header + skeletons or default tips
+      if(key==='dashboard'){
+        const wrap = document.createElement('div');
+        wrap.className = 'space-y-4';
+        wrap.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Total Students</div><div id="statStudents" class="text-3xl font-extrabold mt-1">0</div></div>
+            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Total Courses</div><div id="statCourses" class="text-3xl font-extrabold mt-1">0</div></div>
+            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Pending Graduation</div><div id="statGrad" class="text-3xl font-extrabold mt-1">0</div></div>
+            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Pending Clearance</div><div id="statClear" class="text-3xl font-extrabold mt-1">0</div></div>
+          </div>
+          <div id="dashTips"></div>`;
+        sec.appendChild(wrap);
+        renderPlaceholder($('#dashTips'), { title: 'Dashboard Overview', icon: 'fa-solid fa-chart-line', lines:[
+          'This overview will auto-populate when connected to Firestore.',
+          'Use the sidebar to manage students, courses, finances, and more.'
+        ], note: 'Tip: Click Students or Courses to begin.' });
+      } else {
+        const tips = document.createElement('div');
+        sec.appendChild(tips);
+        const map = {
+          students: ['Manage and view registered students.', 'Search, edit, export, and print lists.'],
+          courses: ['Manage available courses.', 'Add, edit, or remove courses.'],
+          fees: ['Search a student to view their statement.', 'Record charges/payments and export.'],
+          grades: ['View and record student grades.', 'Generate transcripts as needed.'],
+          hostels: ['Manage hostel capacity and settings.', 'Toggle applications open/closed.'],
+          announcements: ['Create announcements for all users.', 'Edit or remove outdated notices.'],
+          graduation: ['Track graduation requests and status.'],
+          clearance: ['Track clearance requests and status.'],
+          admins: ['Manage admin accounts and roles.']
         };
+        renderPlaceholder(tips, { title: key.charAt(0).toUpperCase()+key.slice(1), icon:'fa-solid fa-circle-info', lines: map[key]||[], note: 'This appears even without Firestore data.'});
+        // quick skeleton where tables usually go
+        const sk = document.createElement('div'); sk.className='grid grid-cols-1 gap-3';
+        sk.innerHTML = `<div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div>`;
+        sec.appendChild(sk);
+      }
+    };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    /* =========================
+       Fetchers (execute after UI shows)
+       Note: they rely on isAdminUser; UI never blocks
+    ==========================*/
+    const fetchSection = async (key) => {
+      try{
+        if(!isAdminUser) return; // respect single admin verification; do not re-check
+        if(key==='dashboard') return fetchDashboard();
+        if(key==='students') return fetchStudents();
+        if(key==='courses') return fetchCourses();
+        if(key==='fees') return renderFeesSearch();
+        if(key==='grades') return renderGradesSearch();
+        if(key==='hostels') return fetchHostels();
+        if(key==='announcements') return fetchAnnouncements();
+        if(key==='graduation') return fetchGraduation();
+        if(key==='clearance') return fetchClearance();
+        if(key==='admins') return fetchAdmins();
+      } catch(e){ console.error(e); }
+    };
 
-        // Global admin flag
-        let isAdminUser = false;
+    /* ============= Dashboard ============= */
+    const fetchDashboard = async () => {
+      const [studentsSnap, coursesSnap, gradSnap, clearSnap] = await Promise.all([
+        getDocs(collection(db,'students')),
+        getDocs(collection(db,'courses')),
+        getDocs(query(collection(db,'graduationRequests'), where('status','==','Pending'))),
+        getDocs(query(collection(db,'clearanceRequests'), where('status','==','Pending')))
+      ]);
+      $('#statStudents').textContent = studentsSnap.size;
+      $('#statCourses').textContent = coursesSnap.size;
+      $('#statGrad').textContent = gradSnap.size;
+      $('#statClear').textContent = clearSnap.size;
+    };
 
-        // UI Elements
-        const loginView = document.getElementById('login');
-        const dashboardContainer = document.getElementById('dashboardContainer');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const loadingText = document.getElementById('loadingText');
-        const sidebar = document.getElementById('sidebar');
-        const menuToggle = document.getElementById('menuToggle');
-
-
-        // General UI functions
-        function showLoading(text = 'Loading...') {
-            loadingText.innerText = text;
-            loadingOverlay.classList.remove('hidden');
-        }
-
-        function hideLoading() {
-            loadingOverlay.classList.add('hidden');
-        }
-
-        function showCustomModal(title, message, isConfirmation = false, onConfirm, onCancel) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalMessage').innerHTML = message; 
-            document.getElementById('customModal').classList.remove('hidden');
-            const confirmBtn = document.getElementById('modalConfirmBtn');
-            const cancelBtn = document.getElementById('modalCancelBtn');
-            
-            confirmBtn.onclick = () => {
-                document.getElementById('customModal').classList.add('hidden');
-                if (onConfirm) onConfirm();
-            };
-            cancelBtn.onclick = () => {
-                document.getElementById('customModal').classList.add('hidden');
-                if (onCancel) onCancel();
-            };
-
-            if (isConfirmation) {
-                cancelBtn.classList.remove('hidden');
-            } else {
-                cancelBtn.classList.add('hidden');
-            }
-        }
-
-        // Global placeholder message generators
-        function getNoDataHtml(title, icon, messages, note) {
-            let messageParagraphs = messages.map(msg => `<p>${msg}</p>`).join('');
-            return `
-                <div class="no-data-message">
-                    <h3 class="text-2xl font-bold mb-2"><i class="${icon} mr-2"></i>${title}</h3>
-                    ${messageParagraphs}
-                    <p class="note">${note}</p>
-                </div>
-            `;
-        }
-
-        // Functions for showing/hiding login/app views
-        function showLogin() {
-            loginView.style.display = 'block';
-            dashboardContainer.classList.add('hidden');
-        }
-
-        function showApp() {
-            loginView.style.display = 'none';
-            dashboardContainer.classList.remove('hidden');
-        }
-
-        // Authentication Logic
-        onAuthStateChanged(auth, async (user) => {
-            showLoading();
-            if (!user) {
-                showLogin();
-                hideLoading();
-                isAdminUser = false;
-                return;
-            }
-
-            try {
-                const adminRef = doc(db, 'admins', user.uid);
-                const adminSnap = await getDoc(adminRef);
-
-                if (!adminSnap.exists() || adminSnap.data().isAdmin !== true) {
-                    showLogin();
-                    hideLoading();
-                    showCustomModal('Authorization Failed', 'Your account is not authorized as an administrator.', false);
-                    await signOut(auth);
-                    isAdminUser = false;
-                    return;
-                }
-
-                isAdminUser = true;
-                showApp();
-                showAdminSection('dashboard'); 
-                hideLoading();
-            } catch (err) {
-                console.error('Admin check error:', err);
-                showCustomModal('Login Error', 'An error occurred during login verification: ' + err.message, false);
-                showLogin();
-                hideLoading();
-                isAdminUser = false;
-                await signOut(auth);
-            }
+    /* ============= Students ============= */
+    const fetchStudents = async () => {
+      const sec = $('#studentsSection');
+      const snap = await getDocs(collection(db,'students'));
+      const rows = snap.docs.map(d => ({ uid:d.id, ...d.data() }));
+      const hdrs = ['Name','Email','Program','Year','Contact','Actions'];
+      const html = table(hdrs, rows.map(r => [
+        r.name||'—', r.email||'—', r.programme||'—', r.year||'—', r.contact||'—',
+        `<div class="flex gap-2"><button class="btn btn-muted" onclick="window.editStudent('${r.uid}')">Edit</button><button class="btn btn-muted" onclick="window.deleteStudent('${r.uid}')">Delete</button></div>`
+      ]));
+      const box = document.createElement('div');
+      box.className = 'space-y-3';
+      box.innerHTML = `
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+          <input id="studentSearch" class="w-full sm:w-72 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search students…"/>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="window.addStudent()"><i class="fa-solid fa-user-plus"></i> Add</button>
+            <button class="btn" onclick="window.exportById('studentsTbl','Students')"><i class="fa-solid fa-file-export"></i> Export</button>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-2">
+          <div class="table-wrap">
+            <table id="studentsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+              ${rows.length? rows.map(r=>`<tr>
+                <td>${r.name||'—'}</td><td>${r.email||'—'}</td><td>${r.programme||'—'}</td><td>${r.year||'—'}</td><td>${r.contact||'—'}</td>
+                <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editStudent('${r.uid}')">Edit</button><button class="btn btn-muted" onclick="window.deleteStudent('${r.uid}')">Delete</button></div></td>
+              </tr>`).join('') : `<tr><td colspan="6" class="py-6 text-center text-slate-400">No students yet.</td></tr>`}
+            </tbody></table>
+          </div>
+        </div>`;
+      sec.innerHTML = '';
+      sec.appendChild(box);
+      // simple client filter
+      const input = $('#studentSearch');
+      input?.addEventListener('input', () => {
+        const v = input.value.toLowerCase();
+        $$('#studentsTbl tbody tr').forEach(tr => {
+          tr.style.display = tr.textContent.toLowerCase().includes(v) ? '' : 'none';
         });
-
-        // Login button click handler
-        loginBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
-            if (!email || !password) { 
-                showCustomModal('Input Required', 'Please enter both email and password.', false); 
-                return; 
-            }
-            try {
-                showLoading('Signing in...');
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                let errorMessage = 'An unknown error occurred during sign-in.';
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    errorMessage = 'Invalid email or password. Please try again.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'The email address is not valid.';
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage = 'Too many login attempts. Please try again later.';
-                }
-                console.error("Sign-in error", error);
-                showCustomModal('Login Failed', errorMessage, false);
-            } finally { 
-                hideLoading(); 
-            }
-        });
-
-        // Logout button click handler
-        logoutBtn.addEventListener('click', async () => {
-            showCustomModal('Confirm Logout', 'Are you sure you want to log out?', true, async () => {
-                showLoading('Logging out...');
-                try {
-                    await signOut(auth);
-                    showCustomModal('Logged Out', 'You have been logged out successfully.', false);
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to log out: ' + error.message, false);
-                    console.error("Logout error:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        });
-
-        // Mobile menu toggle
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-        });
-
-        // Dashboard Navigation
-        let currentSection = 'dashboardSection'; 
-        
-        async function showAdminSection(sectionId) {
-            const allSections = document.querySelectorAll('.dashboard-section');
-            allSections.forEach(section => {
-                section.classList.add('hidden');
-            });
-
-            const newSection = document.getElementById(sectionId + 'Section');
-            if (newSection) {
-                newSection.classList.remove('hidden');
-                currentSection = sectionId + 'Section'; 
-                sidebar.classList.remove('active');
-            } else {
-                console.error(`Section with ID ${sectionId}Section not found.`);
-                return;
-            }
-
-            showLoading('Loading...');
-            try {
-                switch (sectionId) {
-                    case 'dashboard':
-                        await fetchDashboardCounts();
-                        break;
-                    case 'students':
-                        await fetchStudents();
-                        break;
-                    case 'courses':
-                        await fetchCourses();
-                        break;
-                    case 'fees':
-                        const feesContainer = document.querySelector('#feesSection .data-container');
-                        feesContainer.innerHTML = getNoDataHtml(
-                            '💰 Fees Management',
-                            'fas fa-money-bill-wave',
-                            [
-                                'Search and update student fees here.',
-                                'Track payments and balances for each student.'
-                            ],
-                            '(No fee data found — please record fee transactions to view them here.)'
-                        );
-                        document.getElementById('feesContent').classList.add('hidden');
-                        document.getElementById('feesSearch').value = '';
-                        break;
-                    case 'grades':
-                        const gradesContainer = document.querySelector('#gradesSection .data-container');
-                        gradesContainer.innerHTML = getNoDataHtml(
-                            '🏆 Grades Management',
-                            'fas fa-award',
-                            [
-                                'View and manage student grades.',
-                                'Update marks, generate transcripts, and track performance.'
-                            ],
-                            '(No grade records found yet — please upload grades to view them here.)'
-                        );
-                        document.getElementById('gradesContent').classList.add('hidden');
-                        document.getElementById('gradesSearch').value = '';
-                        break;
-                    case 'hostels':
-                        await fetchHostels();
-                        break;
-                    case 'announcements':
-                        await fetchAnnouncements();
-                        break;
-                    case 'graduation':
-                        await fetchGraduationRequests();
-                        break;
-                    case 'clearance':
-                        await fetchClearanceRequests();
-                        break;
-                    case 'admins':
-                        await fetchAdmins();
-                        break;
-                }
-            } catch (error) {
-                console.error(`Error loading ${sectionId}:`, error);
-                const container = document.querySelector(`#${sectionId}Section .data-container`);
-                if (container) {
-                    container.innerHTML = `<p style="color: red;">Failed to load data. Please try again.</p>`;
-                }
-            }
-            hideLoading();
-        }
-
-        // Data Management Functions (CRUD & Fetching)
-
-        // --- Dashboard ---
-        async function fetchDashboardCounts() {
-            showLoading('Loading dashboard data...');
-            try {
-                const studentsRef = collection(db, 'students');
-                const coursesRef = collection(db, 'courses');
-                const gradRequestsRef = collection(db, 'graduationRequests');
-                const clearanceRequestsRef = collection(db, 'clearanceRequests');
-                const feesRef = collection(db, 'fees');
-
-                const [
-                    studentsSnapshot, 
-                    coursesSnapshot, 
-                    gradPendingSnapshot, 
-                    clearancePendingSnapshot,
-                    feesSnapshot
-                ] = await Promise.all([
-                    getDocs(studentsRef),
-                    getDocs(coursesRef),
-                    getDocs(query(gradRequestsRef, where('status', '==', 'Pending'))),
-                    getDocs(query(clearanceRequestsRef, where('status', '==', 'Pending'))),
-                    getDocs(feesRef)
-                ]);
-
-                document.getElementById('student-count').innerText = studentsSnapshot.size;
-                document.getElementById('course-count').innerText = coursesSnapshot.size;
-                document.getElementById('graduation-pending-count').innerText = gradPendingSnapshot.size;
-                document.getElementById('clearance-pending-count').innerText = clearancePendingSnapshot.size;
-                
-                let totalOutstandingFees = 0;
-                feesSnapshot.docs.forEach(d => {
-                    const balance = d.data().balance || 0;
-                    if (balance > 0) {
-                        totalOutstandingFees += balance;
-                    }
-                });
-                document.getElementById('outstanding-fees-count').innerText = `GHS ${totalOutstandingFees.toFixed(2)}`;
-
-                // Clear previous dashboard content and add the overview message
-                const dashboardContainer = document.querySelector('#dashboardSection .data-container');
-                 dashboardContainer.innerHTML = getNoDataHtml(
-                    '📊 Dashboard Overview',
-                    'fas fa-chart-line',
-                    [
-                        'Welcome to the Admin Dashboard.',
-                        'Here you can get an overview of student statistics, courses, and system activity.'
-                    ],
-                    'Data is automatically loaded from your Firebase database.'
-                );
-
-            } catch (error) {
-                showCustomModal('Error', 'Failed to load dashboard data: ' + error.message, false);
-                console.error("Error fetching dashboard counts:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        /**
-         * Generates the HTML for a table, including the table container, headers, and rows.
-         * Action buttons will have inline `onclick` handlers that call global functions.
-         * @param {string} tableId - The ID to assign to the <table> element.
-         * @param {string[]} headersArray - Array of header strings for the <thead>.
-         * @param {Object[]} dataArray - Array of objects, where each object is a row of data.
-         * @param {string[]} columnsToDisplay - Array of property names from dataArray objects to display as columns.
-         * @param {Object[]} actionsArray - Array of action button objects: { text: string, class: string, handlerName: string, param2: string (optional), condition: (item) => boolean (optional) }
-         * @returns {string} The complete HTML string for the table container.
-         */
-        function createTableHtml(tableId, headersArray, dataArray, columnsToDisplay, actionsArray) {
-            let tableHtml = `<div class="table-container"><table id="${tableId}" class="min-w-full bg-white border-collapse">`;
-            
-            tableHtml += `<thead><tr>`;
-            headersArray.forEach(header => {
-                tableHtml += `<th>${header}</th>`;
-            });
-            if (actionsArray && actionsArray.length > 0) {
-                tableHtml += `<th>Actions</th>`;
-            }
-            tableHtml += `</tr></thead>`;
-
-            tableHtml += `<tbody>`;
-            if (dataArray.length === 0) {
-                tableHtml += `<tr><td colspan="${headersArray.length + (actionsArray ? 1 : 0)}" class="text-center py-4 text-gray-500">No data available.</td></tr>`;
-            } else {
-                dataArray.forEach(item => {
-                    tableHtml += `<tr>`;
-                    columnsToDisplay.forEach(col => {
-                        let cellContent = item[col] || 'N/A';
-                        if (col === 'balance') {
-                            cellContent = `GHS ${item[col].toFixed(2)}`;
-                            tableHtml += `<td class="${item[col] > 0 ? 'text-red-600' : 'text-green-600'}">${cellContent}</td>`;
-                        } else if (['date', 'createdAt', 'updatedAt'].includes(col) && item[col]) { 
-                            try {
-                                 let date;
-                                 if (item[col] && typeof item[col].toDate === 'function') { // Firebase Timestamp
-                                    date = item[col].toDate();
-                                 } else if (typeof item[col] === 'string') { // ISO string
-                                    date = new Date(item[col]);
-                                 } else { // Fallback for other formats
-                                    date = new Date(item[col]);
-                                 }
-                                 cellContent = date.toLocaleDateString();
-                            } catch (e) {
-                                cellContent = item[col]; // Fallback if date is invalid
-                                console.warn(`Invalid date format for ${col}: ${item[col]}`);
-                            }
-                            tableHtml += `<td>${cellContent}</td>`;
-                        } else if (col === 'isAdmin') {
-                            cellContent = item[col] ? 'Yes' : 'No';
-                            tableHtml += `<td>${cellContent}</td>`;
-                        } else {
-                            tableHtml += `<td>${cellContent}</td>`;
-                        }
-                    });
-
-                    if (actionsArray && actionsArray.length > 0) {
-                        tableHtml += `<td class="flex space-x-2">`;
-                        actionsArray.forEach(action => {
-                            if (!action.condition || action.condition(item)) {
-                                const itemId = item.id || item.uid;
-                                tableHtml += `<button onclick="${action.handlerName}('${itemId}'${action.param2 ? `, '${action.param2}'` : ''})" class="${action.class}">${action.text}</button>`;
-                            }
-                        });
-                        tableHtml += `</td>`;
-                    }
-                    tableHtml += `</tr>`;
-                });
-            }
-            tableHtml += `</tbody>`;
-            tableHtml += `</table></div>`; 
-
-            return tableHtml;
-        }
-        
-        // --- Manage Students ---
-        async function fetchStudents() {
-            const container = document.querySelector('#studentsSection .data-container');
-            showLoading('Fetching student records...');
-            try {
-                const studentsRef = collection(db, 'students');
-                const snapshot = await getDocs(studentsRef);
-                const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-
-                if (students.length === 0) {
-                    container.innerHTML = getNoDataHtml(
-                        '👨‍🎓 Students Management',
-                        'fas fa-users',
-                        [
-                            'Manage and view all registered students here.',
-                            'You can search for students, view their profiles, and edit their details.'
-                        ],
-                        '(No student data found yet — please add students to see them listed here.)'
-                    );
-                } else {
-                    const headers = ['Name', 'Email', 'Program', 'Year', 'Contact']; 
-                    const columns = ['name', 'email', 'programme', 'year', 'contact']; 
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg', handlerName: 'editStudentModal' },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'deleteStudent' }
-                    ];
-                    container.innerHTML = createTableHtml('studentsTable', headers, students, columns, actions);
-                }
-            } catch (error) {
-                console.error('Error fetching students:', error);
-                container.innerHTML = `<p style="color:red;">Unable to load students: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function addStudentModal() {
-            showCustomModal('Add New Student', `
-                <input type="text" id="addStudentName" placeholder="Full Name" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="email" id="addStudentEmail" placeholder="Email (used as ID)" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="text" id="addStudentProgram" placeholder="Program" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="number" id="addStudentYear" placeholder="Year" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="text" id="addStudentContact" placeholder="Contact" class="w-full p-2 mb-2 border rounded-md" />
-            `, true, async () => {
-                const name = document.getElementById('addStudentName').value;
-                const email = document.getElementById('addStudentEmail').value;
-                const program = document.getElementById('addStudentProgram').value;
-                const year = document.getElementById('addStudentYear').value;
-                const contact = document.getElementById('addStudentContact').value;
-
-                if (!name || !email || !program || !year || !contact) {
-                    showCustomModal('Error', 'All fields are required.', false);
-                    return;
-                }
-                await addStudent({ name, email: email.toLowerCase(), programme: program, year: parseInt(year), contact, createdAt: serverTimestamp() });
-            });
-        }
-        
-        async function addStudent(studentData) {
-            showLoading('Adding student...');
-            try {
-                await setDoc(doc(db, 'students', studentData.email), studentData);
-                showCustomModal('Success', 'Student added successfully.', false);
-                fetchStudents();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to add student: ' + error.message, false);
-                console.error("Error adding student:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function editStudentModal(uid) {
-            showLoading('Loading student details...');
-            getDoc(doc(db, 'students', uid)).then(studentSnap => {
-                if (studentSnap.exists()) {
-                    const student = { uid: studentSnap.id, ...studentSnap.data() };
-                    showCustomModal('Edit Student', `
-                        <input type="text" id="editStudentName" placeholder="Full Name" class="w-full p-2 mb-2 border rounded-md" value="${student.name || ''}" />
-                        <input type="email" id="editStudentEmail" placeholder="Email" class="w-full p-2 mb-2 border rounded-md" value="${student.email || ''}" disabled />
-                        <input type="text" id="editStudentProgram" placeholder="Program" class="w-full p-2 mb-2 border rounded-md" value="${student.programme || ''}" />
-                        <input type="number" id="editStudentYear" placeholder="Year" class="w-full p-2 mb-2 border rounded-md" value="${student.year || ''}" />
-                        <input type="text" id="editStudentContact" placeholder="Contact" class="w-full p-2 mb-2 border rounded-md" value="${student.contact || ''}" />
-                    `, true, async () => {
-                        const name = document.getElementById('editStudentName').value;
-                        const program = document.getElementById('editStudentProgram').value;
-                        const year = document.getElementById('editStudentYear').value;
-                        const contact = document.getElementById('editStudentContact').value;
-
-                        if (!name || !program || !year || !contact) {
-                            showCustomModal('Error', 'All fields are required.', false);
-                            return;
-                        }
-                        await updateStudent(uid, { name, programme: program, year: parseInt(year), contact });
-                    });
-                } else {
-                    showCustomModal('Error', 'Student not found.', false);
-                }
-            }).catch(error => {
-                showCustomModal('Error', 'Failed to load student for editing: ' + error.message, false);
-                console.error("Error fetching student for edit:", error);
-            }).finally(() => {
-                hideLoading();
-            });
-        }
-        
-        async function updateStudent(uid, studentData) {
-            showLoading('Updating student...');
-            try {
-                await updateDoc(doc(db, 'students', uid), studentData);
-                showCustomModal('Success', 'Student updated successfully.', false);
-                fetchStudents();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to update student: ' + error.message, false);
-                console.error("Error updating student:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        async function deleteStudent(uid) {
-            showCustomModal('Confirm Deletion', 'Are you sure you want to delete this student record? This action cannot be undone.', true, async () => {
-                showLoading('Deleting student...');
-                try {
-                    await deleteDoc(doc(db, 'students', uid));
-                    showCustomModal('Success', 'Student deleted successfully.', false);
-                    fetchStudents();
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to delete student: ' + error.message, false);
-                    console.error("Error deleting student:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-        document.getElementById('studentSearch').addEventListener('input', async (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const container = document.querySelector('#studentsSection .data-container');
-            showLoading('Searching students...');
-            try {
-                const studentsRef = collection(db, 'students');
-                const snapshot = await getDocs(studentsRef);
-                const allStudents = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
-                const filteredStudents = allStudents.filter(student => 
-                    (student.name && student.name.toLowerCase().includes(searchTerm)) ||
-                    (student.email && student.email.toLowerCase().includes(searchTerm)) ||
-                    (student.programme && student.programme.toLowerCase().includes(searchTerm)) ||
-                    (student.contact && student.contact.toLowerCase().includes(searchTerm))
-                );
-
-                if (filteredStudents.length === 0 && searchTerm === '') {
-                     container.innerHTML = getNoDataHtml(
-                        '👨‍🎓 Students Management',
-                        'fas fa-users',
-                        [
-                            'Manage and view all registered students here.',
-                            'You can search for students, view their profiles, and edit their details.'
-                        ],
-                        '(No student data found yet — please add students to see them listed here.)'
-                    );
-                } else if (filteredStudents.length === 0) {
-                    container.innerHTML = `<div class="no-data-message"><h3 class="text-xl font-bold mb-2">No Students Found</h3><p>No students match your search criteria.</p></div>`;
-                }
-                else {
-                    const headers = ['Name', 'Email', 'Program', 'Year', 'Contact'];
-                    const columns = ['name', 'email', 'programme', 'year', 'contact'];
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg', handlerName: 'editStudentModal' },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'deleteStudent' }
-                    ];
-                    container.innerHTML = createTableHtml('studentsTable', headers, filteredStudents, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error during student search:", error);
-                container.innerHTML = `<p style="color:red;">Error searching students: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        });
-
-
-        // --- Manage Courses ---
-        async function fetchCourses() {
-            const container = document.querySelector('#coursesSection .data-container');
-            showLoading('Fetching course records...');
-            try {
-                const coursesRef = collection(db, 'courses');
-                const snapshot = await getDocs(coursesRef);
-                const courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                if (courses.length === 0) {
-                    container.innerHTML = getNoDataHtml(
-                        '📚 Courses Management',
-                        'fas fa-book',
-                        [
-                            'Here you can manage all available courses.',
-                            'Add new courses, edit existing ones, or remove outdated ones.'
-                        ],
-                        '(No course data found yet — please add courses to see them listed here.)'
-                    );
-                } else {
-                    const headers = ['Code', 'Name', 'Credits', 'Lecturer', 'Schedule']; 
-                    const columns = ['code', 'title', 'credits', 'lecturer', 'schedule']; 
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg', handlerName: 'editCourseModal' },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'deleteCourse' }
-                    ];
-                    container.innerHTML = createTableHtml('coursesTable', headers, courses, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error fetching courses:", error);
-                container.innerHTML = `<p style="color:red;">Unable to load courses: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function addCourseModal() {
-            showCustomModal('Add New Course', `
-                <input type="text" id="addCourseCode" placeholder="Course Code (e.g., CSC101)" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="text" id="addCourseName" placeholder="Course Name" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="number" id="addCourseCredits" placeholder="Credits" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="text" id="addCourseLecturer" placeholder="Lecturer" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="text" id="addCourseSchedule" placeholder="Schedule (e.g., Mon 10-12)" class="w-full p-2 mb-2 border rounded-md" />
-            `, true, async () => {
-                const courseCode = document.getElementById('addCourseCode').value;
-                const courseName = document.getElementById('addCourseName').value;
-                const credits = document.getElementById('addCourseCredits').value;
-                const lecturer = document.getElementById('addCourseLecturer').value;
-                const schedule = document.getElementById('addCourseSchedule').value;
-
-                if (!courseCode || !courseName || !credits || !lecturer || !schedule) {
-                    showCustomModal('Error', 'All fields are required.', false);
-                    return;
-                }
-                await addCourse({ code: courseCode.toUpperCase(), title: courseName, credits: parseInt(credits), lecturer, schedule, createdAt: serverTimestamp() });
-            });
-        }
-
-        async function addCourse(courseData) {
-            showLoading('Adding course...');
-            try {
-                await setDoc(doc(db, 'courses', courseData.code), courseData); 
-                showCustomModal('Success', 'Course added successfully.', false);
-                fetchCourses();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to add course: ' + error.message, false);
-                console.error("Error adding course:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function editCourseModal(id) {
-            showLoading('Loading course details...');
-            getDoc(doc(db, 'courses', id)).then(courseSnap => {
-                if (courseSnap.exists()) {
-                    const course = { id: courseSnap.id, ...courseSnap.data() };
-                    showCustomModal('Edit Course', `
-                        <input type="text" id="editCourseCode" placeholder="Course Code" class="w-full p-2 mb-2 border rounded-md" value="${course.code || ''}" disabled />
-                        <input type="text" id="editCourseName" placeholder="Course Name" class="w-full p-2 mb-2 border rounded-md" value="${course.title || ''}" />
-                        <input type="number" id="editCourseCredits" placeholder="Credits" class="w-full p-2 mb-2 border rounded-md" value="${course.credits || ''}" />
-                        <input type="text" id="editCourseLecturer" placeholder="Lecturer" class="w-full p-2 mb-2 border rounded-md" value="${course.lecturer || ''}" />
-                        <input type="text" id="editCourseSchedule" placeholder="Schedule" class="w-full p-2 mb-2 border rounded-md" value="${course.schedule || ''}" />
-                    `, true, async () => {
-                        const courseName = document.getElementById('editCourseName').value;
-                        const credits = document.getElementById('editCourseCredits').value;
-                        const lecturer = document.getElementById('editCourseLecturer').value;
-                        const schedule = document.getElementById('editCourseSchedule').value;
-
-                        if (!courseName || !credits || !lecturer || !schedule) {
-                            showCustomModal('Error', 'All fields are required.', false);
-                            return;
-                        }
-                        await updateCourse(id, { title: courseName, credits: parseInt(credits), lecturer, schedule });
-                    });
-                } else {
-                    showCustomModal('Error', 'Course not found.', false);
-                }
-            }).catch(error => {
-                showCustomModal('Error', 'Failed to load course for editing: ' + error.message, false);
-                console.error("Error fetching course for edit:", error);
-            }).finally(() => {
-                hideLoading();
-            });
-        }
-
-        async function updateCourse(id, courseData) {
-            showLoading('Updating course...');
-            try {
-                await updateDoc(doc(db, 'courses', id), courseData);
-                showCustomModal('Success', 'Course updated successfully.', false);
-                fetchCourses();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to update course: ' + error.message, false);
-                console.error("Error updating course:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function deleteCourse(id) {
-            showCustomModal('Confirm Deletion', 'Are you sure you want to delete this course record? This action cannot be undone.', true, async () => {
-                showLoading('Deleting course...');
-                try {
-                    await deleteDoc(doc(db, 'courses', id));
-                    showCustomModal('Success', 'Course deleted successfully.', false);
-                    fetchCourses();
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to delete course: ' + error.message, false);
-                    console.error("Error deleting course:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-        document.getElementById('courseSearch').addEventListener('input', async (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const container = document.querySelector('#coursesSection .data-container');
-            showLoading('Searching courses...');
-            try {
-                const coursesRef = collection(db, 'courses');
-                const snapshot = await getDocs(coursesRef);
-                const allCourses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                const filteredCourses = allCourses.filter(course => 
-                    (course.code && course.code.toLowerCase().includes(searchTerm)) ||
-                    (course.title && course.title.toLowerCase().includes(searchTerm)) ||
-                    (course.lecturer && course.lecturer.toLowerCase().includes(searchTerm))
-                );
-
-                if (filteredCourses.length === 0 && searchTerm === '') {
-                    container.innerHTML = getNoDataHtml(
-                        '📚 Courses Management',
-                        'fas fa-book',
-                        [
-                            'Here you can manage all available courses.',
-                            'Add new courses, edit existing ones, or remove outdated ones.'
-                        ],
-                        '(No course data found yet — please add courses to see them listed here.)'
-                    );
-                } else if (filteredCourses.length === 0) {
-                     container.innerHTML = `<div class="no-data-message"><h3 class="text-xl font-bold mb-2">No Courses Found</h3><p>No courses match your search criteria.</p></div>`;
-                } else {
-                    const headers = ['Code', 'Name', 'Credits', 'Lecturer', 'Schedule'];
-                    const columns = ['code', 'title', 'credits', 'lecturer', 'schedule'];
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg', handlerName: 'editCourseModal' },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'deleteCourse' }
-                    ];
-                    container.innerHTML = createTableHtml('coursesTable', headers, filteredCourses, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error during course search:", error);
-                container.innerHTML = `<p style="color:red;">Error searching courses: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        });
-
-        // --- Manage Fees ---
-        let currentFeesStudentUid = null;
-
-        async function searchStudentForFees() {
-            const email = document.getElementById('feesSearch').value.toLowerCase();
-            const container = document.querySelector('#feesSection .data-container');
-            if (!email) {
-                showCustomModal('Error', 'Please enter a student email to search.', false);
-                container.innerHTML = getNoDataHtml(
-                    '💰 Fees Management',
-                    'fas fa-money-bill-wave',
-                    [
-                        'Search and update student fees here.',
-                        'Track payments and balances for each student.'
-                    ],
-                    '(No fee data found — please record fee transactions to view them here.)'
-                );
-                document.getElementById('feesContent').classList.add('hidden');
-                return;
-            }
-            showLoading(`Searching for ${email}'s fees...`);
-            try {
-                const studentsRef = collection(db, 'students');
-                const studentQuerySnapshot = await getDocs(query(studentsRef, where('email', '==', email)));
-
-                if (studentQuerySnapshot.empty) {
-                    showCustomModal('Not Found', `No student found with email: ${email}`, false);
-                    container.innerHTML = `<div class="no-data-message"><h3 class="text-xl font-bold mb-2">Student Not Found</h3><p>No student found with email: ${email}.</p></div>`;
-                    document.getElementById('feesContent').classList.add('hidden');
-                    return;
-                }
-
-                const studentDoc = studentQuerySnapshot.docs[0];
-                const studentData = studentDoc.data();
-                currentFeesStudentUid = studentDoc.id; 
-                document.getElementById('studentNameFees').innerText = studentData.name || email;
-
-                const feesDoc = await getDoc(doc(db, 'fees', currentFeesStudentUid));
-                let feesHistory = [];
-                let totalFeesCharged = 0; 
-
-                if (feesDoc.exists()) {
-                    const data = feesDoc.data();
-                    feesHistory = data.payments || [];
-                    totalFeesCharged = data.totalFees || 0;
-                } else {
-                    await setDoc(doc(db, 'fees', currentFeesStudentUid), {
-                        studentId: currentFeesStudentUid,
-                        totalFees: 0,
-                        balance: 0,
-                        payments: []
-                    });
-                }
-                
-                const displayWithBalance = [];
-                feesHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
-
-                let runningBalance = totalFeesCharged; 
-
-                if (totalFeesCharged > 0 && feesHistory.length === 0) {
-                    displayWithBalance.push({ date: new Date().toISOString(), description: "Initial Total Fees Due", amount: totalFeesCharged, balance: totalFeesCharged, type: 'charge' });
-                }
-                
-                feesHistory.forEach(payment => {
-                    if (payment.type === 'charge') {
-                        runningBalance += payment.amount;
-                    } else if (payment.type === 'payment') {
-                        runningBalance -= payment.amount;
-                    }
-                    displayWithBalance.push({
-                        date: payment.date,
-                        description: payment.description,
-                        amount: payment.amount,
-                        balance: runningBalance 
-                    });
-                });
-
-                const headers = ['Date', 'Description', 'Amount', 'Balance'];
-                const columns = ['date', 'description', 'amount', 'balance'];
-                document.getElementById('feesTable').innerHTML = createTableHtml('feesTable', headers, displayWithBalance, columns, null);
-                document.getElementById('feesContent').classList.remove('hidden'); 
-                container.innerHTML = ''; 
-
-            } catch (error) {
-                showCustomModal('Error', 'Failed to search fees: ' + error.message, false);
-                console.error("Error searching fees:", error);
-                container.innerHTML = `<p style="color:red;">Error searching fees: ${error.message}</p>`;
-                document.getElementById('feesContent').classList.add('hidden');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function addFeeTransactionModal() {
-            if (!currentFeesStudentUid) {
-                showCustomModal('Error', 'Please search for a student first.', false);
-                return;
-            }
-            showCustomModal('Add Fee Transaction', `
-                <input type="number" id="transactionAmount" placeholder="Amount (GHS)" class="w-full p-2 mb-2 border rounded-md" step="0.01" />
-                <input type="text" id="transactionDescription" placeholder="Description (e.g., Tuition Payment)" class="w-full p-2 mb-2 border rounded-md" />
-                <select id="transactionType" class="w-full p-2 mb-2 border rounded-md">
-                    <option value="payment">Payment</option>
-                    <option value="charge">Charge</option>
-                </select>
-            `, true, async () => {
-                const amount = parseFloat(document.getElementById('transactionAmount').value);
-                const description = document.getElementById('transactionDescription').value;
-                const type = document.getElementById('transactionType').value;
-
-                if (isNaN(amount) || amount <= 0 || !description) {
-                    showCustomModal('Error', 'Please enter a valid amount and description.', false);
-                    return;
-                }
-                await addFeeTransaction(currentFeesStudentUid, amount, description, type);
-            });
-        }
-
-        async function addFeeTransaction(uid, amount, description, type) {
-            showLoading('Updating fee record...');
-            try {
-                const feesDocRef = doc(db, 'fees', uid);
-                const feesSnap = await getDoc(feesDocRef);
-                let currentFees = feesSnap.exists() ? feesSnap.data() : { studentId: uid, totalFees: 0, balance: 0, payments: [] };
-
-                const newTransaction = {
-                    date: new Date().toISOString(),
-                    description: description,
-                    amount: amount,
-                    type: type
-                };
-
-                currentFees.payments.push(newTransaction);
-                
-                let calculatedTotalFees = 0;
-                let calculatedBalance = 0;
-                currentFees.payments.forEach(p => {
-                    if (p.type === 'charge') {
-                        calculatedTotalFees += p.amount;
-                    }
-                    calculatedBalance += (p.type === 'charge' ? p.amount : -p.amount);
-                });
-                currentFees.totalFees = calculatedTotalFees;
-                currentFees.balance = calculatedBalance;
-                
-                await setDoc(feesDocRef, currentFees, { merge: true });
-                showCustomModal('Success', 'Fee record updated successfully.', false);
-                searchStudentForFees(); 
-            } catch (error) {
-                showCustomModal('Error', 'Failed to update fee record: ' + error.message, false);
-                console.error("Error adding fee transaction:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // --- Manage Grades ---
-        let currentGradesStudentUid = null;
-
-        async function searchStudentForGrades() {
-            const email = document.getElementById('gradesSearch').value.toLowerCase();
-            const container = document.querySelector('#gradesSection .data-container');
-            if (!email) {
-                showCustomModal('Error', 'Please enter a student email to search.', false);
-                container.innerHTML = getNoDataHtml(
-                    '🏆 Grades Management',
-                    'fas fa-award',
-                    [
-                        'View and manage student grades.',
-                        'Update marks, generate transcripts, and track performance.'
-                    ],
-                    '(No grade records found yet — please upload grades to view them here.)'
-                );
-                document.getElementById('gradesContent').classList.add('hidden');
-                return;
-            }
-            showLoading(`Searching for ${email}'s grades...`);
-            try {
-                const studentsRef = collection(db, 'students');
-                const studentQuerySnapshot = await getDocs(query(studentsRef, where('email', '==', email)));
-
-                if (studentQuerySnapshot.empty) {
-                    showCustomModal('Not Found', `No student found with email: ${email}`, false);
-                    container.innerHTML = `<div class="no-data-message"><h3 class="text-xl font-bold mb-2">Student Not Found</h3><p>No student found with email: ${email}.</p></div>`;
-                    document.getElementById('gradesContent').classList.add('hidden');
-                    return;
-                }
-
-                const studentDoc = studentQuerySnapshot.docs[0];
-                const studentData = studentDoc.data();
-                currentGradesStudentUid = studentDoc.id;
-                document.getElementById('studentNameGrades').innerText = studentData.name || email;
-
-                const gradesQuerySnapshot = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid)));
-                const grades = gradesQuerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                const headers = ['Course Code', 'Course Name', 'Grade'];
-                const columns = ['courseCode', 'courseName', 'grade'];
-                document.getElementById('gradesTable').innerHTML = createTableHtml('gradesTable', headers, grades, columns, null);
-                document.getElementById('gradesContent').classList.remove('hidden');
-                container.innerHTML = '';
-
-            } catch (error) {
-                showCustomModal('Error', 'Failed to search grades: ' + error.message, false);
-                console.error("Error searching grades:", error);
-                container.innerHTML = `<p style="color:red;">Error searching grades: ${error.message}</p>`;
-                document.getElementById('gradesContent').classList.add('hidden');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function editGradesModal() {
-            if (!currentGradesStudentUid) {
-                showCustomModal('Error', 'Please search for a student first.', false);
-                return;
-            }
-            showLoading('Fetching current grades for editing...');
-            try {
-                const gradesQuerySnapshot = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid)));
-                const grades = gradesQuerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                let gradeInputsHtml = grades.map(grade => `
-                    <div class="flex items-center mb-2">
-                        <label class="w-1/3">${grade.courseCode} - ${grade.courseName}:</label>
-                        <input type="text" id="grade-${grade.id}" class="w-2/3 p-2 border rounded-md" value="${grade.grade || ''}" placeholder="Enter Grade (A, B, C, D, F)" />
-                    </div>
-                `).join('');
-
-                if (grades.length === 0) {
-                    gradeInputsHtml = '<p class="text-center text-gray-500">No grades to edit for this student.</p>';
-                }
-
-                showCustomModal('Edit Grades', `
-                    <div id="grade-edit-form-content" class="max-h-60 overflow-y-auto p-2">
-                        ${gradeInputsHtml}
-                    </div>
-                `, true, async () => {
-                    const updatedGrades = [];
-                    grades.forEach(grade => {
-                        const inputElement = document.getElementById(`grade-${grade.id}`);
-                        if (inputElement) {
-                            updatedGrades.push({
-                                id: grade.id,
-                                grade: inputElement.value.toUpperCase().trim()
-                            });
-                        }
-                    });
-                    await updateStudentGrades(updatedGrades);
-                });
-            } catch (error) {
-                showCustomModal('Error', 'Failed to load grades for editing: ' + error.message, false);
-                console.error("Error editing grades modal:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function updateStudentGrades(gradesToUpdate) {
-            showLoading('Updating grades...');
-            try {
-                const batch = writeBatch(db);
-                gradesToUpdate.forEach(grade => {
-                    const gradeRef = doc(db, 'grades', grade.id);
-                    batch.update(gradeRef, { grade: grade.grade });
-                });
-                await batch.commit();
-                showCustomModal('Success', 'Grades updated successfully.', false);
-                searchStudentForGrades(); 
-            } catch (error) {
-                showCustomModal('Error', 'Failed to update grades: ' + error.message, false);
-                console.error("Error updating student grades:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // --- Hostel Management ---
-        async function fetchHostels() {
-            const container = document.querySelector('#hostelsSection .data-container');
-            showLoading('Fetching hostel records...');
-            try {
-                const hostelsRef = collection(db, 'hostels');
-                const snapshot = await getDocs(hostelsRef);
-                const hostels = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                if (hostels.length === 0) {
-                    container.innerHTML = getNoDataHtml(
-                        '🏠 Hostel Management',
-                        'fas fa-building',
-                        [
-                            'Manage hostel rooms and allocations here.',
-                            'You can add new hostels, update availability, and view current occupants.'
-                        ],
-                        '(No hostel data found yet — please add hostels to see them listed here.)'
-                    );
-                } else {
-                    const headers = ['Name', 'Capacity', 'Available Rooms'];
-                    const columns = ['name', 'capacity', 'availableRooms'];
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg', handlerName: 'editHostelModal' },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'deleteHostel' }
-                    ];
-                    container.innerHTML = createTableHtml('hostelsTable', headers, hostels, columns, actions);
-                }
-                updateToggleHostelAppButton();
-            } catch (error) {
-                console.error("Error fetching hostels:", error);
-                container.innerHTML = `<p style="color:red;">Unable to load hostels: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function addHostelModal() {
-            showCustomModal('Add New Hostel', `
-                <input type="text" id="addHostelName" placeholder="Hostel Name" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="number" id="addHostelCapacity" placeholder="Total Capacity" class="w-full p-2 mb-2 border rounded-md" />
-                <input type="number" id="addHostelAvailable" placeholder="Available Rooms" class="w-full p-2 mb-2 border rounded-md" />
-            `, true, async () => {
-                const name = document.getElementById('addHostelName').value;
-                const capacity = parseInt(document.getElementById('addHostelCapacity').value);
-                const available = parseInt(document.getElementById('addHostelAvailable').value);
-
-                if (!name || isNaN(capacity) || isNaN(available) || capacity < 0 || available < 0) {
-                    showCustomModal('Error', 'Please enter valid hostel details.', false);
-                    return;
-                }
-                await addHostel({ name, capacity, availableRooms: available, createdAt: serverTimestamp() });
-            });
-        }
-
-        async function addHostel(hostelData) {
-            showLoading('Adding hostel...');
-            try {
-                await setDoc(doc(db, 'hostels', hostelData.name), hostelData); 
-                showCustomModal('Success', 'Hostel added successfully.', false);
-                fetchHostels();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to add hostel: ' + error.message, false);
-                console.error("Error adding hostel:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function editHostelModal(id) {
-            showLoading('Loading hostel details...');
-            getDoc(doc(db, 'hostels', id)).then(hostelSnap => {
-                if (hostelSnap.exists()) {
-                    const hostel = { id: hostelSnap.id, ...hostelSnap.data() };
-                    showCustomModal('Edit Hostel', `
-                        <input type="text" id="editHostelName" placeholder="Hostel Name" class="w-full p-2 mb-2 border rounded-md" value="${hostel.name || ''}" />
-                        <input type="number" id="editHostelCapacity" placeholder="Total Capacity" class="w-full p-2 mb-2 border rounded-md" value="${hostel.capacity || ''}" />
-                        <input type="number" id="editHostelAvailable" placeholder="Available Rooms" class="w-full p-2 mb-2 border rounded-md" value="${hostel.availableRooms || ''}" />
-                    `, true, async () => {
-                        const name = document.getElementById('editHostelName').value;
-                        const capacity = parseInt(document.getElementById('editHostelCapacity').value);
-                        const available = parseInt(document.getElementById('editHostelAvailable').value);
-
-                        if (!name || isNaN(capacity) || isNaN(available) || capacity < 0 || available < 0) {
-                            showCustomModal('Error', 'Please enter valid hostel details.', false);
-                            return;
-                        }
-                        await updateHostel(id, { name, capacity, availableRooms: available });
-                    });
-                } else {
-                    showCustomModal('Error', 'Hostel not found.', false);
-                }
-            }).catch(error => {
-                showCustomModal('Error', 'Failed to load hostel for editing: ' + error.message, false);
-                console.error("Error fetching hostel for edit:", error);
-            }).finally(() => {
-                hideLoading();
-            });
-        }
-
-        async function updateHostel(id, hostelData) {
-            showLoading('Updating hostel...');
-            try {
-                await updateDoc(doc(db, 'hostels', id), hostelData);
-                showCustomModal('Success', 'Hostel updated successfully.', false);
-                fetchHostels();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to update hostel: ' + error.message, false);
-                console.error("Error updating hostel:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function deleteHostel(id) {
-            showCustomModal('Confirm Deletion', 'Are you sure you want to delete this hostel record? This action cannot be undone.', true, async () => {
-                showLoading('Deleting hostel...');
-                try {
-                    await deleteDoc(doc(db, 'hostels', id));
-                    showCustomModal('Success', 'Hostel deleted successfully.', false);
-                    fetchHostels();
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to delete hostel: ' + error.message, false);
-                    console.error("Error deleting hostel:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-        async function toggleHostelApplications() {
-            showLoading('Toggling hostel applications...');
-            try {
-                const settingsDocRef = doc(db, 'settings', 'hostelApplications');
-                const settingsSnap = await getDoc(settingsDocRef);
-                let currentStatus = true; 
-                if (settingsSnap.exists()) {
-                    currentStatus = settingsSnap.data().isOpen;
-                }
-
-                const newStatus = !currentStatus;
-                await setDoc(settingsDocRef, { isOpen: newStatus }, { merge: true });
-                showCustomModal('Success', `Hostel applications are now ${newStatus ? 'OPEN' : 'CLOSED'}.`, false);
-                updateToggleHostelAppButton();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to toggle hostel applications: ' + error.message, false);
-                console.error("Error toggling hostel applications:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function updateToggleHostelAppButton() {
-            const btn = document.getElementById('toggleHostelAppBtn');
-            if (btn) {
-                try {
-                    const settingsDocRef = doc(db, 'settings', 'hostelApplications');
-                    const settingsSnap = await getDoc(settingsDocRef);
-                    let isOpen = false;
-                    if (settingsSnap.exists()) {
-                        isOpen = settingsSnap.data().isOpen;
-                    }
-                    btn.innerText = `Toggle Applications (${isOpen ? 'OPEN' : 'CLOSED'})`;
-                    btn.classList.remove('bg-yellow-600', 'bg-green-600', 'bg-red-600');
-                    btn.classList.add(isOpen ? 'bg-green-600' : 'bg-red-600');
-                } catch (error) {
-                    console.error("Error updating toggle button status:", error);
-                }
-            }
-        }
-
-
-        // --- Announcements ---
-        async function fetchAnnouncements() {
-            const container = document.querySelector('#announcementsSection .data-container');
-            showLoading('Fetching announcements...');
-            try {
-                const announcementsRef = collection(db, 'announcements');
-                const snapshot = await getDocs(query(announcementsRef, orderBy('createdAt', 'desc'))); 
-                const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                const mappedAnnouncements = announcements.map(ann => ({
-                    ...ann,
-                    content: ann.body || ann.message || 'No content' 
-                }));
-
-                if (mappedAnnouncements.length === 0) {
-                    container.innerHTML = getNoDataHtml(
-                        '📢 Announcements',
-                        'fas fa-bullhorn',
-                        [
-                            'Post important announcements for students and staff here.',
-                            'You can add, edit, and remove announcements anytime.'
-                        ],
-                        '(No announcements found — please add announcements to view them here.)'
-                    );
-                } else {
-                    const headers = ['Date', 'Title', 'Content']; 
-                    const columns = ['createdAt', 'title', 'content']; 
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg', handlerName: 'editAnnouncementModal' },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'deleteAnnouncement' }
-                    ];
-                    container.innerHTML = createTableHtml('announcementsTable', headers, mappedAnnouncements, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error fetching announcements:", error);
-                container.innerHTML = `<p style="color:red;">Unable to load announcements: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function addAnnouncementModal() {
-            showCustomModal('Add New Announcement', `
-                <input type="text" id="addAnnounceTitle" placeholder="Title" class="w-full p-2 mb-2 border rounded-md" />
-                <textarea id="addAnnounceMessage" placeholder="Announcement Content" class="w-full p-2 mb-2 border rounded-md h-24"></textarea>
-            `, true, async () => {
-                const title = document.getElementById('addAnnounceTitle').value;
-                const message = document.getElementById('addAnnounceMessage').value;
-
-                if (!title || !message) {
-                    showCustomModal('Error', 'Title and message are required.', false);
-                    return;
-                }
-                await addAnnouncement({ title, body: message, createdAt: serverTimestamp() });
-            });
-        }
-
-        async function addAnnouncement(announcementData) {
-            showLoading('Adding announcement...');
-            try {
-                await addDoc(collection(db, 'announcements'), announcementData); 
-                showCustomModal('Success', 'Announcement added successfully.', false);
-                fetchAnnouncements();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to add announcement: ' + error.message, false);
-                console.error("Error adding announcement:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function editAnnouncementModal(id) {
-            showLoading('Loading announcement details...');
-            getDoc(doc(db, 'announcements', id)).then(annSnap => {
-                if (annSnap.exists()) {
-                    const announcement = { id: annSnap.id, ...annSnap.data() };
-                    showCustomModal('Edit Announcement', `
-                        <input type="text" id="editAnnounceTitle" placeholder="Title" class="w-full p-2 mb-2 border rounded-md" value="${announcement.title || ''}" />
-                        <textarea id="editAnnounceMessage" placeholder="Announcement Content" class="w-full p-2 mb-2 border rounded-md h-24">${announcement.body || announcement.content || ''}</textarea>
-                    `, true, async () => {
-                        const title = document.getElementById('editAnnounceTitle').value;
-                        const message = document.getElementById('editAnnounceMessage').value;
-
-                        if (!title || !message) {
-                            showCustomModal('Error', 'Title and message are required.', false);
-                            return;
-                        }
-                        await updateAnnouncement(id, { title, body: message }); 
-                    });
-                } else {
-                    showCustomModal('Error', 'Announcement not found.', false);
-                }
-            }).catch(error => {
-                showCustomModal('Error', 'Failed to load announcement for editing: ' + error.message, false);
-                console.error("Error fetching announcement for edit:", error);
-            }).finally(() => {
-                hideLoading();
-            });
-        }
-
-        async function updateAnnouncement(id, announcementData) {
-            showLoading('Updating announcement...');
-            try {
-                await updateDoc(doc(db, 'announcements', id), announcementData);
-                showCustomModal('Success', 'Announcement updated successfully.', false);
-                fetchAnnouncements();
-            } catch (error) {
-                showCustomModal('Error', 'Failed to update announcement: ' + error.message, false);
-                console.error("Error updating announcement:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function deleteAnnouncement(id) {
-            showCustomModal('Confirm Deletion', 'Are you sure you want to delete this announcement? This action cannot be undone.', true, async () => {
-                showLoading('Deleting announcement...');
-                try {
-                    await deleteDoc(doc(db, 'announcements', id));
-                    showCustomModal('Success', 'Announcement deleted successfully.', false);
-                    fetchAnnouncements();
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to delete announcement: ' + error.message, false);
-                    console.error("Error deleting announcement:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-
-        // --- Graduation Requests ---
-        async function fetchGraduationRequests() {
-            const container = document.querySelector('#graduationSection .data-container');
-            showLoading('Fetching graduation requests...');
-            try {
-                const requestsRef = collection(db, 'graduationRequests');
-                const snapshot = await getDocs(requestsRef);
-                const requests = [];
-
-                for (const d of snapshot.docs) {
-                    const data = d.data();
-                    if (data.studentId) {
-                        const studentDoc = await getDoc(doc(db, 'students', data.studentId));
-                        const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
-                        const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
-                        requests.push({ id: d.id, studentName, studentEmail, ...data });
-                    } else {
-                        requests.push({ id: d.id, studentName: 'Missing Student ID', studentEmail: 'N/A', ...data });
-                    }
-                }
-
-                if (requests.length === 0) {
-                    container.innerHTML = getNoDataHtml(
-                        '🎓 Graduation Requests',
-                        'fas fa-graduation-cap',
-                        [
-                            'Manage all graduation requests from students.',
-                            'Approve, reject, or review pending applications.'
-                        ],
-                        '(No graduation requests found yet — pending requests will appear here.)'
-                    );
-                } else {
-                    const headers = ['Student Name', 'Email', 'Date', 'Status'];
-                    const columns = ['studentName', 'studentEmail', 'date', 'status'];
-                    const actions = [
-                        { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handlerName: 'updateGraduationRequestStatus', param2: 'Approved', condition: (req) => req.status !== 'Approved' && req.status !== 'Denied' },
-                        { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'updateGraduationRequestStatus', param2: 'Denied', condition: (req) => req.status !== 'Approved' && req.status !== 'Denied' }
-                    ];
-                    container.innerHTML = createTableHtml('graduationRequestsTable', headers, requests, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error fetching graduation requests:", error);
-                container.innerHTML = `<p style="color:red;">Unable to load graduation requests: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function updateGraduationRequestStatus(id, status) {
-            showCustomModal('Confirm Action', `Are you sure you want to set this graduation request status to ${status}?`, true, async () => {
-                showLoading(`Updating request to ${status}...`);
-                try {
-                    await updateDoc(doc(db, 'graduationRequests', id), { status: status });
-                    showCustomModal('Success', `Graduation request ${status} successfully.`, false);
-                    fetchGraduationRequests();
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to update request: ' + error.message, false);
-                    console.error("Error updating graduation request status:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-        // --- Clearance Requests ---
-        async function fetchClearanceRequests() {
-            const container = document.querySelector('#clearanceSection .data-container');
-            showLoading('Fetching clearance requests...');
-            try {
-                const requestsRef = collection(db, 'clearanceRequests');
-                const snapshot = await getDocs(requestsRef);
-                const requests = [];
-
-                for (const d of snapshot.docs) {
-                    const data = d.data();
-                    if (data.studentId) {
-                        const studentDoc = await getDoc(doc(db, 'students', data.studentId));
-                        const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
-                        const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
-                        requests.push({ id: d.id, studentName, studentEmail, ...data });
-                    } else {
-                        requests.push({ id: d.id, studentName: 'Missing Student ID', studentEmail: 'N/A', ...data });
-                    }
-                }
-
-                if (requests.length === 0) {
-                    container.innerHTML = getNoDataHtml(
-                        '✅ Clearance Requests',
-                        'fas fa-check-circle',
-                        [
-                            'Manage clearance applications for students.',
-                            'Approve or reject requests and update clearance statuses.'
-                        ],
-                        '(No clearance requests found yet — pending requests will appear here.)'
-                    );
-                } else {
-                    const headers = ['Student Name', 'Email', 'Date', 'Status'];
-                    const columns = ['studentName', 'studentEmail', 'date', 'status'];
-                    const actions = [
-                        { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handlerName: 'updateClearanceRequestStatus', param2: 'Approved', condition: (req) => req.status !== 'Approved' && req.status !== 'Denied' },
-                        { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'updateClearanceRequestStatus', param2: 'Denied', condition: (req) => req.status !== 'Approved' && req.status !== 'Denied' }
-                    ];
-                    container.innerHTML = createTableHtml('clearanceRequestsTable', headers, requests, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error fetching clearance requests:", error);
-                container.innerHTML = `<p style="color:red;">Unable to load clearance requests: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function updateClearanceRequestStatus(id, status) {
-            showCustomModal('Confirm Action', `Are you sure you want to set this clearance request status to ${status}?`, true, async () => {
-                showLoading(`Updating request to ${status}...`);
-                try {
-                    await updateDoc(doc(db, 'clearanceRequests', id), { status: status });
-                    showCustomModal('Success', `Clearance request ${status} successfully.`, false);
-                    fetchClearanceRequests();
-                } catch (error) {
-                    showCustomModal('Error', 'Failed to update request: ' + error.message, false);
-                    console.error("Error updating clearance request status:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-        // --- Admin Management ---
-        async function fetchAdmins() {
-            const container = document.querySelector('#adminsSection .data-container');
-            showLoading('Fetching admin users...');
-            try {
-                const adminsRef = collection(db, 'admins');
-                const snapshot = await getDocs(adminsRef);
-                const admins = snapshot.docs.map(d => ({ id: d.id, email: d.data().email, isAdmin: d.data().isAdmin }));
-
-                const filteredAdmins = admins.filter(admin => auth.currentUser && admin.id !== auth.currentUser.uid);
-
-                if (filteredAdmins.length === 0) {
-                     container.innerHTML = getNoDataHtml(
-                        '🛡️ Admin Users',
-                        'fas fa-user-shield',
-                        [
-                            'View and manage administrator accounts.',
-                            'Add new admins, update permissions, or remove inactive admins.'
-                        ],
-                        '(No admin accounts found yet — please add admins to see them here.)'
-                    );
-                } else {
-                    const headers = ['Email', 'Status'];
-                    const columns = ['email', 'isAdmin'];
-                    const actions = [
-                        { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handlerName: 'removeAdmin', condition: (admin) => auth.currentUser && admin.id !== auth.currentUser.uid }
-                    ];
-                    container.innerHTML = createTableHtml('adminsTable', headers, filteredAdmins, columns, actions);
-                }
-            } catch (error) {
-                console.error("Error fetching admin users:", error);
-                container.innerHTML = `<p style="color:red;">Unable to load admin users: ${error.message}</p>`;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function addAdminModal() {
-            showCustomModal('Add New Admin', `
-                <input type="email" id="newAdminEmail" placeholder="Admin Email" class="w-full p-2 mb-2 border rounded-md" required />
-                <input type="password" id="newAdminPassword" placeholder="Temporary Password" class="w-full p-2 mb-2 border rounded-md" required />
-                <p class="text-sm text-gray-600">The new admin will use this temporary password to log in and should change it immediately.</p>
-            `, true, async () => {
-                const email = document.getElementById('newAdminEmail').value;
-                const password = document.getElementById('newAdminPassword').value;
-
-                if (!email || !password) {
-                    showCustomModal('Error', 'Please enter both email and a temporary password.', false);
-                    return;
-                }
-                if (password.length < 6) {
-                    showCustomModal('Error', 'Password must be at least 6 characters long.', false);
-                    return;
-                }
-                await addNewAdmin(email.toLowerCase(), password);
-            });
-        }
-
-        async function addNewAdmin(email, password) {
-            showLoading('Adding new admin...');
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const uid = userCredential.user.uid;
-
-                await setDoc(doc(db, 'admins', uid), {
-                    email: email, 
-                    isAdmin: true,
-                    createdAt: serverTimestamp() 
-                });
-                showCustomModal('Success', `${email} added as admin successfully. Their UID is: ${uid}`, false);
-                fetchAdmins();
-            } catch (error) {
-                let errorMessage = 'Failed to add admin: ' + error.message;
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'The email address is already in use by another account. You can log in with that account and mark it as admin.';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'The password is too weak. Please use a stronger password.';
-                }
-                showCustomModal('Error', errorMessage, false);
-                console.error("Error adding new admin:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function removeAdmin(uid) {
-            showCustomModal('Confirm Removal', `Are you sure you want to remove this admin? This action cannot be undone.`, true, async () => {
-                if (auth.currentUser && uid === auth.currentUser.uid) {
-                    showCustomModal('Error', 'You cannot remove yourself as an admin.', false);
-                    return;
-                }
-                showLoading('Removing admin...');
-                try {
-                    await deleteDoc(doc(db, 'admins', uid));
-                    showCustomModal('Success', `Admin removed successfully.`, false);
-                    fetchAdmins();
-                }
-                catch (error) {
-                    showCustomModal('Error', 'Failed to remove admin: ' + error.message, false);
-                    console.error("Error removing admin:", error);
-                } finally {
-                    hideLoading();
-                }
-            });
-        }
-
-        // --- Seed Demo Data ---
-        async function seedDemoData() {
-            showLoading('Seeding demo data...');
-            try {
-                const batch = writeBatch(db);
-
-                // Students
-                const student1Email = 'student1@example.com';
-                const student2Email = 'student2@example.com';
-                const student3Email = 'student3@example.com';
-
-                const student1Ref = doc(db, 'students', student1Email);
-                const student2Ref = doc(db, 'students', student2Email);
-                const student3Ref = doc(db, 'students', student3Email);
-
-                const [s1Snap, s2Snap, s3Snap] = await Promise.all([
-                    getDoc(student1Ref), getDoc(student2Ref), getDoc(student3Ref)
-                ]);
-
-                if (!s1Snap.exists()) batch.set(student1Ref, { name: 'Sarah Connor', email: student1Email, programme: 'Product Design', year: 3, contact: '111-222-3333', createdAt: serverTimestamp() });
-                if (!s2Snap.exists()) batch.set(student2Ref, { name: 'Kyle Reese', email: student2Email, programme: 'Game Design', year: 2, contact: '444-555-6666', createdAt: serverTimestamp() });
-                if (!s3Snap.exists()) batch.set(student3Ref, { name: 'John Doe', email: student3Email, programme: 'Fashion Design', year: 1, contact: '777-888-9999', createdAt: serverTimestamp() });
-
-
-                // Courses
-                const course1Code = 'PD101';
-                const course2Code = 'GD201';
-                const course3Code = 'FD301';
-
-                const course1Ref = doc(db, 'courses', course1Code);
-                const course2Ref = doc(db, 'courses', course2Code);
-                const course3Ref = doc(db, 'courses', course3Code);
-
-                const [c1Snap, c2Snap, c3Snap] = await Promise.all([
-                    getDoc(course1Ref), getDoc(course2Ref), getDoc(course3Ref)
-                ]);
-                if (!c1Snap.exists()) batch.set(course1Ref, { code: course1Code, title: 'Intro to Product Design', credits: 3, lecturer: 'Dr. A. Smith', schedule: 'Mon,Wed 10-12', createdAt: serverTimestamp() });
-                if (!c2Snap.exists()) batch.set(course2Ref, { code: course2Code, title: 'Advanced Game Mechanics', credits: 4, lecturer: 'Prof. B. Jones', schedule: 'Tue,Thu 14-16', createdAt: serverTimestamp() });
-                if (!c3Snap.exists()) batch.set(course3Ref, { code: course3Code, title: 'Textile Innovations', credits: 3, lecturer: 'Ms. C. Davis', schedule: 'Fri 09-12', createdAt: serverTimestamp() });
-
-
-                // Fees for student1@example.com (student1Email)
-                const fee1Ref = doc(db, 'fees', student1Email);
-                const fee1Snap = await getDoc(fee1Ref);
-                if (!fee1Snap.exists()) {
-                    batch.set(fee1Ref, {
-                        studentId: student1Email,
-                        totalFees: 5000,
-                        balance: 5000,
-                        payments: [
-                            { date: new Date().toISOString(), description: "Tuition Fee - Semester 1", amount: 5000, type: 'charge' }
-                        ],
-                        createdAt: serverTimestamp()
-                    });
-                }
-
-                // Grades for student1@example.com (student1Email)
-                const gradesForS1Q = query(collection(db, 'grades'), where('studentId', '==', student1Email), where('courseCode', '==', course1Code));
-                const gradesForS1Snap = await getDocs(gradesForS1Q);
-                if (gradesForS1Snap.empty) {
-                    batch.add(collection(db, 'grades'), { 
-                        studentId: student1Email,
-                        courseCode: course1Code,
-                        courseName: 'Intro to Product Design',
-                        grade: 'A',
-                        createdAt: serverTimestamp()
-                    });
-                }
-                const gradesForS1_2Q = query(collection(db, 'grades'), where('studentId', '==', student1Email), where('courseCode', '==', course2Code));
-                const gradesForS1_2Snap = await getDocs(gradesForS1_2Q);
-                if (gradesForS1_2Snap.empty) {
-                     batch.add(collection(db, 'grades'), { 
-                        studentId: student1Email,
-                        courseCode: course2Code,
-                        courseName: 'Advanced Game Mechanics',
-                        grade: 'B+',
-                        createdAt: serverTimestamp()
-                    });
-                }
-
-
-                // Hostels
-                const hostel1Ref = doc(db, 'hostels', 'Main Campus Hostel');
-                const hostel2Ref = doc(db, 'hostels', 'Off-Campus Annex');
-                const [h1Snap, h2Snap] = await Promise.all([
-                    getDoc(hostel1Ref), getDoc(hostel2Ref)
-                ]);
-                if (!h1Snap.exists()) batch.set(hostel1Ref, { name: 'Main Campus Hostel', capacity: 100, availableRooms: 75, createdAt: serverTimestamp() });
-                if (!h2Snap.exists()) batch.set(hostel2Ref, { name: 'Off-Campus Annex', capacity: 50, availableRooms: 20, createdAt: serverTimestamp() });
-
-
-                // Announcements
-                const ann1Snap = await getDocs(query(collection(db, 'announcements'), where('title', '==', 'Important Exam Dates')));
-                if (ann1Snap.empty) {
-                    batch.add(collection(db, 'announcements'), { title: 'Important Exam Dates', body: 'Final exams will be held from Dec 15-20. Check your portal for schedule.', createdAt: serverTimestamp() });
-                }
-                const ann2Snap = await getDocs(query(collection(db, 'announcements'), where('title', '==', 'Winter Break Schedule')));
-                if (ann2Snap.empty) {
-                    batch.add(collection(db, 'announcements'), { title: 'Winter Break Schedule', body: 'University will be closed from Dec 24 to Jan 2.', createdAt: serverTimestamp() });
-                }
-
-
-                // Graduation Requests (for student3Email - John Doe)
-                const gradReqSnap = await getDocs(query(collection(db, 'graduationRequests'), where('studentId', '==', student3Email)));
-                if (gradReqSnap.empty) {
-                    batch.add(collection(db, 'graduationRequests'), { studentId: student3Email, date: new Date().toISOString(), status: 'Pending', createdAt: serverTimestamp() });
-                }
-
-                // Clearance Requests (for student2Email - Kyle Reese)
-                const clearanceReqSnap = await getDocs(query(collection(db, 'clearanceRequests'), where('studentId', '==', student2Email)));
-                if (clearanceReqSnap.empty) {
-                    batch.add(collection(db, 'clearanceRequests'), { studentId: student2Email, date: new Date().toISOString(), status: 'Pending', createdAt: serverTimestamp() });
-                }
-
-                // Commit the batch
-                await batch.commit();
-
-                showCustomModal('Success', 'Demo data seeded successfully!', false);
-                await fetchDashboardCounts(); 
-                await Promise.all([
-                    fetchStudents(),
-                    fetchCourses(),
-                    fetchHostels(),
-                    fetchAnnouncements(),
-                    fetchGraduationRequests(),
-                    fetchClearanceRequests(),
-                    fetchAdmins()
-                ]);
-
-            } catch (err) {
-                showCustomModal('Error', 'Failed to seed demo data: ' + err.message, false);
-                console.error("Seed failed:", err);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // Export and Print Functions
-        function exportTable(tableId, filename) {
-            showLoading('Exporting data...');
-            try {
-                const table = document.getElementById(tableId);
-                if (!table) {
-                    showCustomModal('Error', 'Table not found for export.', false);
-                    return;
-                }
-
-                const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
-                const allRows = Array.from(table.querySelectorAll('tbody tr'));
-                
-                const hasData = allRows.length > 0 && allRows[0].cells.length > 1 && !allRows[0].innerText.includes('No data available');
-
-                let data = [];
-                if (hasData || headers.length > 0) {
-                    data.push(headers.filter(header => header !== 'Actions')); 
-                }
-                
-                if (hasData) {
-                    allRows.forEach(tr => {
-                        const rowData = Array.from(tr.querySelectorAll('td'))
-                                         .map(td => td.innerText)
-                                         .filter((_, index, arr) => index !== arr.length - 1);
-                        data.push(rowData);
-                    });
-                }
-
-                if (data.length <= 1 && hasData === false) {
-                    showCustomModal('Info', 'No data to export.', false);
-                    return;
-                }
-
-                const ws = XLSX.utils.aoa_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, filename);
-
-                XLSX.writeFile(wb, `${filename}.xlsx`);
-                showCustomModal('Success', 'Data exported successfully as Excel/CSV.', false);
-            } catch (error) {
-                showCustomModal('Error', 'Failed to export data: ' + error.message, false);
-                console.error("Error exporting table:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        function printTable(tableId, title) {
-            showLoading('Preparing to print...');
-            try {
-                const table = document.getElementById(tableId);
-                if (!table) {
-                    showCustomModal('Error', 'Table not found for printing.', false);
-                    return;
-                }
-                
-                const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
-                const allRows = Array.from(table.querySelectorAll('tbody tr'));
-                const hasData = allRows.length > 0 && allRows[0].cells.length > 1 && !allRows[0].innerText.includes('No data available');
-
-                if (!hasData) {
-                    showCustomModal('Info', 'No data to print.', false);
-                    return;
-                }
-
-                const rows = allRows.map(tr => 
-                    Array.from(tr.querySelectorAll('td'))
-                         .map(td => td.innerText)
-                         .filter((_, index, arr) => index !== arr.length - 1)
-                );
-                
-                const doc = new jspdf.jsPDF();
-                doc.text(title, 14, 20);
-                doc.autoTable({
-                    startY: 25,
-                    head: [headers.filter(header => header !== 'Actions')], 
-                    body: rows, 
-                    theme: 'striped',
-                    headStyles: { fillColor: [26, 79, 50] }
-                });
-                doc.save(`${title}.pdf`);
-                showCustomModal('Success', 'Document generated for printing (PDF).', false);
-            } catch (error) {
-                showCustomModal('Error', 'Failed to generate printable document: ' + error.message, false);
-                console.error("Error printing table:", error);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // Initialize dashboard on load if user is already authenticated
-        // The onAuthStateChanged listener handles the initial display.
-    </script>
+      });
+    };
+
+    // Basic CRUD exposed globally for inline handlers
+    window.addStudent = () => {
+      const name = prompt('Full name'); if(!name) return;
+      const email = prompt('Email (document id)'); if(!email) return;
+      setDoc(doc(db,'students', email.toLowerCase()), { name, email: email.toLowerCase(), createdAt: serverTimestamp() });
+    };
+    window.editStudent = async(uid) => {
+      const snap = await getDoc(doc(db,'students', uid)); if(!snap.exists()) return alert('Not found');
+      const cur = snap.data();
+      const name = prompt('Full name', cur.name||''); if(!name) return;
+      await updateDoc(doc(db,'students', uid), { name });
+      activateSection('students');
+    };
+    window.deleteStudent = async(uid) => { if(!confirm('Delete this student?')) return; await deleteDoc(doc(db,'students', uid)); activateSection('students'); };
+
+    /* ============= Courses ============= */
+    const fetchCourses = async () => {
+      const sec = $('#coursesSection');
+      const snap = await getDocs(collection(db,'courses'));
+      const rows = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      const hdrs = ['Code','Name','Credits','Lecturer','Schedule','Actions'];
+      sec.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-sm text-slate-400">Manage courses</div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="window.addCourse()"><i class="fa-solid fa-plus"></i> Add</button>
+            <button class="btn" onclick="window.exportById('coursesTbl','Courses')"><i class="fa-solid fa-file-export"></i> Export</button>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-2 table-wrap">
+          <table id="coursesTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+            ${rows.length? rows.map(r=>`<tr>
+              <td>${r.code||r.id}</td><td>${r.title||'—'}</td><td>${r.credits||'—'}</td><td>${r.lecturer||'—'}</td><td>${r.schedule||'—'}</td>
+              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editCourse('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteCourse('${r.id}')">Delete</button></div></td>
+            </tr>`).join('') : `<tr><td colspan="6" class="py-6 text-center text-slate-400">No courses yet.</td></tr>`}
+          </tbody></table>
+        </div>`;
+    };
+    window.addCourse = async () => {
+      const code = prompt('Course code (doc id)'); if(!code) return;
+      const title = prompt('Course name'); if(!title) return;
+      await setDoc(doc(db,'courses', code), { code, title, createdAt: serverTimestamp() });
+      activateSection('courses');
+    };
+    window.editCourse = async (id) => {
+      const snap = await getDoc(doc(db,'courses', id)); if(!snap.exists()) return alert('Not found');
+      const cur = snap.data();
+      const title = prompt('Course name', cur.title||''); if(!title) return;
+      await updateDoc(doc(db,'courses', id), { title });
+      activateSection('courses');
+    };
+    window.deleteCourse = async(id) => { if(!confirm('Delete this course?')) return; await deleteDoc(doc(db,'courses', id)); activateSection('courses'); };
+
+    /* ============= Fees ============= */
+    const renderFeesSearch = () => {
+      const sec = $('#feesSection');
+      sec.innerHTML = `
+        <div class="glass rounded-2xl p-4 space-y-3">
+          <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+            <input id="feesEmail" class="w-full sm:w-80 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search student by email…"/>
+            <button class="btn btn-primary" id="btnFeesSearch"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+          </div>
+          <div id="feesInfo"></div>
+          <div id="feesTableWrap"></div>
+        </div>`;
+      $('#btnFeesSearch').addEventListener('click', doFeesSearch);
+      renderPlaceholder($('#feesInfo'), { title:'Fees Management', icon:'fa-solid fa-money-bill-wave', lines:['Look up a student to view their statement.']});
+    };
+
+    const doFeesSearch = async () => {
+      const email = ($('#feesEmail').value||'').toLowerCase();
+      if(!email) return alert('Enter a student email.');
+      const q = query(collection(db,'students'), where('email','==', email));
+      const res = await getDocs(q);
+      if(res.empty) { $('#feesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3">Student not found.</div>'; return; }
+      const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
+      $('#feesInfo').innerHTML = `<div class="text-sm text-slate-300">Statement for <span class="font-semibold">${stu.name||email}</span></div>`;
+      // simple demo table — adapt to your structure
+      const hdrs = ['Date','Description','Amount','Balance'];
+      const rows = [];
+      $('#feesTableWrap').innerHTML = table(hdrs, rows);
+    };
+
+    /* ============= Grades ============= */
+    const renderGradesSearch = () => {
+      const sec = $('#gradesSection');
+      sec.innerHTML = `
+        <div class="glass rounded-2xl p-4 space-y-3">
+          <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+            <input id="gradesEmail" class="w-full sm:w-80 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search student by email…"/>
+            <button class="btn btn-primary" id="btnGradesSearch"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+          </div>
+          <div id="gradesInfo"></div>
+          <div id="gradesTableWrap"></div>
+        </div>`;
+      $('#btnGradesSearch').addEventListener('click', doGradesSearch);
+      renderPlaceholder($('#gradesInfo'), { title:'Grades Management', icon:'fa-solid fa-award', lines:['Look up a student to view their grades.']});
+    };
+    const doGradesSearch = async () => {
+      const email = ($('#gradesEmail').value||'').toLowerCase();
+      if(!email) return alert('Enter a student email.');
+      const q = query(collection(db,'students'), where('email','==', email));
+      const res = await getDocs(q);
+      if(res.empty) { $('#gradesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3">Student not found.</div>'; return; }
+      const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
+      $('#gradesInfo').innerHTML = `<div class="text-sm text-slate-300">Grades for <span class="font-semibold">${stu.name||email}</span></div>`;
+      const hdrs = ['Course Code','Course Name','Grade'];
+      const rows = [];
+      $('#gradesTableWrap').innerHTML = table(hdrs, rows);
+    };
+
+    /* ============= Hostels ============= */
+    const fetchHostels = async () => {
+      const sec = $('#hostelsSection');
+      const snap = await getDocs(collection(db,'hostels'));
+      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      const hdrs = ['Hostel','Capacity','Occupied','Status','Actions'];
+      sec.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-sm text-slate-400">Manage hostels</div>
+          <button class="btn btn-primary" onclick="window.addHostel()"><i class="fa-solid fa-plus"></i> Add</button>
+        </div>
+        <div class="glass rounded-2xl p-2 table-wrap">
+          <table id="hostelsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+            ${rows.length? rows.map(r=>`<tr>
+              <td>${r.name||r.id}</td><td>${r.capacity||'—'}</td><td>${r.occupied||0}</td>
+              <td>${r.open===false?'<span class=chip>Closed</span>':'<span class=chip>Open</span>'}</td>
+              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editHostel('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteHostel('${r.id}')">Delete</button></div></td>
+            </tr>`).join('') : `<tr><td colspan="5" class="py-6 text-center text-slate-400">No hostels yet.</td></tr>`}
+          </tbody></table>
+        </div>`;
+    };
+    window.addHostel = async () => {
+      const id = prompt('Hostel id'); if(!id) return;
+      const name = prompt('Hostel name'); if(!name) return;
+      await setDoc(doc(db,'hostels', id), { name, capacity: 0, occupied: 0, open: true, createdAt: serverTimestamp() });
+      activateSection('hostels');
+    };
+    window.editHostel = async (id) => {
+      const snap = await getDoc(doc(db,'hostels', id)); if(!snap.exists()) return alert('Not found');
+      const cur = snap.data();
+      const capacity = parseInt(prompt('Capacity', cur.capacity||0));
+      await updateDoc(doc(db,'hostels', id), { capacity });
+      activateSection('hostels');
+    };
+    window.deleteHostel = async (id) => { if(!confirm('Delete hostel?')) return; await deleteDoc(doc(db,'hostels', id)); activateSection('hostels'); };
+
+    /* ============= Announcements ============= */
+    const fetchAnnouncements = async () => {
+      const sec = $('#announcementsSection');
+      const snap = await getDocs(collection(db,'announcements'));
+      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      const hdrs = ['Title','Body','Created','Actions'];
+      sec.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-sm text-slate-400">Post updates for students</div>
+          <button class="btn btn-primary" onclick="window.addAnnouncement()"><i class="fa-solid fa-plus"></i> Add</button>
+        </div>
+        <div class="glass rounded-2xl p-2 table-wrap">
+          <table id="annTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+            ${rows.length? rows.map(r=>`<tr>
+              <td>${r.title||'—'}</td><td>${r.body||'—'}</td><td>${(r.createdAt && r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'}</td>
+              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editAnnouncement('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteAnnouncement('${r.id}')">Delete</button></div></td>
+            </tr>`).join('') : `<tr><td colspan="4" class="py-6 text-center text-slate-400">No announcements yet.</td></tr>`}
+          </tbody></table>
+        </div>`;
+    };
+    window.addAnnouncement = async () => {
+      const id = crypto.randomUUID();
+      const title = prompt('Title'); if(!title) return;
+      const body = prompt('Body'); if(!body) return;
+      await setDoc(doc(db,'announcements', id), { title, body, createdAt: serverTimestamp() });
+      activateSection('announcements');
+    };
+    window.editAnnouncement = async (id) => {
+      const snap = await getDoc(doc(db,'announcements', id)); if(!snap.exists()) return alert('Not found');
+      const cur = snap.data();
+      const title = prompt('Title', cur.title||''); if(!title) return;
+      const body = prompt('Body', cur.body||''); if(!body) return;
+      await updateDoc(doc(db,'announcements', id), { title, body });
+      activateSection('announcements');
+    };
+    window.deleteAnnouncement = async (id) => { if(!confirm('Delete announcement?')) return; await deleteDoc(doc(db,'announcements', id)); activateSection('announcements'); };
+
+    /* ============= Graduation & Clearance ============= */
+    const fetchGraduation = async () => {
+      const sec = $('#graduationSection');
+      const snap = await getDocs(collection(db,'graduationRequests'));
+      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      sec.innerHTML = table(['Student','Status','Requested'], rows.map(r=>[
+        r.studentEmail||r.id, r.status||'—', (r.createdAt&&r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'
+      ]));
+    };
+    const fetchClearance = async () => {
+      const sec = $('#clearanceSection');
+      const snap = await getDocs(collection(db,'clearanceRequests'));
+      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      sec.innerHTML = table(['Student','Status','Requested'], rows.map(r=>[
+        r.studentEmail||r.id, r.status||'—', (r.createdAt&&r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'
+      ]));
+    };
+
+    /* ============= Admins ============= */
+    const fetchAdmins = async () => {
+      const sec = $('#adminsSection');
+      const snap = await getDocs(collection(db,'admins'));
+      const rows = snap.docs.map(d=>({ uid:d.id, ...d.data() }));
+      const hdrs = ['UID','Email','isAdmin','Actions'];
+      sec.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-sm text-slate-400">Manage administrator accounts</div>
+          <button class="btn btn-primary" onclick="window.addAdmin()"><i class="fa-solid fa-user-plus"></i> Add</button>
+        </div>
+        <div class="glass rounded-2xl p-2 table-wrap">
+          <table id="adminsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+            ${rows.length? rows.map(r=>`<tr>
+              <td>${r.uid}</td><td>${r.email||'—'}</td><td>${r.isAdmin? 'Yes':'No'}</td>
+              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.toggleAdmin('${r.uid}', ${!!r.isAdmin})">Toggle</button><button class="btn btn-muted" onclick="window.deleteAdmin('${r.uid}')">Delete</button></div></td>
+            </tr>`).join('') : `<tr><td colspan="4" class="py-6 text-center text-slate-400">No admins yet.</td></tr>`}
+          </tbody></table>
+        </div>`;
+    };
+    window.addAdmin = async () => {
+      const uid = prompt('Auth UID'); if(!uid) return;
+      const email = prompt('Email');
+      await setDoc(doc(db,'admins', uid), { email: email||null, isAdmin:true, createdAt: serverTimestamp()});
+      activateSection('admins');
+    };
+    window.toggleAdmin = async (uid, cur) => { await updateDoc(doc(db,'admins', uid), { isAdmin: !cur }); activateSection('admins'); };
+    window.deleteAdmin = async (uid) => { if(!confirm('Delete admin doc?')) return; await deleteDoc(doc(db,'admins', uid)); activateSection('admins'); };
+
+    // Utility export by DOM id
+    window.exportById = (id, name) => exportTable(id, name);
+
+    // Start on dashboard placeholders if html opens already authenticated
+    // (onAuthStateChanged will re-render)
+    preloadSection('dashboard');
+  </script>
 </body>
 </html>
