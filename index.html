@@ -166,6 +166,40 @@
         margin-top: 0;
       }
     }
+
+    /* Collapsible styles for Settings and Announcements */
+    .collapsible-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: #f8f8f8;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s ease;
+    }
+    .collapsible-header:hover {
+        background-color: #f0f0f0;
+    }
+    .collapsible-content {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        display: none; /* Hidden by default */
+        overflow: hidden;
+        transition: max-height 0.3s ease-out; /* For smooth collapse */
+        max-height: 0;
+    }
+    .collapsible-content.expanded {
+        max-height: 1000px; /* Large enough to show content */
+        display: block;
+    }
+    .collapsible-header i.fa-chevron-down {
+        transition: transform 0.3s ease;
+    }
+    .collapsible-header.expanded i.fa-chevron-down {
+        transform: rotate(180deg);
+    }
   </style>
 </head>
 <body class="h-screen flex items-center justify-center">
@@ -186,7 +220,7 @@
   </div>
 
   <div id="authContainer" class="p-4 w-full h-full flex justify-center items-center">
-    <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5 active">
+    <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out active">
       <form id="login-form">
         <h2 class="text-4xl font-extrabold text-green-800 mb-8">Login</h2>
         <div class="mb-6 text-left">
@@ -207,7 +241,7 @@
       </form>
     </div>
 
-    <div id="signup-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
+    <div id="signup-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="signup-form">
         <h2 class="text-4xl font-extrabold text-green-800 mb-8">Sign Up</h2>
         <div class="mb-6 text-left">
@@ -236,7 +270,7 @@
       </form>
     </div>
 
-    <div id="forgot-password-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
+    <div id="forgot-password-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="forgot-password-form">
         <h2 class="text-4xl font-extrabold text-green-800 mb-8">Forgot Password</h2>
         <div class="mb-6 text-left">
@@ -281,7 +315,7 @@
         <a onclick="toggleSubmenu('academics-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-book mr-3"></i> Academics <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="academics-submenu" class="ml-6 py-2 hidden">
           <a onclick="showDashboardSection('courseReg')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
-          <a onclick="showDashboardSection('courses')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-list-alt mr-3"></i> Available Courses</a>
+          <!-- Removed Available Courses link -->
           <a onclick="showDashboardSection('timetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-calendar-alt mr-3"></i> Timetable</a>
           <a onclick="showDashboardSection('grades')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clipboard-list mr-3"></i> Grades & Transcripts</a>
           <a onclick="showDashboardSection('graduation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-graduation-cap mr-3"></i> Graduation Request</a>
@@ -291,13 +325,13 @@
         <a onclick="toggleSubmenu('finance-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-money-bill-wave mr-3"></i> Finance <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="finance-submenu" class="ml-6 py-2 hidden">
           <a onclick="showDashboardSection('fees')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-credit-card mr-3"></i> Fees Statement</a>
-          <a onclick="showDashboardSection('receipts')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-receipt mr-3"></i> Receipts</a>
+          <!-- Removed Receipts link -->
           <a onclick="showDashboardSection('examCard')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-id-card mr-3"></i> Exam Card</a>
         </div>
 
         <a onclick="toggleSubmenu('exam-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-laptop-code mr-3"></i> Examination <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="exam-submenu" class="ml-6 py-2 hidden">
-          <a onclick="showDashboardSection('examTimetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clock mr-3"></i> Timetable</a>
+          <!-- Timetable is now under Academics main menu -->
           <a onclick="showDashboardSection('grades')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-invoice mr-3"></i> Transcripts</a>
         </div>
         <a onclick="showDashboardSection('hostels')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-hotel mr-3"></i> Accommodation</a>
@@ -316,7 +350,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword, signInWithCustomToken, signInAnonymously, updateEmail, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -385,8 +419,9 @@
       });
     }
 
-    window.alert = (message) => showCustomModal('Alert', message); // Override alert
-    window.confirm = (message) => showCustomModal('Confirm', message, true); // Override confirm
+    // Overriding window.alert and window.confirm to use the custom modal
+    window.alert = (message) => showCustomModal('Alert', message);
+    window.confirm = (message) => showCustomModal('Confirm', message, true);
     // --- End Custom Modal Functions ---
 
     // Function to set button loading state
@@ -432,11 +467,11 @@
       const forms = document.querySelectorAll('.form-wrapper');
       forms.forEach(form => {
         form.classList.remove('active');
-        form.classList.add('opacity-0', 'invisible', 'translate-y-5');
+        form.classList.add('opacity-0', 'invisible'); // Removed translate-y-5
       });
       const activeForm = document.getElementById(`${formId}-form-wrapper`);
       if (activeForm) {
-        activeForm.classList.remove('opacity-0', 'invisible', 'translate-y-5');
+        activeForm.classList.remove('opacity-0', 'invisible'); // Removed translate-y-5
         activeForm.classList.add('active');
         // Autofocus the first input in the new form
         const firstInput = activeForm.querySelector('input:not([type="hidden"]), select, textarea');
@@ -461,6 +496,7 @@
                 console.log("Signed in with custom token.");
             } catch (error) {
                 console.error("Error signing in with custom token:", error);
+                // No alert here, just console log and attempt anonymous sign-in
                 await signInAnonymously(auth);
                 console.log("Signed in anonymously due to custom token failure.");
             }
@@ -470,7 +506,7 @@
                 console.log("Signed in anonymously.");
             } catch (error) {
                 console.error("Error signing in anonymously:", error);
-                await showCustomModal("Error", "Failed to initialize anonymous session. Please refresh.");
+                // No alert here either, just console log
             }
         }
     }
@@ -788,6 +824,23 @@
 
     function hideLoading() {
       loadingOverlay.classList.add('hidden');
+    }
+
+    // Function to toggle collapsible sections (for Settings and Announcements)
+    function setupCollapsibles() {
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.removeEventListener('click', toggleCollapsible); // Remove old listeners
+            header.addEventListener('click', toggleCollapsible); // Add new listener
+        });
+    }
+
+    function toggleCollapsible(event) {
+        const header = event.currentTarget;
+        const content = header.nextElementSibling; // Get the content div
+        if (content && content.classList.contains('collapsible-content')) {
+            const isExpanded = header.classList.toggle('expanded');
+            content.classList.toggle('expanded', isExpanded); // Toggle content visibility/height
+        }
     }
 
     // --- GPA Calculation Utility ---
@@ -1992,7 +2045,7 @@
 
         const filteredHostels = allHostels.filter(h => {
           const typeMatch = selectedType === 'all' || h.type === selectedType;
-          const availabilityMatch = selectedAvailability === 'all' || (h.capacity - h.occupancy > 0);
+          const availabilityMatch = selectedAvailability === 'all' || (h.capacity - h.occupancy.length > 0); // Corrected occupancy check
           return typeMatch && availabilityMatch;
         });
 
@@ -2002,7 +2055,7 @@
         }
         
         filteredHostels.forEach(hostel => {
-          const available = hostel.capacity - hostel.occupancy > 0;
+          const available = (hostel.capacity - hostel.occupancy.length) > 0; // Corrected occupancy check
           const statusColor = available ? 'text-green-600' : 'text-red-600';
           const buttonDisabled = !available || currentBooking !== null;
           const buttonText = currentBooking ? 'Already Booked' : available ? 'Book Now' : 'Full';
@@ -2014,7 +2067,7 @@
             <h3 class="text-xl font-bold text-green-800 mb-2">${hostel.name}</h3>
             <p class="text-gray-600 mb-1"><strong>Type:</strong> ${hostel.type}</p>
             <p class="text-gray-600 mb-1"><strong>Status:</strong> <span class="font-bold ${statusColor}">${available ? 'Open' : 'Closed'}</span></p>
-            <p class="text-gray-600 mb-4"><strong>Rooms Available:</strong> ${hostel.capacity - hostel.occupancy} / ${hostel.capacity}</p>
+            <p class="text-gray-600 mb-4"><strong>Rooms Available:</strong> ${hostel.capacity - hostel.occupancy.length} / ${hostel.capacity}</p>
             <button id="bookBtn-${hostel.id}" class="w-full text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out ${buttonClass}" ${buttonDisabled ? 'disabled' : ''}>
               ${buttonText}
             </button>
@@ -2033,8 +2086,9 @@
         if (response) {
           showLoading("Booking hostel...");
           try {
-            // Find an available room
-            const roomNumber = hostel.occupancy + 1; // Simple auto-assign
+            // Find an available room - simple auto-assign (assuming rooms are 1-indexed)
+            const roomNumber = hostel.occupancy.length + 1; // Room number based on current occupancy
+
             const bookingData = {
               studentId: currentUserId,
               hostelId: hostel.id,
@@ -2044,6 +2098,7 @@
               status: 'active'
             };
 
+            // Add booking to hostelBookings collection
             await addDoc(collection(db, 'hostelBookings'), bookingData);
 
             // Update hostel occupancy
@@ -2072,10 +2127,11 @@
             const bookingSnapshot = await getDocs(bookingQuery);
             if (!bookingSnapshot.empty) {
               const bookingDoc = bookingSnapshot.docs[0];
+              const hostelIdToUpdate = bookingDoc.data().hostelId; // Get hostelId from the booking
               await deleteDoc(doc(db, 'hostelBookings', bookingDoc.id));
 
-              // Update hostel occupancy
-              const hostelDocRef = doc(db, 'hostels', currentBooking.hostelId);
+              // Update hostel occupancy - remove student from occupancy array
+              const hostelDocRef = doc(db, 'hostels', hostelIdToUpdate);
               await updateDoc(hostelDocRef, {
                 occupancy: arrayRemove(currentUserId)
               });
@@ -2555,14 +2611,678 @@
       });
     }
 
+    // --- NEW FEATURE: Settings Page ---
+    async function loadSettings() {
+      const content = document.getElementById("dashboardContent");
+      const settingsHtml = `
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <h2 class="text-2xl font-bold text-green-800 mb-6">Settings & Preferences</h2>
+
+          <!-- Account Security -->
+          <div class="collapsible-section mb-4">
+            <div class="collapsible-header">
+              <h3 class="text-lg font-bold text-green-800">Account Security</h3>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="collapsible-content space-y-4">
+              <div class="border p-4 rounded-md">
+                <h4 class="font-semibold text-gray-700 mb-2">Change Profile Picture (Shortcut)</h4>
+                <div class="flex items-center space-x-4">
+                  <img id="settingsProfileImage" src="${currentUserData.profilePhotoURL || 'https://placehold.co/80x80/eeeeee/333333?text=Avatar'}" alt="Profile Picture" class="w-20 h-20 rounded-full border-2 border-green-200">
+                  <button id="changeSettingsProfilePicBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 text-sm rounded-md transition duration-300 ease-in-out">Change Photo</button>
+                  <input type="file" id="settingsProfilePicInput" class="hidden" accept="image/*">
+                </div>
+              </div>
+
+              <div class="border p-4 rounded-md">
+                <h4 class="font-semibold text-gray-700 mb-2">Change Email</h4>
+                <div class="mb-2">
+                  <label for="current-email" class="block text-gray-700 text-sm font-medium mb-1">Current Email</label>
+                  <input type="email" id="current-email" value="${auth.currentUser?.email || ''}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed">
+                </div>
+                <div class="mb-2">
+                  <label for="new-email" class="block text-gray-700 text-sm font-medium mb-1">New Email</label>
+                  <input type="email" id="new-email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" placeholder="Enter new email">
+                  <p id="new-email-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                </div>
+                <div class="mb-2">
+                  <label for="current-password-email" class="block text-gray-700 text-sm font-medium mb-1">Current Password (for email change)</label>
+                  <input type="password" id="current-password-email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" placeholder="Enter current password">
+                  <p id="current-password-email-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                </div>
+                <button id="changeEmailBtn" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">Change Email</button>
+              </div>
+
+              <div class="border p-4 rounded-md">
+                <h4 class="font-semibold text-gray-700 mb-2">Change Password</h4>
+                <div class="mb-2">
+                  <label for="old-password" class="block text-gray-700 text-sm font-medium mb-1">Old Password</label>
+                  <input type="password" id="old-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" placeholder="Enter old password">
+                  <p id="old-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                </div>
+                <div class="mb-2">
+                  <label for="new-password" class="block text-gray-700 text-sm font-medium mb-1">New Password</label>
+                  <input type="password" id="new-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" placeholder="Enter new password (min 6 chars)">
+                  <p id="new-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                </div>
+                <div class="mb-2">
+                  <label for="confirm-new-password" class="block text-gray-700 text-sm font-medium mb-1">Confirm New Password</label>
+                  <input type="password" id="confirm-new-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" placeholder="Confirm new password">
+                  <p id="confirm-new-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                </div>
+                <button id="changePasswordBtn" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">Change Password</button>
+              </div>
+
+              <div class="border p-4 rounded-md">
+                <h4 class="font-semibold text-gray-700 mb-2">Two-Factor Authentication (2FA)</h4>
+                <p class="text-sm text-gray-600 mb-2">Enhance your account security with 2FA.</p>
+                <button id="toggle2FABtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out" disabled>
+                  Coming Soon (Enable 2FA)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="collapsible-section mb-4">
+            <div class="collapsible-header">
+              <h3 class="text-lg font-bold text-green-800">Notifications</h3>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="collapsible-content space-y-3">
+              <div class="flex items-center justify-between">
+                <label for="notif-announcements" class="text-gray-700">Announcements</label>
+                <input type="checkbox" id="notif-announcements" class="form-checkbox h-5 w-5 text-green-600 rounded">
+              </div>
+              <div class="flex items-center justify-between">
+                <label for="notif-grades" class="text-gray-700">New Grades Posted</label>
+                <input type="checkbox" id="notif-grades" class="form-checkbox h-5 w-5 text-green-600 rounded">
+              </div>
+              <div class="flex items-center justify-between">
+                <label for="notif-fees" class="text-gray-700">Fees Updates</label>
+                <input type="checkbox" id="notif-fees" class="form-checkbox h-5 w-5 text-green-600 rounded">
+              </div>
+              <button id="saveNotificationsBtn" class="mt-4 bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Save Notification Settings</button>
+            </div>
+          </div>
+
+          <!-- Theme & Accessibility -->
+          <div class="collapsible-section mb-4">
+            <div class="collapsible-header">
+              <h3 class="text-lg font-bold text-green-800">Theme & Accessibility</h3>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="collapsible-content space-y-4">
+              <div>
+                <p class="text-gray-700 font-medium mb-2">Theme</p>
+                <div class="flex space-x-4">
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="theme" value="light" id="theme-light" class="form-radio text-green-600">
+                    <span class="ml-2 text-gray-700">Light Mode</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="theme" value="dark" id="theme-dark" class="form-radio text-green-600">
+                    <span class="ml-2 text-gray-700">Dark Mode (Coming Soon)</span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <p class="text-gray-700 font-medium mb-2">Text Size</p>
+                <div class="flex space-x-4">
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="textSize" value="small" id="textSize-small" class="form-radio text-green-600">
+                    <span class="ml-2 text-gray-700">Small</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="textSize" value="medium" id="textSize-medium" class="form-radio text-green-600" checked>
+                    <span class="ml-2 text-gray-700">Medium</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="textSize" value="large" id="textSize-large" class="form-radio text-green-600">
+                    <span class="ml-2 text-gray-700">Large</span>
+                  </label>
+                </div>
+              </div>
+              <button id="saveThemeBtn" class="mt-4 bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Save Theme Settings</button>
+            </div>
+          </div>
+
+          <!-- Linked Services (Optional) -->
+          <div class="collapsible-section mb-4">
+            <div class="collapsible-header">
+              <h3 class="text-lg font-bold text-green-800">Linked Services</h3>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="collapsible-content space-y-3 text-gray-700">
+              <p>No external services currently linked.</p>
+              <ul class="list-disc list-inside ml-4">
+                <li>Google Account (for sign-in)</li>
+                <!-- Add more linked services here if applicable -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Delete Account -->
+          <div class="collapsible-section mb-4">
+            <div class="collapsible-header bg-red-100 text-red-800 hover:bg-red-200">
+              <h3 class="text-lg font-bold">Danger Zone: Delete Account</h3>
+              <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="collapsible-content p-4 rounded-b-md border border-red-300 bg-red-50 space-y-4">
+              <p class="text-red-700 font-semibold">Deleting your account is permanent and cannot be undone. All your data will be removed.</p>
+              <div class="mb-2">
+                  <label for="delete-account-password" class="block text-red-700 text-sm font-medium mb-1">Enter your password to confirm</label>
+                  <input type="password" id="delete-account-password" class="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-2 focus:ring-red-500" placeholder="Enter password to confirm deletion">
+                  <p id="delete-account-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
+              </div>
+              <button id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">
+                Delete My Account
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      content.innerHTML = generateBreadcrumb("Settings") + settingsHtml;
+      setupCollapsibles(); // Initialize collapsible panels
+
+      const settingsProfileImage = document.getElementById('settingsProfileImage');
+      const changeSettingsProfilePicBtn = document.getElementById('changeSettingsProfilePicBtn');
+      const settingsProfilePicInput = document.getElementById('settingsProfilePicInput');
+
+      // Profile Pic Change (Shortcut)
+      settingsProfileImage.src = currentUserData.profilePhotoURL || 'https://placehold.co/80x80/eeeeee/333333?text=Avatar';
+      changeSettingsProfilePicBtn.addEventListener('click', () => settingsProfilePicInput.click());
+      settingsProfilePicInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          showLoading("Uploading profile picture...");
+          try {
+              const storageRef = ref(storage, `profile_pictures/${currentUserId}`);
+              await uploadBytes(storageRef, file);
+              const photoURL = await getDownloadURL(storageRef);
+
+              const studentDocRef = doc(db, 'students', currentUserId);
+              await updateDoc(studentDocRef, { profilePhotoURL: photoURL });
+
+              settingsProfileImage.src = photoURL;
+              currentUserData.profilePhotoURL = photoURL; // Update local cache
+              await showCustomModal("Success", "Profile picture updated successfully!");
+          } catch (error) {
+              console.error("Error uploading photo:", error);
+              await showCustomModal("Upload Failed", "❌ Failed to upload profile picture. Please try again.");
+          } finally {
+              hideLoading();
+          }
+      });
+
+      // Change Email
+      const newEmailInput = document.getElementById('new-email');
+      const currentPasswordEmailInput = document.getElementById('current-password-email');
+      const changeEmailBtn = document.getElementById('changeEmailBtn');
+      const newEmailError = document.getElementById('new-email-error');
+      const currentPasswordEmailError = document.getElementById('current-password-email-error');
+
+      newEmailError.dataset.errorMessage = "Please enter a valid email address.";
+      newEmailInput.addEventListener('input', () => validateInput(newEmailInput, isValidEmail, newEmailError));
+      currentPasswordEmailError.dataset.errorMessage = "Please enter your current password.";
+      currentPasswordEmailInput.addEventListener('input', () => validateInput(currentPasswordEmailInput, (val) => val.length > 0, currentPasswordEmailError));
+
+      changeEmailBtn.addEventListener('click', async () => {
+          const newEmail = newEmailInput.value.trim();
+          const currentPassword = currentPasswordEmailInput.value;
+
+          const isEmailValid = validateInput(newEmailInput, isValidEmail, newEmailError);
+          const isPasswordEntered = validateInput(currentPasswordEmailInput, (val) => val.length > 0, currentPasswordEmailError);
+
+          if (!isEmailValid || !isPasswordEntered) {
+              await showCustomModal("Validation Error", "Please correct the highlighted fields.");
+              return;
+          }
+
+          if (newEmail === auth.currentUser.email) {
+              await showCustomModal("Info", "New email is the same as current email.");
+              return;
+          }
+
+          const confirmChange = await confirm("Are you sure you want to change your email address?");
+          if (!confirmChange) return;
+
+          setButtonLoading(changeEmailBtn, true);
+          showLoading("Changing email...");
+
+          try {
+              const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+              await reauthenticateWithCredential(auth.currentUser, credential);
+              await updateEmail(auth.currentUser, newEmail);
+              await updateDoc(doc(db, 'students', currentUserId), { email: newEmail });
+              await showCustomModal("Success", "✅ Your email address has been updated successfully!");
+          } catch (error) {
+              console.error("Error changing email:", error);
+              let errorMessage = "❌ Failed to update email.";
+              if (error.code === 'auth/wrong-password') {
+                  errorMessage = "❌ Incorrect current password.";
+              } else if (error.code === 'auth/email-already-in-use') {
+                  errorMessage = "❌ This email is already in use by another account.";
+              } else if (error.code === 'auth/invalid-email') {
+                  errorMessage = "❌ The new email address is invalid.";
+              } else if (error.code === 'auth/requires-recent-login') {
+                  errorMessage = "❌ Please re-login and try again. Your session has expired.";
+              } else {
+                  errorMessage += ` Error: ${error.message}`;
+              }
+              await showCustomModal("Email Change Failed", errorMessage);
+          } finally {
+              setButtonLoading(changeEmailBtn, false);
+              hideLoading();
+              currentPasswordEmailInput.value = ''; // Clear password field
+          }
+      });
+
+      // Change Password
+      const oldPasswordInput = document.getElementById('old-password');
+      const newPasswordInput = document.getElementById('new-password');
+      const confirmNewPasswordInput = document.getElementById('confirm-new-password');
+      const changePasswordBtn = document.getElementById('changePasswordBtn');
+      const oldPasswordError = document.getElementById('old-password-error');
+      const newPasswordError = document.getElementById('new-password-error');
+      const confirmNewPasswordError = document.getElementById('confirm-new-password-error');
+
+      oldPasswordError.dataset.errorMessage = "Please enter your old password.";
+      oldPasswordInput.addEventListener('input', () => validateInput(oldPasswordInput, (val) => val.length > 0, oldPasswordError));
+      newPasswordError.dataset.errorMessage = "New password must be at least 6 characters.";
+      newPasswordInput.addEventListener('input', () => validateInput(newPasswordInput, isValidPassword, newPasswordError));
+      confirmNewPasswordError.dataset.errorMessage = "Passwords do not match.";
+      confirmNewPasswordInput.addEventListener('input', () => {
+          const match = newPasswordInput.value === confirmNewPasswordInput.value;
+          validateInput(confirmNewPasswordInput, () => match, confirmNewPasswordError);
+      });
+
+      changePasswordBtn.addEventListener('click', async () => {
+          const oldPassword = oldPasswordInput.value;
+          const newPassword = newPasswordInput.value;
+          const confirmNewPassword = confirmNewPasswordInput.value;
+
+          const isOldPasswordValid = validateInput(oldPasswordInput, (val) => val.length > 0, oldPasswordError);
+          const isNewPasswordValid = validateInput(newPasswordInput, isValidPassword, newPasswordError);
+          const passwordsMatch = (newPassword === confirmNewPassword);
+          const isConfirmNewPasswordValid = validateInput(confirmNewPasswordInput, () => passwordsMatch, confirmNewPasswordError);
+
+          if (!isOldPasswordValid || !isNewPasswordValid || !isConfirmNewPasswordValid || !passwordsMatch) {
+              if (!passwordsMatch) {
+                  confirmNewPasswordError.innerText = "❌ New passwords do not match!";
+                  confirmNewPasswordError.classList.remove('hidden');
+                  confirmNewPasswordInput.classList.add('border-red-500');
+              }
+              await showCustomModal("Validation Error", "Please correct the highlighted fields.");
+              return;
+          }
+          if (oldPassword === newPassword) {
+            await showCustomModal("Info", "New password cannot be the same as old password.");
+            return;
+          }
+
+          const confirmChange = await confirm("Are you sure you want to change your password?");
+          if (!confirmChange) return;
+
+          setButtonLoading(changePasswordBtn, true);
+          showLoading("Changing password...");
+
+          try {
+              const credential = EmailAuthProvider.credential(auth.currentUser.email, oldPassword);
+              await reauthenticateWithCredential(auth.currentUser, credential);
+              await updatePassword(auth.currentUser, newPassword);
+              await showCustomModal("Success", "✅ Your password has been updated successfully!");
+              oldPasswordInput.value = '';
+              newPasswordInput.value = '';
+              confirmNewPasswordInput.value = '';
+          } catch (error) {
+              console.error("Error changing password:", error);
+              let errorMessage = "❌ Failed to update password.";
+              if (error.code === 'auth/wrong-password') {
+                  errorMessage = "❌ Incorrect old password.";
+              } else if (error.code === 'auth/weak-password') {
+                  errorMessage = "❌ New password is too weak. Please choose a stronger password.";
+              } else if (error.code === 'auth/requires-recent-login') {
+                  errorMessage = "❌ Please re-login and try again. Your session has expired.";
+              } else {
+                  errorMessage += ` Error: ${error.message}`;
+              }
+              await showCustomModal("Password Change Failed", errorMessage);
+          } finally {
+              setButtonLoading(changePasswordBtn, false);
+              hideLoading();
+          }
+      });
+
+      // Notifications Settings
+      const notifAnnouncements = document.getElementById('notif-announcements');
+      const notifGrades = document.getElementById('notif-grades');
+      const notifFees = document.getElementById('notif-fees');
+      const saveNotificationsBtn = document.getElementById('saveNotificationsBtn');
+
+      // Fetch and set current notification preferences
+      const studentDocRef = doc(db, 'students', currentUserId);
+      const studentData = (await getDoc(studentDocRef)).data();
+      if (studentData && studentData.notificationPreferences) {
+          notifAnnouncements.checked = studentData.notificationPreferences.announcements || false;
+          notifGrades.checked = studentData.notificationPreferences.grades || false;
+          notifFees.checked = studentData.notificationPreferences.fees || false;
+      }
+
+      saveNotificationsBtn.addEventListener('click', async () => {
+          setButtonLoading(saveNotificationsBtn, true);
+          showLoading("Saving notifications...");
+          try {
+              await updateDoc(studentDocRef, {
+                  notificationPreferences: {
+                      announcements: notifAnnouncements.checked,
+                      grades: notifGrades.checked,
+                      fees: notifFees.checked
+                  }
+              });
+              await showCustomModal("Success", "✅ Notification settings saved successfully!");
+          } catch (error) {
+              console.error("Error saving notification settings:", error);
+              await showCustomModal("Save Failed", "❌ Failed to save notification settings. Please try again.");
+          } finally {
+              setButtonLoading(saveNotificationsBtn, false);
+              hideLoading();
+          }
+      });
+
+      // Theme Settings (basic client-side, Firestore integration for 'themePreference')
+      const themeLight = document.getElementById('theme-light');
+      const themeDark = document.getElementById('theme-dark'); // This will be disabled
+      const textSizeSmall = document.getElementById('textSize-small');
+      const textSizeMedium = document.getElementById('textSize-medium');
+      const textSizeLarge = document.getElementById('textSize-large');
+      const saveThemeBtn = document.getElementById('saveThemeBtn');
+
+      // Disable dark mode for now
+      themeDark.disabled = true;
+      themeDark.nextElementSibling.classList.add('opacity-50', 'cursor-not-allowed');
+
+      // Load existing theme preferences
+      if (studentData && studentData.themePreferences) {
+          if (studentData.themePreferences.mode === 'light') themeLight.checked = true;
+          // if (studentData.themePreferences.mode === 'dark') themeDark.checked = true; // Will remain disabled
+          if (studentData.themePreferences.textSize === 'small') textSizeSmall.checked = true;
+          else if (studentData.themePreferences.textSize === 'large') textSizeLarge.checked = true;
+          else textSizeMedium.checked = true; // Default
+      }
+
+      // Apply theme preference to body immediately (simple example)
+      const applyTheme = () => {
+          if (themeLight.checked) {
+              document.body.classList.remove('dark-mode');
+              document.body.classList.add('light-mode');
+          } else if (themeDark.checked) {
+              // document.body.classList.add('dark-mode'); // Not implemented yet
+              // document.body.classList.remove('light-mode');
+          }
+          if (textSizeSmall.checked) { document.body.style.fontSize = '0.85rem'; }
+          else if (textSizeLarge.checked) { document.body.style.fontSize = '1.15rem'; }
+          else { document.body.style.fontSize = '1rem'; } // Medium
+      };
+      applyTheme(); // Apply on load
+
+      saveThemeBtn.addEventListener('click', async () => {
+          setButtonLoading(saveThemeBtn, true);
+          showLoading("Saving theme...");
+          const selectedTheme = document.querySelector('input[name="theme"]:checked')?.value || 'light';
+          const selectedTextSize = document.querySelector('input[name="textSize"]:checked')?.value || 'medium';
+
+          try {
+              await updateDoc(studentDocRef, {
+                  themePreferences: {
+                      mode: selectedTheme,
+                      textSize: selectedTextSize
+                  }
+              });
+              applyTheme(); // Apply changes
+              await showCustomModal("Success", "✅ Theme and accessibility settings saved!");
+          } catch (error) {
+              console.error("Error saving theme settings:", error);
+              await showCustomModal("Save Failed", "❌ Failed to save theme settings. Please try again.");
+          } finally {
+              setButtonLoading(saveThemeBtn, false);
+              hideLoading();
+          }
+      });
+
+      // Delete Account
+      const deleteAccountPasswordInput = document.getElementById('delete-account-password');
+      const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+      const deleteAccountPasswordError = document.getElementById('delete-account-password-error');
+      
+      deleteAccountPasswordError.dataset.errorMessage = "Please enter your password to confirm.";
+      deleteAccountPasswordInput.addEventListener('input', () => validateInput(deleteAccountPasswordInput, (val) => val.length > 0, deleteAccountPasswordError));
+
+
+      deleteAccountBtn.addEventListener('click', async () => {
+          const password = deleteAccountPasswordInput.value;
+          const user = auth.currentUser;
+
+          const isPasswordEntered = validateInput(deleteAccountPasswordInput, (val) => val.length > 0, deleteAccountPasswordError);
+          if (!isPasswordEntered) {
+              await showCustomModal("Validation Error", "Please enter your password to proceed with account deletion.");
+              return;
+          }
+
+          const confirm1 = await confirm("🛑 WARNING: This will permanently delete your account and all associated data. Are you absolutely sure you want to proceed?");
+          if (!confirm1) return;
+
+          const confirm2 = await showCustomModal("Final Confirmation", "Type 'DELETE' below to confirm permanent deletion of your account. This action cannot be undone.", true); // Use confirm modal for text input
+          if (confirm2 !== true) { // Custom modal confirm returns true/false, not input text
+            await showCustomModal("Action Cancelled", "Account deletion cancelled.");
+            return;
+          }
+          const deleteConfirmationText = prompt("Type 'DELETE' (all caps) to confirm:"); // Fallback to prompt for text input
+
+          if (deleteConfirmationText !== 'DELETE') {
+              await showCustomModal("Action Cancelled", "Account deletion cancelled. Text did not match.");
+              return;
+          }
+
+          setButtonLoading(deleteAccountBtn, true);
+          showLoading("Deleting account and data...");
+
+          try {
+              // Re-authenticate user before deletion
+              const credential = EmailAuthProvider.credential(user.email, password);
+              await reauthenticateWithCredential(user, credential);
+
+              // Check for outstanding fees
+              const feesSnapshot = await getDocs(collection(db, `students/${currentUserId}/feesStatement`));
+              let balance = 0;
+              feesSnapshot.forEach(t => {
+                  balance += (t.data().debit || 0) - (t.data().credit || 0);
+              });
+
+              if (balance > 0) {
+                  await showCustomModal("Deletion Blocked", `❌ You have an outstanding fees balance of GHS ${balance.toFixed(2)}. Please clear your dues before deleting your account.`);
+                  setButtonLoading(deleteAccountBtn, false);
+                  hideLoading();
+                  return;
+              }
+
+              // Proceed with deletion if no outstanding fees
+              // Delete all subcollections and the main student document
+              const batch = writeBatch(db);
+              const subcollections = ['grades', 'feesStatement', 'registrations']; // Add other subcollection names if they exist
+              for (const sub of subcollections) {
+                  const subCollectionRef = collection(db, `students/${currentUserId}/${sub}`);
+                  const subDocs = await getDocs(subCollectionRef);
+                  subDocs.forEach(docSnap => batch.delete(docSnap.ref));
+              }
+              batch.delete(doc(db, 'students', currentUserId)); // Delete main student document
+
+              // If there's a hostel booking, delete it and update the hostel occupancy
+              const bookingQuery = query(collection(db, 'hostelBookings'), where('studentId', '==', currentUserId));
+              const bookingSnapshot = await getDocs(bookingQuery);
+              if (!bookingSnapshot.empty) {
+                  const bookingDoc = bookingSnapshot.docs[0];
+                  const hostelIdToUpdate = bookingDoc.data().hostelId;
+                  batch.delete(doc(db, 'hostelBookings', bookingDoc.id));
+                  const hostelDocRef = doc(db, 'hostels', hostelIdToUpdate);
+                  batch.update(hostelDocRef, { occupancy: arrayRemove(currentUserId) });
+              }
+
+              // If there's a graduation request, delete it
+              const graduationRequestDocRef = doc(db, 'graduationRequests', currentUserId);
+              const graduationRequestSnap = await getDoc(graduationRequestDocRef);
+              if (graduationRequestSnap.exists()) {
+                  batch.delete(graduationRequestDocRef);
+              }
+
+              // If there are clearance requests, delete them
+              const clearanceRequestsQuery = query(collection(db, `clearanceRequests`), where("studentId", "==", currentUserId));
+              const clearanceRequestsSnap = await getDocs(clearanceRequestsQuery);
+              clearanceRequestsSnap.forEach(docSnap => batch.delete(docSnap.ref));
+
+
+              await batch.commit(); // Commit all Firestore deletions
+
+              await deleteUser(user); // Delete Firebase Auth user
+              await showCustomModal("Account Deleted", "✅ Your account and all associated data have been permanently deleted. You will now be logged out.");
+
+          } catch (error) {
+              console.error("Error deleting account:", error);
+              let errorMessage = "❌ Failed to delete account.";
+              if (error.code === 'auth/wrong-password') {
+                  errorMessage = "❌ Incorrect password. Please try again.";
+              } else if (error.code === 'auth/requires-recent-login') {
+                  errorMessage = "❌ Please re-login and try again. Your session has expired.";
+              } else {
+                  errorMessage += ` Error: ${error.message}`;
+              }
+              await showCustomModal("Deletion Failed", errorMessage);
+          } finally {
+              setButtonLoading(deleteAccountBtn, false);
+              hideLoading();
+          }
+      });
+    }
+
+    // --- NEW FEATURE: Announcements Page ---
+    async function loadAnnouncements() {
+      const content = document.getElementById("dashboardContent");
+      const announcementsHtml = `
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <h2 class="text-2xl font-bold text-green-800 mb-6">University Announcements</h2>
+
+          <div class="mb-6 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+            <input type="text" id="announcementSearch" placeholder="Search by title or keyword..." class="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500">
+            <select id="announcementCategoryFilter" class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500">
+              <option value="all">All Categories</option>
+              <option value="Academic">Academic</option>
+              <option value="Events">Events</option>
+              <option value="Finance">Finance</option>
+              <option value="General">General</option>
+            </select>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="showUnreadOnly" class="form-checkbox h-5 w-5 text-green-600 rounded">
+                <span class="text-gray-700">Show Unread Only</span>
+            </label>
+          </div>
+
+          <div id="announcementsListContainer" class="space-y-4">
+            <p class="text-center text-gray-500">Loading announcements...</p>
+          </div>
+          <p id="noAnnouncementsMessage" class="text-center text-gray-500 mt-4 hidden">No announcements available matching your criteria.</p>
+        </div>
+      `;
+      content.innerHTML = generateBreadcrumb("Announcements") + announcementsHtml;
+      
+      const announcementsListContainer = document.getElementById('announcementsListContainer');
+      const announcementSearchInput = document.getElementById('announcementSearch');
+      const announcementCategoryFilter = document.getElementById('announcementCategoryFilter');
+      const showUnreadOnlyCheckbox = document.getElementById('showUnreadOnly');
+      const noAnnouncementsMessage = document.getElementById('noAnnouncementsMessage');
+
+      let allAnnouncements = []; // Cache all announcements
+      let studentLastVisitedAnnouncements = currentUserData.lastVisitedAnnouncements || new Date(0);
+
+      const categoryColors = {
+        'Academic': 'bg-blue-100 text-blue-800',
+        'Events': 'bg-purple-100 text-purple-800',
+        'Finance': 'bg-yellow-100 text-yellow-800',
+        'General': 'bg-gray-100 text-gray-800',
+        'Urgent': 'bg-red-100 text-red-800', // Example additional category
+      };
+
+      const renderAnnouncements = () => {
+        const searchTerm = announcementSearchInput.value.toLowerCase();
+        const categoryFilter = announcementCategoryFilter.value;
+        const showUnread = showUnreadOnlyCheckbox.checked;
+
+        let filteredAnnouncements = allAnnouncements.filter(announcement => {
+            const matchesSearch = announcement.title.toLowerCase().includes(searchTerm) ||
+                                  announcement.content.toLowerCase().includes(searchTerm);
+            const matchesCategory = categoryFilter === 'all' || announcement.category === categoryFilter;
+            const isUnread = announcement.date.toDate() > studentLastVisitedAnnouncements;
+            const matchesUnread = !showUnread || isUnread;
+
+            return matchesSearch && matchesCategory && matchesUnread;
+        });
+
+        announcementsListContainer.innerHTML = '';
+        if (filteredAnnouncements.length === 0) {
+          noAnnouncementsMessage.classList.remove('hidden');
+        } else {
+          noAnnouncementsMessage.classList.add('hidden');
+          filteredAnnouncements.forEach(announcement => {
+            const date = announcement.date ? new Date(announcement.date.toDate()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+            const categoryClass = categoryColors[announcement.category] || 'bg-gray-200 text-gray-700';
+            const isUnread = announcement.date.toDate() > studentLastVisitedAnnouncements;
+            const unreadClass = isUnread ? 'border-l-4 border-green-500 bg-green-50' : '';
+
+            const announcementCard = document.createElement('div');
+            announcementCard.className = `announcement-card bg-white p-4 rounded-lg shadow-sm mb-4 ${unreadClass}`;
+            announcementCard.innerHTML = `
+              <div class="collapsible-header">
+                <h3 class="text-xl font-bold text-green-800">${announcement.title}</h3>
+                <i class="fas fa-chevron-down text-gray-600 text-sm"></i>
+              </div>
+              <div class="collapsible-content">
+                <p class="text-sm text-gray-500 mb-2">Posted on: ${date} <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold ${categoryClass}">${announcement.category || 'General'}</span></p>
+                <p class="text-gray-700 mb-2">${announcement.content}</p>
+                ${announcement.attachmentURL ? `<a href="${announcement.attachmentURL}" target="_blank" class="text-blue-500 hover:underline"><i class="fas fa-paperclip mr-1"></i> Download Attachment</a>` : ''}
+              </div>
+            `;
+            announcementsListContainer.appendChild(announcementCard);
+          });
+          setupCollapsibles(); // Re-initialize collapsible listeners for new content
+        }
+      };
+
+      // Real-time listener for announcements
+      const unsubscribeAnnouncements = onSnapshot(query(collection(db, 'announcements'), orderBy('date', 'desc')), (snapshot) => {
+        allAnnouncements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAnnouncements();
+      });
+
+      // Update last visited time when entering announcements page
+      updateDoc(doc(db, 'students', currentUserId), { lastVisitedAnnouncements: new Date() }).catch(e => console.error("Error updating last visited timestamp:", e));
+
+      // Event listeners for filters and search
+      announcementSearchInput.addEventListener('input', renderAnnouncements);
+      announcementCategoryFilter.addEventListener('change', renderAnnouncements);
+      showUnreadOnlyCheckbox.addEventListener('change', renderAnnouncements);
+
+      // Store unsubscribe function to call when leaving this section
+      currentSection.unsubscribe = unsubscribeAnnouncements;
+    }
+
+
     // --- Main Dashboard Section Handler ---
     let currentSection = null;
     window.showDashboardSection = function(sectionId) {
-      if (currentSection) {
-        // Disconnect listeners to prevent memory leaks if needed
-        if (typeof currentSection.unsubscribe === 'function') {
-          currentSection.unsubscribe();
-        }
+      if (currentSection && currentSection.unsubscribe) {
+        // Disconnect Firestore listeners to prevent memory leaks
+        currentSection.unsubscribe();
+        console.log(`Unsubscribed from ${currentSection.id} listeners.`);
       }
 
       switch (sectionId) {
@@ -2596,11 +3316,17 @@
         case 'hostels':
           loadHostels();
           break;
+        case 'announcements':
+          loadAnnouncements();
+          break;
+        case 'settings':
+          loadSettings();
+          break;
         default:
           document.getElementById('dashboardContent').innerHTML = `<div class="p-6 text-center text-gray-500">Page not found.</div>`;
           break;
       }
-      currentSection = { id: sectionId };
+      currentSection = { id: sectionId }; // Store new section ID
       sidebar.classList.add('-translate-x-full'); // Hide sidebar on mobile after selection
     };
 
@@ -2620,6 +3346,19 @@
                 department: "Computer Science",
                 yearOfStudy: 2,
                 semester: 2,
+                phone: "0712345678",
+                nationalId: "12345678",
+                address: "123 University Rd, Cityville",
+                lastVisitedAnnouncements: new Date('2024-01-01T00:00:00Z'), // Sample initial timestamp
+                notificationPreferences: {
+                  announcements: true,
+                  grades: true,
+                  fees: false
+                },
+                themePreferences: {
+                  mode: 'light',
+                  textSize: 'medium'
+                },
                 dataInitialized: true // Prevent re-initialization
             });
 
@@ -2708,6 +3447,36 @@
                 occupancy: []
             });
 
+            // Sample Announcements
+            const announcementsRef = collection(db, 'announcements');
+            batch.set(doc(announcementsRef, "announcement1"), {
+                title: "Semester Exams Schedule Released",
+                content: "The final examination timetable for the current semester has been published. Please check the Academic Timetable section for details.",
+                date: new Date('2025-08-10T09:00:00Z'),
+                category: "Academic",
+                attachmentURL: "https://example.com/exam_schedule.pdf" // Placeholder URL
+            });
+            batch.set(doc(announcementsRef, "announcement2"), {
+                title: "Career Fair 2025 Registration Open",
+                content: "Our annual Career Fair is now open for student registration. Connect with top employers!",
+                date: new Date('2025-08-12T14:30:00Z'),
+                category: "Events",
+                attachmentURL: null
+            });
+            batch.set(doc(announcementsRef, "announcement3"), {
+                title: "Important Fees Payment Reminder",
+                content: "All outstanding fees for Semester 2 are due by August 30th. Avoid late penalties.",
+                date: new Date('2025-08-05T10:00:00Z'),
+                category: "Finance",
+                attachmentURL: null
+            });
+            batch.set(doc(announcementsRef, "announcement4"), {
+                title: "Student Leadership Elections",
+                content: "Nominations for the student leadership elections are now open. Submit your applications by Friday.",
+                date: new Date('2025-08-15T11:00:00Z'),
+                category: "General",
+                attachmentURL: null
+            });
 
             await batch.commit();
             console.log("Sample data successfully initialized!");
