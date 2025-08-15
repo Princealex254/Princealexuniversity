@@ -184,6 +184,35 @@
         tbody tr:hover {
             background-color: #f1f1f1;
         }
+        /* Style for the no-data messages */
+        .no-data-message {
+            padding: 1.5rem;
+            background-color: #ecfdf5; /* Light green background */
+            border: 1px solid #a7f3d0; /* Green border */
+            color: #065f46; /* Dark green text */
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .no-data-message h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+            color: #047857; /* Primary green */
+        }
+        .no-data-message p {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+        .no-data-message p:last-child {
+            margin-bottom: 0;
+        }
+        .no-data-message .note {
+            font-size: 0.875rem;
+            color: #064e3b; /* Even darker green */
+            margin-top: 1rem;
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -252,6 +281,12 @@
 
                 <!-- Dashboard Section -->
                 <div id="dashboardSection" class="dashboard-section">
+                    <div class="no-data-message" id="dashboardNoData">
+                        <h3 class="text-2xl font-bold mb-2"><i class="fas fa-chart-line mr-2"></i>📊 Dashboard Overview</h3>
+                        <p>Welcome to the Admin Dashboard.</p>
+                        <p>Here you can get an overview of student statistics, courses, and system activity.</p>
+                        <p class="note">Data will load automatically once connected to the database.</p>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div class="bg-white p-6 rounded-lg shadow-md text-center">
                             <i class="fas fa-users text-4xl text-green-600 mb-4"></i>
@@ -291,6 +326,12 @@
                 <div id="studentsSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Students</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="studentsNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-users mr-2"></i>👨‍🎓 Students Management</h3>
+                            <p>Manage and view all registered students here.</p>
+                            <p>You can search for students, view their profiles, and edit their details.</p>
+                            <p class="note">(No student data found yet — please add students to see them listed here.)</p>
+                        </div>
                         <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                             <input type="text" id="studentSearch" placeholder="Search students..." class="px-4 py-2 border rounded-lg mb-2 md:mb-0 w-full md:w-auto">
                             <div class="flex space-x-2">
@@ -323,6 +364,12 @@
                 <div id="coursesSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Courses</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="coursesNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-book mr-2"></i>📚 Courses Management</h3>
+                            <p>Here you can manage all available courses.</p>
+                            <p>Add new courses, edit existing ones, or remove outdated ones.</p>
+                            <p class="note">(No course data found yet — please add courses to see them listed here.)</p>
+                        </div>
                          <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                             <input type="text" id="courseSearch" placeholder="Search courses..." class="px-4 py-2 border rounded-lg mb-2 md:mb-0 w-full md:w-auto">
                             <div class="flex space-x-2">
@@ -355,6 +402,12 @@
                 <div id="feesSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Fees</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="feesNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-money-bill-wave mr-2"></i>💰 Fees Management</h3>
+                            <p>Search and update student fees here.</p>
+                            <p>Track payments and balances for each student.</p>
+                            <p class="note">(No fee data found — please record fee transactions to view them here.)</p>
+                        </div>
                         <div class="flex justify-between items-center mb-4">
                             <input type="text" id="feesSearch" placeholder="Search student by email..." class="px-4 py-2 border rounded-lg w-full md:w-auto">
                             <button onclick="searchStudentForFees()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-2">Search</button>
@@ -389,6 +442,12 @@
                 <div id="gradesSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Grades</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="gradesNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-award mr-2"></i>🏆 Grades Management</h3>
+                            <p>View and manage student grades.</p>
+                            <p>Update marks, generate transcripts, and track performance.</p>
+                            <p class="note">(No grade records found yet — please upload grades to view them here.)</p>
+                        </div>
                         <div class="flex justify-between items-center mb-4">
                             <input type="text" id="gradesSearch" placeholder="Search student by email..." class="px-4 py-2 border rounded-lg w-full md:w-auto">
                             <button onclick="searchStudentForGrades()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-2">Search</button>
@@ -422,6 +481,12 @@
                 <div id="hostelsSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Hostel Management</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="hostelsNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-building mr-2"></i>🏠 Hostel Management</h3>
+                            <p>Manage hostel rooms and allocations here.</p>
+                            <p>You can add new hostels, update availability, and view current occupants.</p>
+                            <p class="note">(No hostel data found yet — please add hostels to see them listed here.)</p>
+                        </div>
                         <div class="flex flex-col md:flex-row justify-between items-center mb-4">
                             <div class="flex space-x-2">
                                 <button onclick="addHostelModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Hostel</button>
@@ -454,6 +519,12 @@
                 <div id="announcementsSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Announcements</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="announcementsNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-bullhorn mr-2"></i>📢 Announcements</h3>
+                            <p>Post important announcements for students and staff here.</p>
+                            <p>You can add, edit, and remove announcements anytime.</p>
+                            <p class="note">(No announcements found — please add announcements to view them here.)</p>
+                        </div>
                          <div class="flex flex-col md:flex-row justify-end items-center mb-4">
                              <button onclick="addAnnouncementModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add Announcement</button>
                          </div>
@@ -479,6 +550,12 @@
                 <div id="graduationSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Graduation Requests</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="graduationNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-graduation-cap mr-2"></i>🎓 Graduation Requests</h3>
+                            <p>Manage all graduation requests from students.</p>
+                            <p>Approve, reject, or review pending applications.</p>
+                            <p class="note">(No graduation requests found yet — pending requests will appear here.)</p>
+                        </div>
                         <div class="flex flex-col md:flex-row justify-end items-center mb-4">
                             <div class="flex space-x-2">
                                 <button onclick="exportTable('graduationRequestsTable', 'Graduation Requests')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
@@ -508,6 +585,12 @@
                 <div id="clearanceSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Clearance Requests</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="clearanceNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-check-circle mr-2"></i>✅ Clearance Requests</h3>
+                            <p>Manage clearance applications for students.</p>
+                            <p>Approve or reject requests and update clearance statuses.</p>
+                            <p class="note">(No clearance requests found yet — pending requests will appear here.)</p>
+                        </div>
                         <div class="flex flex-col md:flex-row justify-end items-center mb-4">
                             <div class="flex space-x-2">
                                 <button onclick="exportTable('clearanceRequestsTable', 'Clearance Requests')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Export</button>
@@ -537,6 +620,12 @@
                 <div id="adminsSection" class="dashboard-section hidden">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Management</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="no-data-message" id="adminsNoData">
+                            <h3 class="text-2xl font-bold mb-2"><i class="fas fa-user-shield mr-2"></i>🛡️ Admin Users</h3>
+                            <p>View and manage administrator accounts.</p>
+                            <p>Add new admins, update permissions, or remove inactive admins.</p>
+                            <p class="note">(No admin accounts found yet — please add admins to see them here.)</p>
+                        </div>
                         <div class="flex flex-col md:flex-row justify-end items-center mb-4">
                              <button onclick="addAdminModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Add New Admin</button>
                         </div>
@@ -598,6 +687,20 @@
         const sidebar = document.getElementById('sidebar');
         const menuToggle = document.getElementById('menuToggle');
 
+        // References to all "no data" message elements
+        const noDataMessages = {
+            dashboard: document.getElementById('dashboardNoData'),
+            students: document.getElementById('studentsNoData'),
+            courses: document.getElementById('coursesNoData'),
+            fees: document.getElementById('feesNoData'),
+            grades: document.getElementById('gradesNoData'),
+            hostels: document.getElementById('hostelsNoData'),
+            announcements: document.getElementById('announcementsNoData'),
+            graduation: document.getElementById('graduationNoData'),
+            clearance: document.getElementById('clearanceNoData'),
+            admins: document.getElementById('adminsNoData')
+        };
+
 
         // General UI functions
         function showLoading(text = 'Loading...') {
@@ -631,6 +734,45 @@
                 cancelBtn.classList.add('hidden');
             }
         }
+
+        // Helper to toggle visibility of no-data messages and tables/search inputs
+        function toggleSectionContent(sectionId, hasData) {
+            const noDataMessageElement = noDataMessages[sectionId];
+            const tableContainer = document.querySelector(`#${sectionId}Section .table-container`);
+            const searchInput = document.getElementById(`${sectionId}Search`);
+            const actionButtons = document.querySelectorAll(`#${sectionId}Section button[onclick$="Modal()"], #${sectionId}Section button[onclick^="exportTable"], #${sectionId}Section button[onclick^="printTable"]`);
+
+
+            if (noDataMessageElement) {
+                if (hasData) {
+                    noDataMessageElement.classList.add('hidden');
+                    if (tableContainer) tableContainer.classList.remove('hidden');
+                    if (searchInput) searchInput.classList.remove('hidden');
+                    actionButtons.forEach(btn => btn.classList.remove('hidden'));
+
+                    // Special handling for fees/grades content block
+                    if (sectionId === 'fees' || sectionId === 'grades') {
+                        document.getElementById(`${sectionId}Content`).classList.remove('hidden');
+                    }
+
+                } else {
+                    noDataMessageElement.classList.remove('hidden');
+                    if (tableContainer) tableContainer.classList.add('hidden');
+                    // For sections with search, keep the search visible even if no data
+                    if (searchInput) {
+                        searchInput.classList.remove('hidden');
+                    } else {
+                        // For sections without a search input, hide relevant action buttons if no data
+                        actionButtons.forEach(btn => btn.classList.add('hidden'));
+                    }
+                     // Special handling for fees/grades content block (hide it if no data)
+                     if (sectionId === 'fees' || sectionId === 'grades') {
+                        document.getElementById(`${sectionId}Content`).classList.add('hidden');
+                     }
+                }
+            }
+        }
+
 
         // New functions for showing/hiding login/app views
         function showLogin() {
@@ -762,6 +904,8 @@
                 // Call the fetch functions for each section
                 switch (sectionId) {
                     case 'dashboard':
+                        // Dashboard always shows its "no data" message if counts are zero
+                        toggleSectionContent('dashboard', true); // Assume dashboard always has 'content' even if counts are 0
                         await fetchDashboardCounts();
                         break;
                     case 'students':
@@ -771,15 +915,15 @@
                         await fetchCourses();
                         break;
                     case 'fees':
-                        // For fees and grades, we only show the search input initially
-                        document.getElementById('feesContent').classList.add('hidden');
                         document.getElementById('feesSearch').value = '';
+                        // Initially show no-data message for fees until a search is performed
+                        toggleSectionContent('fees', false); 
                         hideLoading(); // Hide loading as no data fetch happens yet
                         break;
                     case 'grades':
-                        // For fees and grades, we only show the search input initially
-                        document.getElementById('gradesContent').classList.add('hidden');
                         document.getElementById('gradesSearch').value = '';
+                        // Initially show no-data message for grades until a search is performed
+                        toggleSectionContent('grades', false); 
                         hideLoading(); // Hide loading as no data fetch happens yet
                         break;
                     case 'hostels':
@@ -844,6 +988,10 @@
                     }
                 });
                 document.getElementById('outstanding-fees-count').innerText = `GHS ${totalOutstandingFees.toFixed(2)}`;
+
+                // Dashboard always displays its info block, even if counts are zero
+                toggleSectionContent('dashboard', true); 
+
             } catch (error) {
                 showCustomModal('Error', 'Failed to load dashboard data: ' + error.message, false);
                 console.error("Error fetching dashboard counts:", error);
@@ -934,6 +1082,7 @@
                 ];
 
                 renderTable('studentsTable', students, columns, actions);
+                toggleSectionContent('students', students.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch student records: ' + error.message, false);
                 console.error("Error fetching students:", error);
@@ -1048,9 +1197,12 @@
                     { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (student) => deleteStudent(student.uid) }
                 ];
                 renderTable('studentsTable', filteredStudents, columns, actions);
+                // Keep the 'no data' message hidden during search if a student is found
+                toggleSectionContent('students', filteredStudents.length > 0); 
             } catch (error) {
                 showCustomModal('Error', 'Error during student search: ' + error.message, false);
                 console.error("Error during student search:", error);
+                toggleSectionContent('students', false); // Show no data message on error
             } finally {
                 hideLoading();
             }
@@ -1073,6 +1225,7 @@
                 ];
 
                 renderTable('coursesTable', courses, columns, actions);
+                toggleSectionContent('courses', courses.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch course records: ' + error.message, false);
                 console.error("Error fetching courses:", error);
@@ -1190,9 +1343,11 @@
                     { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (course) => deleteCourse(course.id) }
                 ];
                 renderTable('coursesTable', filteredCourses, columns, actions);
+                toggleSectionContent('courses', filteredCourses.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Error during course search: ' + error.message, false);
                 console.error("Error during course search:", error);
+                toggleSectionContent('courses', false); // Show no data message on error
             } finally {
                 hideLoading();
             }
@@ -1205,6 +1360,8 @@
             const email = document.getElementById('feesSearch').value.toLowerCase();
             if (!email) {
                 showCustomModal('Error', 'Please enter a student email to search.', false);
+                // Ensure no-data message is visible if search input is empty
+                toggleSectionContent('fees', false); 
                 return;
             }
             showLoading(`Searching for ${email}'s fees...`);
@@ -1214,7 +1371,7 @@
 
                 if (studentQuerySnapshot.empty) {
                     showCustomModal('Not Found', `No student found with email: ${email}`, false);
-                    document.getElementById('feesContent').classList.add('hidden');
+                    toggleSectionContent('fees', false); // Hide fees content and show no-data message
                     return;
                 }
 
@@ -1272,11 +1429,13 @@
 
                 const columns = ['date', 'description', 'amount', 'balance'];
                 renderTable('feesTable', displayWithBalance, columns);
-                document.getElementById('feesContent').classList.remove('hidden');
+                toggleSectionContent('fees', true); // Show fees content after successful search
+                
 
             } catch (error) {
                 showCustomModal('Error', 'Failed to search fees: ' + error.message, false);
                 console.error("Error searching fees:", error);
+                toggleSectionContent('fees', false); // Hide fees content and show no-data message on error
             } finally {
                 hideLoading();
             }
@@ -1353,6 +1512,8 @@
             const email = document.getElementById('gradesSearch').value.toLowerCase();
             if (!email) {
                 showCustomModal('Error', 'Please enter a student email to search.', false);
+                // Ensure no-data message is visible if search input is empty
+                toggleSectionContent('grades', false); 
                 return;
             }
             showLoading(`Searching for ${email}'s grades...`);
@@ -1362,7 +1523,7 @@
 
                 if (studentQuerySnapshot.empty) {
                     showCustomModal('Not Found', `No student found with email: ${email}`, false);
-                    document.getElementById('gradesContent').classList.add('hidden');
+                    toggleSectionContent('grades', false); // Hide grades content and show no-data message
                     return;
                 }
 
@@ -1376,11 +1537,12 @@
 
                 const columns = ['courseCode', 'courseName', 'grade'];
                 renderTable('gradesTable', grades, columns);
-                document.getElementById('gradesContent').classList.remove('hidden');
+                toggleSectionContent('grades', true); // Show grades content after successful search
 
             } catch (error) {
                 showCustomModal('Error', 'Failed to search grades: ' + error.message, false);
                 console.error("Error searching grades:", error);
+                toggleSectionContent('grades', false); // Hide grades content and show no-data message on error
             } finally {
                 hideLoading();
             }
@@ -1466,6 +1628,7 @@
                 ];
 
                 renderTable('hostelsTable', hostels, columns, actions);
+                toggleSectionContent('hostels', hostels.length > 0);
                 updateToggleHostelAppButton();
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch hostel records: ' + error.message, false);
@@ -1618,6 +1781,7 @@
                 ];
 
                 renderTable('announcementsTable', mappedAnnouncements, columns, actions);
+                toggleSectionContent('announcements', mappedAnnouncements.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch announcements: ' + error.message, false);
                 console.error("Error fetching announcements:", error);
@@ -1730,6 +1894,7 @@
                 ];
 
                 renderTable('graduationRequestsTable', requests, columns, actions);
+                toggleSectionContent('graduation', requests.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch graduation requests: ' + error.message, false);
                 console.error("Error fetching graduation requests:", error);
@@ -1779,6 +1944,7 @@
                 ];
 
                 renderTable('clearanceRequestsTable', requests, columns, actions);
+                toggleSectionContent('clearance', requests.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch clearance requests: ' + error.message, false);
                 console.error("Error fetching clearance requests:", error);
@@ -1819,6 +1985,7 @@
                 ];
 
                 renderTable('adminsTable', filteredAdmins, columns, actions);
+                toggleSectionContent('admins', filteredAdmins.length > 0);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch admin users: ' + error.message, false);
                 console.error("Error fetching admin users:", error);
@@ -2019,6 +2186,18 @@
 
                 showCustomModal('Success', 'Demo data seeded successfully!', false);
                 await fetchDashboardCounts(); // Refresh dashboard data
+                // Ensure all sections update their content display after seeding
+                await Promise.all([
+                    fetchStudents(),
+                    fetchCourses(),
+                    // Fees and Grades will remain in their "search" state, so no need to refetch
+                    fetchHostels(),
+                    fetchAnnouncements(),
+                    fetchGraduationRequests(),
+                    fetchClearanceRequests(),
+                    fetchAdmins()
+                ]);
+
             } catch (err) {
                 showCustomModal('Error', 'Failed to seed demo data: ' + err.message, false);
                 console.error("Seed failed:", err);
