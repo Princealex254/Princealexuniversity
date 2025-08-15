@@ -195,16 +195,15 @@
     #authContainer {
         background: url('myschoolgate.png') no-repeat center center fixed; /* Keep background image */
         background-size: cover;
-        /* Ensure authContainer takes full viewport height and centers content */
-        min-height: 100vh; /* Takes full viewport height */
-        width: 100vw; /* Takes full viewport width */
-        display: flex;
-        flex-direction: row; /* Allow forms to sit side-by-side if active and space permits */
-        justify-content: center; /* Center horizontally */
-        align-items: center; /* Center vertically */
-        padding: 1rem; /* Add some padding for smaller screens */
+        /* Ensure authContainer takes full viewport height and width for desktop positioning */
+        min-height: 100vh;
+        width: 100vw;
+        display: flex; /* Make it a flex container to aid in centering its absolute children */
+        justify-content: center; /* Center children horizontally */
+        align-items: center; /* Center children vertically */
+        position: relative; /* Crucial for absolute positioning of forms */
+        padding: 1rem; /* Add some padding for smaller screens to prevent content touching edges */
         box-sizing: border-box; /* Include padding in width/height */
-        position: relative; /* Needed if any child elements use absolute positioning */
     }
     .form-wrapper {
         background-color: #ffffff;
@@ -245,17 +244,21 @@
     /* Mobile specific adjustments for forms */
     @media (max-width: 576px) {
         #authContainer {
-            align-items: flex-start; /* Top-align forms on mobile */
-            padding-top: 40px; /* Add padding from the top */
-            display: block; /* Change to block to allow vertical stacking without flex-centering */
-            min-height: auto; /* Remove min-height to allow content to dictate height */
+            /* On mobile, we want forms to stack and flow naturally */
+            display: block; /* Allow forms to stack normally, remove flex behavior */
+            min-height: auto; /* Allow height to collapse based on content */
             height: auto;
+            position: static; /* Important: remove relative positioning for mobile flow */
+            padding-top: 40px; /* Add some space from the top for better mobile presentation */
+            align-items: flex-start; /* Reset align-items, though display:block makes it less relevant */
         }
         .form-wrapper {
-            position: static; /* Revert to static for normal flow */
-            transform: none; /* Remove transform */
-            margin: 0 15px 20px 15px; /* Add side margins and bottom margin for stacking */
-            padding: 20px; /* Keep padding inside the form */
+            position: static; /* Revert to static for normal document flow on small screens */
+            transform: none; /* Remove centering transform */
+            margin: 0 auto 20px auto; /* Center horizontally using auto margins and add bottom spacing */
+            width: calc(100% - 30px); /* Adjust width to account for side padding/margin on mobile */
+            box-sizing: border-box; /* Ensure padding is included in width calculation */
+            padding: 20px; /* Consistent internal padding */
         }
     }
 
@@ -955,7 +958,7 @@
 
       const fullName = fullNameInput.value.trim();
       const email = emailInput.value.trim().toLowerCase();
-      const password = passwordInput.value;
+      const password = password.value;
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
