@@ -792,6 +792,7 @@
 
     let currentUserId = null;
     let currentUserData = null;
+    let isManualLoginTransition = false; // Flag to control UI transition from login form
 
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingText = document.querySelector('#loadingOverlay .loading-text');
@@ -862,9 +863,15 @@
 
     // --- Authentication Flow ---
     onAuthStateChanged(auth, async (user) => {
+      // If a manual login transition is in progress (from loginUser function),
+      // let it handle the UI. This prevents race conditions.
+      if (isManualLoginTransition) {
+        return;
+      }
+
       if (user) {
         currentUserId = user.uid;
-        console.log("User authenticated:", user.email, user.uid);
+        console.log("User authenticated (from onAuthStateChanged):", user.email, user.uid);
 
         // Fetch user data from Firestore directly from the user's root document
         const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
@@ -919,7 +926,47 @@
 
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        // onAuthStateChanged will handle UI update
+        const user = userCredential.user;
+
+        isManualLoginTransition = true; // Set flag to indicate manual transition
+        loginResultMsg.innerText = "✅ Login successful! Redirecting to dashboard...";
+        loginResultMsg.style.color = "green";
+        setButtonLoading(loginBtn, false); // Turn off loading
+
+        setTimeout(async () => {
+            // Update current user data based on the newly logged-in user
+            currentUserId = user.uid;
+            const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+            const profileDocSnap = await getDoc(profileDocRef);
+            if (profileDocSnap.exists()) {
+                currentUserData = profileDocSnap.data();
+                document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+            } else {
+                // This scenario should be rare if signup creates a profile, but good fallback
+                await setDoc(profileDocRef, {
+                    email: user.email,
+                    name: user.email.split("@")[0],
+                    regNo: "N/A",
+                    programme: "N/A",
+                    campus: "Main Campus",
+                    dob: "2000-01-01",
+                    gender: "Male",
+                    address: "N/A",
+                    profilePhotoURL: "",
+                    initialized: true
+                }, { merge: true });
+                currentUserData = (await getDoc(profileDocRef)).data();
+                document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+            }
+
+            // Perform UI transition after delay
+            authContainer.style.display = 'none';
+            dashboardContainer.style.display = 'flex';
+            loadingOverlay.style.display = 'none';
+            populateInitialData();
+            showDashboardSection('home');
+            isManualLoginTransition = false; // Reset flag
+        }, 1500); // 1.5 second delay
       } catch (error) {
         setButtonLoading(loginBtn, false);
         let errorMessage = "❌ Login failed.";
