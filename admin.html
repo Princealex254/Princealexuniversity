@@ -502,7 +502,7 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
@@ -572,9 +572,8 @@
                 const res = await signInWithEmailAndPassword(auth, email, password);
                 const user = res.user;
 
-                // Check if the user is an admin
-                // Convert email to lowercase for consistent Firestore lookups
-                const adminDoc = await getDoc(doc(db, 'admins', user.email.toLowerCase()));
+                // Check if the user is an admin by UID
+                const adminDoc = await getDoc(doc(db, 'admins', user.uid));
                 if (adminDoc.exists() && adminDoc.data().isAdmin) {
                     showCustomModal('Success', 'Admin login successful!', false);
                 } else {
@@ -585,7 +584,7 @@
 
             } catch (error) {
                 let errorMessage = 'An unknown error occurred.';
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     errorMessage = 'Invalid email or password. Please try again.';
                 } else if (error.code === 'auth/invalid-email') {
                     errorMessage = 'The email address is not valid.';
@@ -602,9 +601,8 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 showLoading('Verifying admin access...');
-                // Check for admin status on every state change
-                // Convert email to lowercase for consistent Firestore lookups
-                const adminDoc = await getDoc(doc(db, 'admins', user.email.toLowerCase()));
+                // Check for admin status on every state change using UID
+                const adminDoc = await getDoc(doc(db, 'admins', user.uid));
                 if (adminDoc.exists() && adminDoc.data().isAdmin) {
                     authWrapper.classList.add('hidden');
                     dashboardContainer.classList.remove('hidden');
@@ -663,7 +661,8 @@
                 hideLoading();
                 return;
             }
-            const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+            // Check admin status using UID
+            const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
             if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                 showCustomModal('Permission Denied', 'You do not have administrative privileges to access this section.', false);
                 hideLoading();
@@ -836,7 +835,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#studentsTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to view student data.</td></tr>`;
                     hideLoading();
@@ -889,7 +888,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to add student data.', false);
                     hideLoading();
@@ -932,7 +931,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update student data.', false);
                     hideLoading();
@@ -941,7 +940,7 @@
                 await updateDoc(doc(db, 'students', uid), studentData);
                 showCustomModal('Success', 'Student updated successfully.', false);
                 fetchStudents();
-            } catch (error) {
+            } <a href="#" class="inline-flex text-yellow-500 hover:text-yellow-700" title="Copy to clipboard" onclick="copyToClipboard('error_updating_student_1'); event.preventDefault();"><i class="fas fa-copy"></i></a>catch (error) {
                 showCustomModal('Error', 'Failed to update student: ' + error.message, false);
                 console.error("Error updating student:", error); // Log detailed error
             } finally {
@@ -955,7 +954,7 @@
                 try {
                     // Permission check
                     const currentUser = auth.currentUser;
-                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                     if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                         showCustomModal('Permission Denied', 'You do not have permission to delete student data.', false);
                         hideLoading();
@@ -979,7 +978,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#studentsTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to search student data.</td></tr>`;
                     hideLoading();
@@ -1016,7 +1015,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#coursesTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to view course data.</td></tr>`;
                     hideLoading();
@@ -1069,7 +1068,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to add course data.', false);
                     hideLoading();
@@ -1112,7 +1111,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update course data.', false);
                     hideLoading();
@@ -1135,7 +1134,7 @@
                 try {
                     // Permission check
                     const currentUser = auth.currentUser;
-                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                     if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                         showCustomModal('Permission Denied', 'You do not have permission to delete course data.', false);
                         hideLoading();
@@ -1159,7 +1158,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#coursesTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to search course data.</td></tr>`;
                     hideLoading();
@@ -1201,7 +1200,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.getElementById('feesContent').classList.add('hidden');
                     document.querySelector('#feesTable tbody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">You do not have permission to view fees data.</td></tr>`;
@@ -1318,7 +1317,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to modify fee records.', false);
                     hideLoading();
@@ -1375,7 +1374,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.getElementById('gradesContent').classList.add('hidden');
                     document.querySelector('#gradesTable tbody').innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">You do not have permission to view grades data.</td></tr>`;
@@ -1421,7 +1420,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to edit grades.', false);
                     hideLoading();
@@ -1472,7 +1471,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update grades.', false);
                     hideLoading();
@@ -1501,7 +1500,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#hostelsTable tbody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">You do not have permission to view hostel data.</td></tr>`;
                     hideLoading();
@@ -1551,7 +1550,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to add hostel data.', false);
                     hideLoading();
@@ -1591,7 +1590,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update hostel data.', false);
                     hideLoading();
@@ -1614,7 +1613,7 @@
                 try {
                     // Permission check
                     const currentUser = auth.currentUser;
-                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                     if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                         showCustomModal('Permission Denied', 'You do not have permission to delete hostel data.', false);
                         hideLoading();
@@ -1637,7 +1636,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to toggle hostel applications.', false);
                     hideLoading();
@@ -1689,7 +1688,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#announcementsTable tbody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">You do not have permission to view announcements.</td></tr>`;
                     hideLoading();
@@ -1736,7 +1735,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to add announcements.', false);
                     hideLoading();
@@ -1774,7 +1773,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update announcements.', false);
                     hideLoading();
@@ -1797,7 +1796,7 @@
                 try {
                     // Permission check
                     const currentUser = auth.currentUser;
-                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                     if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                         showCustomModal('Permission Denied', 'You do not have permission to delete announcements.', false);
                         hideLoading();
@@ -1822,7 +1821,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#graduationRequestsTable tbody').innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">You do not have permission to view graduation requests.</td></tr>`;
                     hideLoading();
@@ -1866,7 +1865,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update graduation requests.', false);
                     hideLoading();
@@ -1875,7 +1874,7 @@
                 await updateDoc(doc(db, 'graduationRequests', id), { status: status });
                 showCustomModal('Success', `Graduation request ${status} successfully.`, false);
                 fetchGraduationRequests();
-            } catch (error) {
+            } <a href="#" class="inline-flex text-yellow-500 hover:text-yellow-700" title="Copy to clipboard" onclick="copyToClipboard('error_updating_graduation_request_1'); event.preventDefault();"><i class="fas fa-copy"></i></a>catch (error) {
                 showCustomModal('Error', 'Failed to update request: ' + error.message, false);
                 console.error("Error updating graduation request status:", error); // Log detailed error
             } finally {
@@ -1889,7 +1888,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#clearanceRequestsTable tbody').innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">You do not have permission to view clearance requests.</td></tr>`;
                     hideLoading();
@@ -1933,7 +1932,7 @@
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to update clearance requests.', false);
                     hideLoading();
@@ -1956,7 +1955,7 @@
             try {
                 // Permission check - only allow if current user is admin
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     document.querySelector('#adminsTable tbody').innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">You do not have permission to view admin users.</td></tr>`;
                     hideLoading();
@@ -1965,14 +1964,15 @@
 
                 const adminsRef = collection(db, 'admins');
                 const snapshot = await getDocs(adminsRef);
-                const admins = snapshot.docs.map(d => ({ id: d.id, email: d.id, isAdmin: d.data().isAdmin }));
+                // Map to include id (which is UID) and email field
+                const admins = snapshot.docs.map(d => ({ id: d.id, email: d.data().email, isAdmin: d.data().isAdmin }));
 
                 // Filter out the current logged-in admin from the list to prevent self-deletion
-                const filteredAdmins = admins.filter(admin => currentUser && admin.email !== currentUser.email.toLowerCase());
+                const filteredAdmins = admins.filter(admin => currentUser && admin.id !== currentUser.uid);
 
                 const columns = ['email', 'isAdmin'];
                 const actions = [
-                    { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (admin) => removeAdmin(admin.id), condition: (admin) => currentUser && admin.email !== currentUser.email.toLowerCase() } // Condition to prevent removing self
+                    { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (admin) => removeAdmin(admin.id), condition: (admin) => currentUser && admin.id !== currentUser.uid } // Condition to prevent removing self (now compares UIDs)
                 ];
 
                 renderTable('adminsTable', filteredAdmins, columns, actions);
@@ -1986,58 +1986,81 @@
 
         function addAdminModal() {
             showCustomModal('Add New Admin', `
-                <input type="email" id="newAdminEmail" placeholder="Admin Email" class="w-full p-2 mb-2 border rounded-md" />
+                <input type="email" id="newAdminEmail" placeholder="Admin Email" class="w-full p-2 mb-2 border rounded-md" required />
+                <input type="password" id="newAdminPassword" placeholder="Temporary Password" class="w-full p-2 mb-2 border rounded-md" required />
+                <p class="text-sm text-gray-600">The new admin will use this temporary password to log in and should change it immediately.</p>
             `, true, async () => {
                 const email = document.getElementById('newAdminEmail').value;
-                if (!email) {
-                    showCustomModal('Error', 'Please enter an email address.', false);
+                const password = document.getElementById('newAdminPassword').value;
+
+                if (!email || !password) {
+                    showCustomModal('Error', 'Please enter both email and a temporary password.', false);
                     return;
                 }
-                await addNewAdmin(email.toLowerCase()); // Convert email to lowercase
+                if (password.length < 6) {
+                    showCustomModal('Error', 'Password must be at least 6 characters long.', false);
+                    return;
+                }
+                await addNewAdmin(email.toLowerCase(), password); // Convert email to lowercase
             });
         }
 
-        async function addNewAdmin(email) {
+        async function addNewAdmin(email, password) {
             showLoading('Adding new admin...');
             try {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to add new admins.', false);
                     hideLoading();
                     return;
                 }
-                await setDoc(doc(db, 'admins', email), { isAdmin: true });
-                showCustomModal('Success', `${email} added as admin successfully.`, false);
+                
+                // 1. Create user in Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const uid = userCredential.user.uid;
+
+                // 2. Add admin role to Firestore using UID as document ID
+                await setDoc(doc(db, 'admins', uid), {
+                    email: email, // Store email as a field
+                    isAdmin: true
+                });
+                showCustomModal('Success', `${email} added as admin successfully. Their UID is: ${uid}`, false);
                 fetchAdmins();
             } catch (error) {
-                showCustomModal('Error', 'Failed to add admin: ' + error.message, false);
+                let errorMessage = 'Failed to add admin: ' + error.message;
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'The email address is already in use by another account. You can log in with that account and mark it as admin.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'The password is too weak. Please use a stronger password.';
+                }
+                showCustomModal('Error', errorMessage, false);
                 console.error("Error adding new admin:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
         }
 
-        async function removeAdmin(email) {
-            showCustomModal('Confirm Removal', `Are you sure you want to remove ${email} as an admin?`, true, async () => {
+        async function removeAdmin(uid) { // Function now accepts UID
+            showCustomModal('Confirm Removal', `Are you sure you want to remove this admin? This action cannot be undone.`, true, async () => {
                 // Permission check
                 const currentUser = auth.currentUser;
-                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.uid));
                 if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
                     showCustomModal('Permission Denied', 'You do not have permission to remove admins.', false);
                     hideLoading();
                     return;
                 }
 
-                if (currentUser && email === currentUser.email.toLowerCase()) { // Compare lowercase emails
+                if (currentUser && uid === currentUser.uid) { // Compare UIDs for self-removal check
                     showCustomModal('Error', 'You cannot remove yourself as an admin.', false);
                     return;
                 }
                 showLoading('Removing admin...');
                 try {
-                    await deleteDoc(doc(db, 'admins', email));
-                    showCustomModal('Success', `${email} removed as admin successfully.`, false);
+                    await deleteDoc(doc(db, 'admins', uid));
+                    showCustomModal('Success', `Admin removed successfully.`, false);
                     fetchAdmins();
                 } catch (error) {
                     showCustomModal('Error', 'Failed to remove admin: ' + error.message, false);
