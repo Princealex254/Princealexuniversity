@@ -569,17 +569,31 @@
 
             try {
                 showLoading('Authenticating...');
+                console.log("Attempting sign-in for:", email);
                 const res = await signInWithEmailAndPassword(auth, email, password);
                 const user = res.user;
+                console.log("User signed in:", user.uid);
 
                 // Check if the user is an admin by UID
-                const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-                if (adminDoc.exists() && adminDoc.data().isAdmin) {
-                    showCustomModal('Success', 'Admin login successful!', false);
+                const adminDocRef = doc(db, "admins", user.uid);
+                console.log("Checking admin doc:", adminDocRef.path);
+                const adminDoc = await getDoc(adminDocRef);
+                
+                console.log("Admin doc exists:", adminDoc.exists());
+                if (adminDoc.exists()) {
+                    console.log("Admin data:", adminDoc.data());
+                    if (adminDoc.data().isAdmin === true) {
+                        console.log("✅ Admin login successful");
+                        showCustomModal('Success', 'Admin login successful!', false);
+                    } else {
+                        console.error("🚫 User exists but is not an admin in Firestore");
+                        showCustomModal('Authorization Failed', 'Your account is not authorized as an administrator.', false);
+                        await signOut(auth); // Sign out if Firebase Auth exists but not authorized in Firestore
+                    }
                 } else {
-                    // Not authorized, sign out
-                    await signOut(auth);
-                    showCustomModal('Authorization Failed', 'You are not authorized to access this dashboard. Please log in with a valid admin account.', false);
+                    console.error("🚫 Admin document not found for UID:", user.uid);
+                    showCustomModal('Authorization Failed', 'No administrator record found for your account. Please check your credentials or contact support.', false);
+                    await signOut(auth); // Sign out if no admin document exists
                 }
 
             } catch (error) {
@@ -591,8 +605,8 @@
                 } else if (error.code === 'auth/too-many-requests') {
                     errorMessage = 'Too many login attempts. Please try again later.';
                 }
+                console.error("🔥 Login error:", error); // Log detailed error
                 showCustomModal('Login Failed', errorMessage, false);
-                console.error("Login error:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -601,30 +615,107 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 showLoading('Verifying admin access...');
+                console.log("onAuthStateChanged: User detected. UID:", user.uid);
                 // Check for admin status on every state change using UID
-                const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-                if (adminDoc.exists() && adminDoc.data().isAdmin) {
-                    authWrapper.classList.add('hidden');
-                    dashboardContainer.classList.remove('hidden');
-                    showAdminSection('dashboard'); // Default to dashboard view on successful admin login
-                } else {
-                    // Not authorized, sign out and show message
+                const adminDocRef = doc(db, 'admins', user.uid);
+                console.log("onAuthStateChanged: Checking admin doc:", adminDocRef.path);
+                try {
+                    const adminDoc = await getDoc(adminDocRef);
+                    console.log("onAuthStateChanged: Admin doc exists:", adminDoc.exists());
+                    if (adminDoc.exists() && adminDoc.data().isAdmin) {
+                        console.log("onAuthStateChanged: ✅ Admin authorized. Showing dashboard.");
+                        authWrapper.classList.add('hidden');
+                        dashboardContainer.classList.remove('hidden');
+                        showAdminSection('dashboard'); // Default to dashboard view on successful admin login
+                    } else {
+                        console.error("onAuthStateChanged: 🚫 User authenticated but not an admin in Firestore. Signing out.");
+                        await signOut(auth); // Sign out if Firebase Auth exists but not authorized in Firestore
+                        authWrapper.classList.remove('hidden');
+                        dashboardContainer.classList.add('hidden');
+                        // Display unauthorized message directly on the page instead of just a modal
+                        document.getElementById('authForm').innerHTML = `
+                            <h2 class="text-3xl font-bold text-red-700 mb-4 text-center">Access Denied</h2>
+                            <p class="text-gray-700 mb-6 text-center">You are not authorized to access this page.</p>
+                            <button onclick="window.location.reload();" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Back to Login</button>
+                        `;
+                    }
+                } catch (error) {
+                    console.error("onAuthStateChanged: 🔥 Error reading admin document during verification:", error);
+                    showCustomModal('Error', 'Failed to verify admin status: ' + error.message, false);
                     await signOut(auth);
-                    authWrapper.classList.remove('hidden');
-                    dashboardContainer.classList.add('hidden');
-                    // Display unauthorized message directly on the page instead of just a modal
-                    document.getElementById('authForm').innerHTML = `
-                        <h2 class="text-3xl font-bold text-red-700 mb-4 text-center">Access Denied</h2>
-                        <p class="text-gray-700 mb-6 text-center">You are not authorized to access this page.</p>
-                        <button onclick="window.location.reload();" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Back to Login</button>
-                    `;
                 }
             } else {
+                console.log("onAuthStateChanged: No user detected. Showing login form.");
                 authWrapper.classList.remove('hidden');
                 dashboardContainer.classList.add('hidden');
                 // Ensure the login form is visible if not authenticated
                 if (document.getElementById('admin-login-form')) {
                     document.getElementById('admin-login-form').classList.remove('hidden');
+                    document.getElementById('authForm').innerHTML = `
+                        <h2 class="text-4xl font-extrabold text-green-800 mb-8 text-center">Admin Login</h2>
+                        <form id="admin-login-form">
+                            <div class="mb-6">
+                                <label for="email-login" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+                                <input type="email" id="email-login" placeholder="Enter your admin email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200"/>
+                                <p id="email-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                            </div>
+                            <div class="mb-6">
+                                <label for="password-login" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                                <input type="password" id="password-login" placeholder="Enter your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200"/>
+                                <p id="password-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                            </div>
+                            <button type="submit" id="login-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Login</button>
+                        </form>
+                    `;
+                    // Re-attach event listener for the dynamically recreated form
+                    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const email = document.getElementById('email-login').value;
+                        const password = document.getElementById('password-login').value;
+
+                        try {
+                            showLoading('Authenticating...');
+                            console.log("Attempting sign-in for:", email);
+                            const res = await signInWithEmailAndPassword(auth, email, password);
+                            const user = res.user;
+                            console.log("User signed in:", user.uid);
+
+                            const adminDocRef = doc(db, "admins", user.uid);
+                            console.log("Checking admin doc:", adminDocRef.path);
+                            const adminDoc = await getDoc(adminDocRef);
+                            
+                            console.log("Admin doc exists:", adminDoc.exists());
+                            if (adminDoc.exists()) {
+                                console.log("Admin data:", adminDoc.data());
+                                if (adminDoc.data().isAdmin === true) {
+                                    console.log("✅ Admin login successful");
+                                    showCustomModal('Success', 'Admin login successful!', false);
+                                } else {
+                                    console.error("🚫 User exists but is not an admin in Firestore");
+                                    showCustomModal('Authorization Failed', 'Your account is not authorized as an administrator.', false);
+                                    await signOut(auth);
+                                }
+                            } else {
+                                console.error("🚫 Admin document not found for UID:", user.uid);
+                                showCustomModal('Authorization Failed', 'No administrator record found for your account. Please check your credentials or contact support.', false);
+                                await signOut(auth);
+                            }
+
+                        } catch (error) {
+                            let errorMessage = 'An unknown error occurred.';
+                            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                                errorMessage = 'Invalid email or password. Please try again.';
+                            } else if (error.code === 'auth/invalid-email') {
+                                errorMessage = 'The email address is not valid.';
+                            } else if (error.code === 'auth/too-many-requests') {
+                                errorMessage = 'Too many login attempts. Please try again later.';
+                            }
+                            console.error("🔥 Login error:", error);
+                            showCustomModal('Login Failed', errorMessage, false);
+                        } finally {
+                            hideLoading();
+                        }
+                    });
                 }
             }
             hideLoading();
@@ -940,7 +1031,7 @@
                 await updateDoc(doc(db, 'students', uid), studentData);
                 showCustomModal('Success', 'Student updated successfully.', false);
                 fetchStudents();
-            } <a href="#" class="inline-flex text-yellow-500 hover:text-yellow-700" title="Copy to clipboard" onclick="copyToClipboard('error_updating_student_1'); event.preventDefault();"><i class="fas fa-copy"></i></a>catch (error) {
+            } catch (error) {
                 showCustomModal('Error', 'Failed to update student: ' + error.message, false);
                 console.error("Error updating student:", error); // Log detailed error
             } finally {
@@ -1874,7 +1965,7 @@
                 await updateDoc(doc(db, 'graduationRequests', id), { status: status });
                 showCustomModal('Success', `Graduation request ${status} successfully.`, false);
                 fetchGraduationRequests();
-            } <a href="#" class="inline-flex text-yellow-500 hover:text-yellow-700" title="Copy to clipboard" onclick="copyToClipboard('error_updating_graduation_request_1'); event.preventDefault();"><i class="fas fa-copy"></i></a>catch (error) {
+            } catch (error) {
                 showCustomModal('Error', 'Failed to update request: ' + error.message, false);
                 console.error("Error updating graduation request status:", error); // Log detailed error
             } finally {
