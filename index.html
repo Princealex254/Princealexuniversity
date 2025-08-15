@@ -490,61 +490,70 @@
 
     // --- Authentication Flow ---
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUserId = user.uid;
-        console.log("User authenticated (from onAuthStateChanged):", user.email, user.uid);
+      try {
+        if (user) {
+          currentUserId = user.uid;
+          console.log("User authenticated (from onAuthStateChanged):", user.email, user.uid);
 
-        // Fetch or create user data from Firestore
-        const profileDocRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
-        const profileDocSnap = await getDoc(profileDocRef);
+          // Fetch or create user data from Firestore
+          const profileDocRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
+          const profileDocSnap = await getDoc(profileDocRef);
 
-        if (profileDocSnap.exists()) {
-          currentUserData = profileDocSnap.data();
-          document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-          // Update mobile greeting
-          const userNameMobile = document.getElementById("userNameMobile");
-          if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+          if (profileDocSnap.exists()) {
+            currentUserData = profileDocSnap.data();
+            document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+            // Update mobile greeting
+            const userNameMobile = document.getElementById("userNameMobile");
+            if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+          } else {
+            // If profile does not exist (e.g., first login/anonymous signup), create a basic one
+            await setDoc(profileDocRef, {
+              email: user.email,
+              name: user.email.split("@")[0], // Placeholder name
+              regNo: "N/A",
+              programme: "N/A",
+              campus: "Main Campus",
+              dob: "N/A",
+              gender: "N/A",
+              address: "N/A",
+              profilePhotoURL: "",
+              createdAt: new Date().toISOString(),
+              initialized: true
+            });
+            currentUserData = (await getDoc(profileDocRef)).data();
+            document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+            const userNameMobile = document.getElementById("userNameMobile");
+            if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+            console.log("Created basic user profile during dashboard load fallback.");
+          }
+
+          // --- UI Transition to Dashboard ---
+          authContainer.classList.add('hidden'); // Hide auth forms container
+          dashboardContainer.classList.remove('hidden'); // Show dashboard
+          
+
+          // Check if essential profile data is incomplete (adjust as needed for what constitutes 'incomplete')
+          if (currentUserData.regNo === 'N/A' || currentUserData.programme === 'N/A' || currentUserData.dob === 'N/A' || currentUserData.gender === 'N/A') {
+              await showCustomModal("Welcome", "Please complete your profile information.");
+              showDashboardSection('profile'); // Direct user to profile page
+          } else {
+              showDashboardSection('home'); // Show default dashboard content
+          }
+
         } else {
-          // If profile does not exist (e.g., first login/anonymous signup), create a basic one
-          await setDoc(profileDocRef, {
-            email: user.email,
-            name: user.email.split("@")[0], // Placeholder name
-            regNo: "N/A",
-            programme: "N/A",
-            campus: "Main Campus",
-            dob: "N/A",
-            gender: "N/A",
-            address: "N/A",
-            profilePhotoURL: "",
-            createdAt: new Date().toISOString(),
-            initialized: true
-          });
-          currentUserData = (await getDoc(profileDocRef)).data();
-          document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-          const userNameMobile = document.getElementById("userNameMobile");
-          if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-          console.log("Created basic user profile during dashboard load fallback.");
+          // User is signed out or not logged in, show login page
+          // authContainer is already visible by default in HTML
+          dashboardContainer.classList.add('hidden'); // Ensure dashboard is hidden
+          showForm('login'); // Ensure login form is visible and active
         }
-
-        // --- UI Transition to Dashboard ---
-        authContainer.classList.add('hidden'); // Hide auth forms container
-        dashboardContainer.classList.remove('hidden'); // Show dashboard
-        loadingOverlay.classList.add('hidden'); // Ensure loading overlay is hidden
-
-        // Check if essential profile data is incomplete (adjust as needed for what constitutes 'incomplete')
-        if (currentUserData.regNo === 'N/A' || currentUserData.programme === 'N/A' || currentUserData.dob === 'N/A' || currentUserData.gender === 'N/A') {
-            await showCustomModal("Welcome", "Please complete your profile information.");
-            showDashboardSection('profile'); // Direct user to profile page
-        } else {
-            showDashboardSection('home'); // Show default dashboard content
-        }
-
-      } else {
-        // User is signed out or not logged in, show login page
-        // authContainer is already visible by default in HTML
-        dashboardContainer.classList.add('hidden'); // Ensure dashboard is hidden
-        loadingOverlay.classList.add('hidden'); // Ensure loading overlay is hidden
-        showForm('login'); // Ensure login form is visible and active
+      } catch (error) {
+          console.error("Error in onAuthStateChanged:", error);
+          await showCustomModal("Initialization Error", "Failed to load user data or dashboard. Please try again.");
+          // Fallback to showing login form on unhandled error during dashboard init
+          dashboardContainer.classList.add('hidden');
+          showForm('login');
+      } finally {
+          hideLoading(); // Ensure loading overlay is hidden regardless of outcome
       }
     });
 
@@ -1965,6 +1974,7 @@
           await loadClearanceRequest();
           break;
         case 'timetable':
+            showLoading("Loading timetable...");
             content.innerHTML = generateBreadcrumb('Timetable') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Academic Timetable</h2>
@@ -1974,24 +1984,30 @@
                     </button>
                 </div>
             `;
+            hideLoading();
             break;
         case 'evaluation':
+            showLoading("Loading course evaluation...");
             content.innerHTML = generateBreadcrumb('Course Evaluation') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Course Evaluation</h2>
                     <p class="text-gray-700 py-8">Course evaluations are not open at this time. They usually become available towards the end of the semester.</p>
                 </div>
             `;
+            hideLoading();
             break;
         case 'receipts':
+            showLoading("Loading receipts...");
             content.innerHTML = generateBreadcrumb('Receipts') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Payment Receipts</h2>
                     <p class="text-gray-700 py-8">No official receipts are available online at this moment. You can always refer to your <a href="#" onclick="showDashboardSection('fees')" class="text-blue-600 hover:underline">Fees Statement</a> for payment records.</p>
                 </div>
             `;
+            hideLoading();
             break;
         case 'examCard':
+            showLoading("Loading exam card...");
             content.innerHTML = generateBreadcrumb('Exam Card') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Exam Card</h2>
@@ -2001,31 +2017,37 @@
                     </button>
                 </div>
             `;
+            hideLoading();
             break;
         case 'examTimetable':
+            showLoading("Loading exam timetable...");
             content.innerHTML = generateBreadcrumb('Exam Timetable') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Examination Timetable</h2>
                     <p class="text-gray-700 py-8">The examination timetable has not been released yet. Please check back closer to the examination period.</p>
                 </div>
             `;
+            hideLoading();
             break;
         case 'transcripts':
           await loadTranscripts(); // Calls the dedicated loadTranscripts function
           break;
         case 'settings':
+            showLoading("Loading settings...");
             content.innerHTML = generateBreadcrumb('Settings') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Settings</h2>
                     <p class="text-gray-700 py-8">Settings options are under development. Check back later!</p>
                 </div>
             `;
+            hideLoading();
             break;
         default:
+          showLoading(`Loading ${section.charAt(0).toUpperCase() + section.slice(1)}...`);
           content.innerHTML = generateBreadcrumb(section.charAt(0).toUpperCase() + section.slice(1)) + `<p class="text-center text-gray-500 py-8">Content for this section is coming soon.</p>`;
+          hideLoading();
           break;
       }
-      hideLoading(); // Ensure loading is hidden after content is set
     }
 
     // Existing functions that don't need changes but are included for completeness
