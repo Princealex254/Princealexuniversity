@@ -552,13 +552,14 @@
         }, { merge: true }); // Use merge to avoid overwriting if doc was created by login fallback
         console.log("Basic user profile created/merged under /users/{uid}:", user.email);
 
-
-        signupResultMsg.innerText = "✅ Signup successful! You can now login.";
+        // Success message and redirection to login form
+        signupResultMsg.innerText = "✅ Signup successful! Please log in with your new account.";
         signupResultMsg.style.color = "green";
-        // Optionally redirect to login form after successful signup
+        
         setTimeout(() => {
-          showForm('login');
-        }, 1500);
+          showForm('login'); // Show the login form
+        }, 2000); // Give user a moment to read the success message
+
       } catch (error) {
         setButtonLoading(signupBtn, false);
         let errorMessage = "❌ Signup failed.";
