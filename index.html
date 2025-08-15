@@ -345,7 +345,7 @@
       apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
       authDomain: "universityweb-19e1e.firebaseapp.com",
       projectId: "universityweb-19e1e",
-      storageBucket: "universityweb-19e1e.firebasestorage.app",
+      storageBucket: "universityweb-19e1e.appspot.com", // Updated storageBucket
       messagingSenderId: "401942926589",
       appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
     };
@@ -455,7 +455,8 @@
         console.log("User logged in:", user.email);
 
         // Fetch user data from Firestore to confirm registration
-        const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/students`, user.uid);
+        // Path adjusted to look for user profile directly under /users/{uid}
+        const userDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (!userDocSnap.exists()) {
@@ -526,9 +527,9 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Create a user document in Firestore
-        const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/students`, user.uid);
-        await setDoc(userDocRef, {
+        // Create a user document in Firestore under the 'students' subcollection (as per original logic)
+        const studentDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/students`, user.uid);
+        await setDoc(studentDocRef, {
             email: user.email,
             name: fullName,
             regNo: "N/A", // Placeholder, can be updated later
@@ -541,7 +542,16 @@
             createdAt: new Date().toISOString(),
             initialized: true // Mark as initialized
         });
-        console.log("User signed up and profile created:", user.email);
+        console.log("User signed up and detailed student profile created:", user.email);
+
+        // Create minimal profile doc for dashboard login
+        await setDoc(doc(db, `artifacts/${appId}/users`, user.uid), {
+            email: user.email,
+            name: fullName,
+            createdAt: new Date().toISOString()
+        }, { merge: true }); // Use merge to avoid overwriting if doc was created by login fallback
+        console.log("Basic user profile created/merged under /users/{uid}:", user.email);
+
 
         signupResultMsg.innerText = "✅ Signup successful! You can now login.";
         signupResultMsg.style.color = "green";
