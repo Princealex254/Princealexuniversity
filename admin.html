@@ -1,659 +1,1570 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Dashboard — University Portal (Upgraded)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | Student Portal</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfTLZyH6ONeV8Su2V9Y77Z3V0N219X2V1Q+qF2F6G1OZQ7aXwIM5x5xg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- jsPDF + autoTable for PDF export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --card: #0f172a;
-      --muted: #8b98a5;
-      --ring: rgba(0,0,0,.08);
-      --pri: #10b981; /* emerald */
-      --pri-700: #047857;
-    }
-    html, body { height: 100%; }
-    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: #e5e7eb; }
-    .glass { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); }
-    .sidebar { width: 280px; }
-    .navlink { @apply flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200; }
-    .navlink:hover { background: rgba(255,255,255,.06); transform: translateY(-2px); }
-    .navlink.active { background: rgba(16,185,129,.15); color: #fff; border: 1px solid rgba(16,185,129,.25); transform: translateY(0); }
-    .skeleton { position: relative; overflow: hidden; background: rgba(255,255,255,.06); border-radius: .75rem; }
-    .skeleton:after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); animation: shimmer 1.4s infinite; }
-    @keyframes shimmer { 100% { transform: translateX(100%); } }
-    .no-data { background: rgba(16,185,129,.08); border: 1px dashed rgba(16,185,129,.4); color: #c7f8e7; }
-    .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border transition-all duration-200; border-color: rgba(255,255,255,.14); }
-    .btn-primary { background: var(--pri); color: #08130f; border-color: transparent; }
-    .btn-primary:hover { background: #34d399; transform: translateY(-2px); }
-    .btn-muted { background: rgba(255,255,255,.06); }
-    .table-wrap { overflow-x: auto; }
-    table.data { width: 100%; min-width: 880px; border-collapse: separate; border-spacing: 0; }
-    table.data th, table.data td { text-align: left; padding: 1.25rem 1rem; }
-    table.data thead th { position: sticky; top: 0; background: #0f172a; z-index: 1; text-transform: uppercase; font-size: .75rem; letter-spacing: .05em; color: #9ca3af; box-shadow: 0 4px 6px rgba(0,0,0,.1); }
-    table.data tbody tr { background: rgba(255,255,255,.02); transition: background .2s; }
-    table.data tbody tr:nth-child(even) { background: rgba(255,255,255,.04); }
-    table.data tbody tr:hover { background: rgba(16,185,129,.08); }
-    table.data tbody tr:last-child td { border-bottom: none; }
-    .chip { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium; background: rgba(16,185,129,.15); color: #c7f8e7; }
-    /* Mobile tweaks */
-    @media (min-width: 1024px){ #burger { display:none; } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .login-fade-in { animation: fadeIn 1s ease-out; }
-    .stat-card-gradient { background: linear-gradient(45deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); }
-  </style>
-</head>
-<body>
-  <div id="loading" class="fixed inset-0 hidden place-items-center z-[100] bg-slate-900/60 backdrop-blur-sm">
-    <div class="w-72 glass p-6 rounded-2xl shadow-2xl text-center">
-      <div class="mx-auto mb-4 h-12 w-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
-      <div id="loadingText" class="text-emerald-300 font-semibold">Loading…</div>
-    </div>
-  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
-  <div id="loginView" class="min-h-screen grid place-items-center p-6 bg-cover bg-center">
-    <div class="w-full max-w-lg glass rounded-3xl p-8 shadow-2xl relative overflow-hidden login-fade-in">
-      <div class="flex items-center justify-center gap-4 mb-8 relative z-10">
-        <div class="h-14 w-14 rounded-2xl bg-emerald-500 grid place-items-center text-slate-900 text-2xl shadow-xl"><i class="fa-solid fa-graduation-cap"></i></div>
-        <h1 class="text-4xl font-extrabold text-white tracking-wide">Admin Login</h1>
-      </div>
-      <p class="text-sm text-slate-400 mb-6 text-center relative z-10">Sign in with an account that has administrator privileges.</p>
-      <div class="space-y-4 relative z-10">
-        <div>
-          <label class="block text-sm text-slate-400 mb-2">Email</label>
-          <div class="relative">
-            <input id="email" type="email" class="w-full rounded-xl bg-slate-900/60 border border-slate-700 px-4 py-3 pl-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" placeholder="admin@example.com" />
-            <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm text-slate-400 mb-2">Password</label>
-          <div class="relative">
-            <input id="password" type="password" class="w-full rounded-xl bg-slate-900/60 border border-slate-700 px-4 py-3 pl-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" placeholder="••••••••" />
-            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-          </div>
-        </div>
-        <button id="loginBtn" class="btn btn-primary w-full justify-center text-lg font-semibold mt-6 transition-all transform hover:scale-105"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="app" class="hidden min-h-screen">
-    <header class="lg:hidden sticky top-0 z-40 px-4 py-3 flex items-center justify-between glass">
-      <button id="burger" class="btn btn-muted px-3 py-2"><i class="fa-solid fa-bars"></i></button>
-      <div class="flex items-center gap-2 font-semibold"><i class="fa-solid fa-graduation-cap text-emerald-400"></i> Admin Portal</div>
-      <button id="logoutBtn" class="btn btn-muted"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
-    </header>
-
-    <div class="flex">
-      <aside id="sidebar" class="sidebar fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-[calc(100vh)] glass p-4 flex flex-col gap-4 -translate-x-full lg:translate-x-0 transition-transform duration-300 z-50">
-        <div class="hidden lg:flex items-center gap-3 px-2">
-          <div class="h-10 w-10 rounded-xl bg-emerald-500 grid place-items-center text-slate-900 shadow-xl"><i class="fa-solid fa-graduation-cap"></i></div>
-          <div>
-            <div class="font-bold text-xl leading-tight text-white">University Portal</div>
-            <div class="text-sm text-emerald-300">Admin Control</div>
-          </div>
-        </div>
-        <nav class="mt-4 space-y-2">
-          <div class="text-xs font-semibold uppercase text-slate-500 px-2 pt-2 pb-1">Main Menu</div>
-          <a data-section="dashboard" class="navlink active group" href="#"><i class="fa-solid fa-chart-line group-hover:text-emerald-300 transition-colors"></i><span>Dashboard</span></a>
-          <a data-section="students" class="navlink group" href="#"><i class="fa-solid fa-users group-hover:text-emerald-300 transition-colors"></i><span>Students</span></a>
-          <a data-section="courses" class="navlink group" href="#"><i class="fa-solid fa-book group-hover:text-emerald-300 transition-colors"></i><span>Courses</span></a>
-          <a data-section="fees" class="navlink group" href="#"><i class="fa-solid fa-money-bill-wave group-hover:text-emerald-300 transition-colors"></i><span>Fees</span></a>
-          <div class="text-xs font-semibold uppercase text-slate-500 px-2 pt-4 pb-1">Management</div>
-          <a data-section="grades" class="navlink group" href="#"><i class="fa-solid fa-award group-hover:text-emerald-300 transition-colors"></i><span>Grades</span></a>
-          <a data-section="hostels" class="navlink group" href="#"><i class="fa-solid fa-building group-hover:text-emerald-300 transition-colors"></i><span>Hostels</span></a>
-          <a data-section="announcements" class="navlink group" href="#"><i class="fa-solid fa-bullhorn group-hover:text-emerald-300 transition-colors"></i><span>Announcements</span></a>
-          <a data-section="graduation" class="navlink group" href="#"><i class="fa-solid fa-graduation-cap group-hover:text-emerald-300 transition-colors"></i><span>Graduation</span></a>
-          <a data-section="clearance" class="navlink group" href="#"><i class="fa-solid fa-check-circle group-hover:text-emerald-300 transition-colors"></i><span>Clearance</span></a>
-          <a data-section="admins" class="navlink group" href="#"><i class="fa-solid fa-user-shield group-hover:text-emerald-300 transition-colors"></i><span>Admins</span></a>
-        </nav>
-        <div class="mt-auto">
-          <button id="logoutBtn2" class="btn w-full justify-center"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
-        </div>
-      </aside>
-
-      <main class="flex-1 min-h-[100dvh] lg:ml-[280px] p-4 lg:p-8 space-y-6">
-        <div class="hidden lg:flex items-center justify-between">
-          <h1 class="text-2xl lg:text-3xl font-bold">Admin Dashboard</h1>
-          <div class="text-sm text-slate-400" id="adminBadge"><span class="chip">Not verified</span></div>
-        </div>
-
-        <section id="dashboardSection" class="space-y-6"></section>
-        <section id="studentsSection" class="hidden space-y-4"></section>
-        <section id="coursesSection" class="hidden space-y-4"></section>
-        <section id="feesSection" class="hidden space-y-4"></section>
-        <section id="gradesSection" class="hidden space-y-4"></section>
-        <section id="hostelsSection" class="hidden space-y-4"></section>
-        <section id="announcementsSection" class="hidden space-y-4"></section>
-        <section id="graduationSection" class="hidden space-y-4"></section>
-        <section id="clearanceSection" class="hidden space-y-4"></section>
-        <section id="adminsSection" class="hidden space-y-4"></section>
-      </main>
-    </div>
-  </div>
-
+  <!-- Firebase v10 Modular (from CDN) -->
   <script type="module">
-    /* =========================
-       Firebase Setup
-    ==========================*/
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
+      collection, query, where, onSnapshot, getDocs, orderBy, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+    // ----------------------
+    // FIREBASE CONFIG (from index.html)
+    // ----------------------
     const firebaseConfig = {
       apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
       authDomain: "universityweb-19e1e.firebaseapp.com",
       projectId: "universityweb-19e1e",
-      storageBucket: "universityweb-19e1e.firebaseostorage.app",
+      storageBucket: "universityweb-19e1e.appspot.com",
       messagingSenderId: "401942926589",
       appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
     };
 
+    // Init
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
-    // Single admin check flag (set ONCE after login)
-    let isAdminUser = false;
+    // Simple helpers
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-    /* =========================
-       DOM helpers
-    ==========================*/
-    const $ = (sel, root=document) => root.querySelector(sel);
-    const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
-
-    const show = el => el.classList.remove('hidden');
-    const hide = el => el.classList.add('hidden');
-
-    const setLoading = (on, text='Loading…') => {
-      const overlay = $('#loading');
-      $('#loadingText').textContent = text;
-      on ? overlay.classList.remove('hidden') : overlay.classList.add('hidden');
+    const sections = ["dashboard","students","grades","fees","registrations","announcements","courses","timetables","hostels","explorer"];
+    const state = {
+      currentUser: null,
+      isAdmin: false,
+      selectedStudentId: null,
+      unsubscribers: {},
+      // caches for counts
+      counts: { students: 0, courses: 0, announcements: 0 }
     };
 
-    const renderPlaceholder = (container, { title, icon, lines = [], note }) => {
-      container.innerHTML = `
-        <div class="no-data rounded-2xl p-4">
-          <h3 class="text-lg font-semibold mb-1"><i class="${icon} mr-2 text-emerald-400"></i>${title}</h3>
-          ${lines.map(l => `<p class="text-sm text-emerald-200/90">${l}</p>`).join('')}
-          ${note ? `<p class="text-xs mt-2 text-emerald-200/70">${note}</p>`: ''}
-        </div>`;
-    };
+    function showToast(kind, msg) {
+      const el = document.createElement("div");
+      el.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded shadow text-white ${kind==="error"?"bg-red-600":"bg-green-600"}`;
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 3000);
+    }
 
-    const renderSkeletonCards = (container, n=4) => {
-      container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">${
-        Array.from({length:n}).map(() => `<div class="skeleton h-28"></div>`).join('')
-      }</div>`;
-    };
-
-    const table = (headers, rows) => `
-      <div class="table-wrap glass rounded-2xl">
-        <table class="data">
-          <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>
-            ${rows.length ? rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${headers.length}" class="py-6 text-center text-slate-400">No data available.</td></tr>`}
-          </tbody>
-        </table>
-      </div>`;
-
-    const exportTable = (tableId, filename) => {
-      const tbl = document.getElementById(tableId);
-      if(!tbl) return;
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(tbl);
-      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-      XLSX.writeFile(wb, `${filename}.xlsx`);
-    };
-
-    /* =========================
-       Auth flow (single admin check)
-    ==========================*/
-    const loginView = $('#loginView');
-    const appShell = $('#app');
-
-    const showApp = () => { hide(loginView); show(appShell); };
-    const showLogin = () => { show(loginView); hide(appShell); };
-
-    onAuthStateChanged(auth, async (user) => {
-      if(!user){ isAdminUser=false; showLogin(); return; }
-      setLoading(true, 'Verifying administrator…');
-      try {
-        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-        if(adminDoc.exists() && adminDoc.data().isAdmin === true){
-          isAdminUser = true; // ✅ set once
-          $('#adminBadge').innerHTML = '<span class="chip bg-emerald-600/30">Admin verified</span>';
-          showApp();
-          // default section
-          activateSection('dashboard');
-        } else {
-          await signOut(auth);
-          alert('Your account is not authorized as an administrator.');
-        }
-      } catch(err){
-        console.error(err);
-        alert('Login verification failed: '+err.message);
-      } finally { setLoading(false); }
-    });
-
-    $('#loginBtn').addEventListener('click', async() => {
-      const email = $('#email').value.trim();
-      const password = $('#password').value;
-      if(!email || !password){ alert('Enter email and password.'); return; }
-      setLoading(true, 'Signing in…');
-      try{ await signInWithEmailAndPassword(auth, email, password); } catch(e){ alert(e.message); } finally{ setLoading(false); }
-    });
-
-    const doLogout = async () => { try{ await signOut(auth); } catch(e){ alert('Logout failed: '+e.message);} };
-    $('#logoutBtn').addEventListener('click', doLogout);
-    $('#logoutBtn2').addEventListener('click', doLogout);
-
-    // Mobile sidebar toggle
-    $('#burger').addEventListener('click', ()=> {
-      const sb = $('#sidebar');
-      const open = !sb.classList.contains('-translate-x-full');
-      if(open) sb.classList.add('-translate-x-full'); else sb.classList.remove('-translate-x-full');
-    });
-
-    /* =========================
-       Navigation + sections
-    ==========================*/
-    const activateSection = (key) => {
-      // links
-      $$(".navlink").forEach(a=>{
-        if(a.dataset.section===key) a.classList.add('active'); else a.classList.remove('active');
-      });
-      // sections
-      const ids = ['dashboard','students','courses','fees','grades','hostels','announcements','graduation','clearance','admins'];
-      ids.forEach(id => { const sec = document.getElementById(id+"Section"); id===key ? show(sec) : hide(sec); });
-      // render immediate placeholders (never blocked by Firestore)
-      preloadSection(key);
-      // then fetch
-      fetchSection(key);
-      // close mobile sidebar
-      $('#sidebar').classList.add('-translate-x-full');
-    };
-
-    $$(".navlink").forEach(a => a.addEventListener('click', e => { e.preventDefault(); activateSection(a.dataset.section); }));
-
-    const preloadSection = (key) => {
-      const sec = document.getElementById(key+"Section");
-      if(!sec) return;
-      sec.innerHTML = '';
-      // Always show an informative header + skeletons or default tips
-      if(key==='dashboard'){
-        const wrap = document.createElement('div');
-        wrap.className = 'space-y-4';
-        wrap.innerHTML = `
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-            <div class="glass p-6 rounded-2xl relative overflow-hidden group">
-                <i class="fa-solid fa-users absolute top-4 right-4 text-slate-600/50 text-5xl transition-transform group-hover:scale-110"></i>
-                <div class="text-sm text-slate-400 mb-1">Total Students</div>
-                <div id="statStudents" class="text-4xl font-extrabold mt-1 text-white">0</div>
-            </div>
-            <div class="glass p-6 rounded-2xl relative overflow-hidden group">
-                <i class="fa-solid fa-book absolute top-4 right-4 text-slate-600/50 text-5xl transition-transform group-hover:scale-110"></i>
-                <div class="text-sm text-slate-400 mb-1">Total Courses</div>
-                <div id="statCourses" class="text-4xl font-extrabold mt-1 text-white">0</div>
-            </div>
-            <div class="glass p-6 rounded-2xl relative overflow-hidden group">
-                <i class="fa-solid fa-graduation-cap absolute top-4 right-4 text-slate-600/50 text-5xl transition-transform group-hover:scale-110"></i>
-                <div class="text-sm text-slate-400 mb-1">Pending Graduation</div>
-                <div id="statGrad" class="text-4xl font-extrabold mt-1 text-white">0</div>
-            </div>
-            <div class="glass p-6 rounded-2xl relative overflow-hidden group">
-                <i class="fa-solid fa-check-circle absolute top-4 right-4 text-slate-600/50 text-5xl transition-transform group-hover:scale-110"></i>
-                <div class="text-sm text-slate-400 mb-1">Pending Clearance</div>
-                <div id="statClear" class="text-4xl font-extrabold mt-1 text-white">0</div>
-            </div>
-          </div>
-          <div id="dashTips"></div>`;
-        sec.appendChild(wrap);
-        renderPlaceholder($('#dashTips'), { title: 'Dashboard Overview', icon: 'fa-solid fa-chart-line', lines:[
-          'This overview will auto-populate when connected to Firestore.',
-          'Use the sidebar to manage students, courses, finances, and more.'
-        ], note: 'Tip: Click Students or Courses to begin.' });
+    function setLoading(show, text="Working...") {
+      const overlay = $("#loadingOverlay");
+      const t = $("#loadingText");
+      if (show) {
+        t.textContent = text;
+        overlay.classList.remove("hidden");
       } else {
-        const tips = document.createElement('div');
-        sec.appendChild(tips);
-        const map = {
-          students: ['Manage and view registered students.', 'Search, edit, export, and print lists.'],
-          courses: ['Manage available courses.', 'Add, edit, or remove courses.'],
-          fees: ['Search a student to view their statement.', 'Record charges/payments and export.'],
-          grades: ['View and record student grades.', 'Generate transcripts as needed.'],
-          hostels: ['Manage hostel capacity and settings.', 'Toggle applications open/closed.'],
-          announcements: ['Create announcements for all users.', 'Edit or remove outdated notices.'],
-          graduation: ['Track graduation requests and status.'],
-          clearance: ['Track clearance requests and status.'],
-          admins: ['Manage admin accounts and roles.']
-        };
-        renderPlaceholder(tips, { title: key.charAt(0).toUpperCase()+key.slice(1), icon:'fa-solid fa-circle-info', lines: map[key]||[], note: 'This appears even without Firestore data.'});
-        // quick skeleton where tables usually go
-        const sk = document.createElement('div'); sk.className='grid grid-cols-1 gap-3';
-        sk.innerHTML = `<div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div>`;
-        sec.appendChild(sk);
+        overlay.classList.add("hidden");
       }
-    };
+    }
 
-    /* =========================
-       Fetchers (execute after UI shows)
-       Note: they rely on isAdminUser; UI never blocks
-    ==========================*/
-    const fetchSection = async (key) => {
-      try{
-        if(!isAdminUser) return; // respect single admin verification; do not re-check
-        if(key==='dashboard') return fetchDashboard();
-        if(key==='students') return fetchStudents();
-        if(key==='courses') return fetchCourses();
-        if(key==='fees') return renderFeesSearch();
-        if(key==='grades') return renderGradesSearch();
-        if(key==='hostels') return fetchHostels();
-        if(key==='announcements') return fetchAnnouncements();
-        if(key==='graduation') return fetchGraduation();
-        if(key==='clearance') return fetchClearance();
-        if(key==='admins') return fetchAdmins();
-      } catch(e){ console.error(e); }
-    };
+    function guard(signOutIfDenied = false) {
+      if (!state.currentUser || !state.isAdmin) {
+        $("#authScreen").classList.remove("hidden");
+        $("#appScreen").classList.add("hidden");
+        if (signOutIfDenied) signOut(auth);
+      } else {
+        $("#authScreen").classList.add("hidden");
+        $("#appScreen").classList.remove("hidden");
+      }
+    }
 
-    /* ============= Dashboard ============= */
-    const fetchDashboard = async () => {
-      const [studentsSnap, coursesSnap, gradSnap, clearSnap] = await Promise.all([
-        getDocs(collection(db,'students')),
-        getDocs(collection(db,'courses')),
-        getDocs(query(collection(db,'graduationRequests'), where('status','==','Pending'))),
-        getDocs(query(collection(db,'clearanceRequests'), where('status','==','Pending')))
-      ]);
-      $('#statStudents').textContent = studentsSnap.size;
-      $('#statCourses').textContent = coursesSnap.size;
-      $('#statGrad').textContent = gradSnap.size;
-      $('#statClear').textContent = clearSnap.size;
-    };
+    function activateNav(id) {
+      sections.forEach(s => {
+        const sec = document.getElementById(`sec-${s}`);
+        if (sec) sec.classList.add("hidden");
+      });
+      const target = document.getElementById(`sec-${id}`);
+      if (target) target.classList.remove("hidden");
 
-    /* ============= Students ============= */
-    const fetchStudents = async () => {
-      const sec = $('#studentsSection');
-      const snap = await getDocs(collection(db,'students'));
-      const rows = snap.docs.map(d => ({ uid:d.id, ...d.data() }));
-      const hdrs = ['Name','Email','Program','Year','Contact','Actions'];
-      const html = table(hdrs, rows.map(r => [
-        r.name||'—', r.email||'—', r.programme||'—', r.year||'—', r.contact||'—',
-        `<div class="flex gap-2"><button class="btn btn-muted" onclick="window.editStudent('${r.uid}')">Edit</button><button class="btn btn-muted" onclick="window.deleteStudent('${r.uid}')">Delete</button></div>`
-      ]));
-      const box = document.createElement('div');
-      box.className = 'space-y-3';
-      box.innerHTML = `
-        <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-          <input id="studentSearch" class="w-full sm:w-72 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search students…"/>
-          <div class="flex gap-2">
-            <button class="btn btn-primary" onclick="window.addStudent()"><i class="fa-solid fa-user-plus"></i> Add</button>
-            <button class="btn" onclick="window.exportById('studentsTbl','Students')"><i class="fa-solid fa-file-export"></i> Export</button>
-          </div>
-        </div>
-        <div class="glass rounded-2xl p-2">
-          <div class="table-wrap">
-            <table id="studentsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
-              ${rows.length? rows.map(r=>`<tr>
-                <td>${r.name||'—'}</td><td>${r.email||'—'}</td><td>${r.programme||'—'}</td><td>${r.year||'—'}</td><td>${r.contact||'—'}</td>
-                <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editStudent('${r.uid}')">Edit</button><button class="btn btn-muted" onclick="window.deleteStudent('${r.uid}')">Delete</button></div></td>
-              </tr>`).join('') : `<tr><td colspan="6" class="py-6 text-center text-slate-400">No students yet.</td></tr>`}
-            </tbody></table>
-          </div>
-        </div>`;
-      sec.innerHTML = '';
-      sec.appendChild(box);
-      // simple client filter
-      const input = $('#studentSearch');
-      input?.addEventListener('input', () => {
-        const v = input.value.toLowerCase();
-        $$('#studentsTbl tbody tr').forEach(tr => {
-          tr.style.display = tr.textContent.toLowerCase().includes(v) ? '' : 'none';
+      $$(".nav-item").forEach(i => i.classList.remove("bg-blue-100","text-blue-800"));
+      const active = document.querySelector(`[data-target="${id}"]`);
+      if (active) active.classList.add("bg-blue-100","text-blue-800");
+    }
+
+    // ------------------------------------
+    // AUTH
+    // ------------------------------------
+    async function loginEmailPassword(e) {
+      e.preventDefault();
+      const email = $("#loginEmail").value.trim();
+      const password = $("#loginPassword").value;
+      try {
+        setLoading(true, "Signing in...");
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const user = cred.user;
+        // Check admin doc
+        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        if (!adminDoc.exists() || adminDoc.data().isAdmin !== true) {
+          showToast("error","Access denied. Not an admin.");
+          state.currentUser = null;
+          state.isAdmin = false;
+          setLoading(false);
+          guard(true);
+          return;
+        }
+        state.currentUser = user;
+        state.isAdmin = true;
+        setLoading(false);
+        guard();
+        initDashboardListeners();
+        initStudentsListeners();
+        // You may attach other listeners lazily on first visit
+        showToast("ok","Welcome, admin!");
+        activateNav("dashboard");
+      } catch(err) {
+        console.error(err);
+        setLoading(false);
+        showToast("error", err.message || "Login failed");
+      }
+    }
+
+    function initAuthWatcher() {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          state.currentUser = null;
+          state.isAdmin = false;
+          guard();
+          return;
+        }
+        // Confirm admin
+        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        if (!adminDoc.exists() || adminDoc.data().isAdmin !== true) {
+          state.currentUser = null;
+          state.isAdmin = false;
+          guard(true);
+          return;
+        }
+        state.currentUser = user;
+        state.isAdmin = true;
+        guard();
+        initDashboardListeners();
+        initStudentsListeners();
+      });
+    }
+
+    function logout() {
+      Object.values(state.unsubscribers).forEach(fn => { try { fn(); } catch {} });
+      state.unsubscribers = {};
+      signOut(auth);
+    }
+
+    // ------------------------------------
+    // DASHBOARD
+    // ------------------------------------
+    async function initDashboardListeners() {
+      // Students count
+      if (!state.unsubscribers.studentsCount) {
+        const unsub = onSnapshot(collection(db, "students"), (snap) => {
+          state.counts.students = snap.size;
+          $("#countStudents").textContent = snap.size;
+        });
+        state.unsubscribers.studentsCount = unsub;
+      }
+      // Courses count
+      if (!state.unsubscribers.coursesCount) {
+        const unsub = onSnapshot(collection(db, "courses"), (snap) => {
+          state.counts.courses = snap.size;
+          $("#countCourses").textContent = snap.size;
+        });
+        state.unsubscribers.coursesCount = unsub;
+      }
+      // Announcements count
+      if (!state.unsubscribers.annCount) {
+        const unsub = onSnapshot(collection(db, "announcements"), (snap) => {
+          state.counts.announcements = snap.size;
+          $("#countAnnouncements").textContent = snap.size;
+        });
+        state.unsubscribers.annCount = unsub;
+      }
+    }
+
+    async function exportStudentsCSV() {
+      try {
+        setLoading(true, "Exporting CSV...");
+        const snap = await getDocs(collection(db, "students"));
+        const rows = [["id","name","email","regNo","programme","department","campus","semester","yearOfStudy","address","gender","dob","photoURL"]];
+        snap.forEach(d => {
+          const x = d.data();
+          rows.push([
+            d.id, x.name||"", x.email||"", x.regNo||"", x.programme||"", x.department||"",
+            x.campus||"", x.semester||"", x.yearOfStudy||"", x.address||"", x.gender||"", x.dob||"", x.photoURL||""
+          ]);
+        });
+        const csv = rows.map(r => r.map(v => `"${(v??"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "students_export.csv"; a.click();
+        URL.revokeObjectURL(url);
+        setLoading(false);
+        showToast("ok","CSV exported");
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "CSV export failed");
+      }
+    }
+
+    async function exportStudentsPDF() {
+      try {
+        setLoading(true, "Exporting PDF...");
+        const snap = await getDocs(collection(db, "students"));
+        const rows = [];
+        snap.forEach(d => {
+          const x = d.data();
+          rows.push([d.id, x.name||"", x.email||"", x.regNo||"", x.programme||"", x.department||""]);
+        });
+        const { jsPDF } = window.jspdf;
+        const docPDF = new jsPDF({ orientation: "landscape" });
+        docPDF.text("Students Export", 14, 12);
+        docPDF.autoTable({
+          head: [["ID","Name","Email","Reg No","Programme","Department"]],
+          body: rows,
+          startY: 18
+        });
+        docPDF.save("students_export.pdf");
+        setLoading(false);
+        showToast("ok","PDF exported");
+      } catch (err) {
+        setLoading(false);
+        showToast("error", err.message || "PDF export failed");
+      }
+    }
+
+    // ------------------------------------
+    // STUDENTS (CRUD + search + photo upload + subcollections)
+    // ------------------------------------
+    let studentsUnsub = null;
+    let studentsCache = []; // for search/filter
+    function initStudentsListeners() {
+      if (studentsUnsub) return;
+      const qRef = collection(db, "students");
+      studentsUnsub = onSnapshot(qRef, (snap) => {
+        studentsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderStudentsTable(studentsCache);
+        $("#studentsTotal").textContent = studentsCache.length;
+      });
+    }
+
+    function renderStudentsTable(data) {
+      const tbody = $("#studentsTableBody");
+      tbody.innerHTML = "";
+      const term = $("#studentSearch").value.toLowerCase().trim();
+      const sortBy = $("#studentSortBy").value;
+      let arr = data;
+      if (term) {
+        arr = data.filter(s =>
+          (s.name||"").toLowerCase().includes(term) ||
+          (s.regNo||"").toLowerCase().includes(term) ||
+          (s.email||"").toLowerCase().includes(term)
+        );
+      }
+      if (sortBy === "name") arr.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+      if (sortBy === "newest") arr.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+      if (sortBy === "oldest") arr.sort((a,b)=> (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+
+      for (const s of arr) {
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-sm">
+            <div class="flex items-center gap-3">
+              <img src="${s.photoURL||'https://ui-avatars.com/api/?name='+(encodeURIComponent(s.name||'S'))}" class="h-10 w-10 rounded-full object-cover" alt="photo">
+              <div>
+                <div class="font-semibold">${s.name||'-'}</div>
+                <div class="text-xs text-gray-500">${s.email||''}</div>
+              </div>
+            </div>
+          </td>
+          <td class="p-3 text-sm">${s.regNo||'-'}</td>
+          <td class="p-3 text-sm">${s.programme||'-'}</td>
+          <td class="p-3 text-sm">${s.department||'-'}</td>
+          <td class="p-3 text-sm">${s.yearOfStudy||'-'}</td>
+          <td class="p-3 text-sm">
+            <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${s.id}"><i class="fa fa-pen"></i></button>
+            <button class="px-3 py-1 text-xs bg-red-600 text-white rounded" data-del="${s.id}"><i class="fa fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // bind row buttons
+      $$("#studentsTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openStudentModal(btn.getAttribute("data-edit"))));
+      $$("#studentsTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => confirmDeleteStudent(btn.getAttribute("data-del"))));
+    }
+
+    $("#studentSearch").addEventListener("input", () => renderStudentsTable(studentsCache));
+    $("#studentSortBy").addEventListener("change", () => renderStudentsTable(studentsCache));
+
+    function openStudentModal(id=null) {
+      $("#studentForm").reset();
+      $("#studentId").value = id||"";
+      $("#studentPhoto").value = "";
+      $("#studentPhotoPreview").src = "https://placehold.co/80x80";
+      if (id) {
+        const s = studentsCache.find(x => x.id === id);
+        if (s) {
+          $("#studentName").value = s.name||"";
+          $("#studentEmail").value = s.email||"";
+          $("#studentRegNo").value = s.regNo||"";
+          $("#studentProgramme").value = s.programme||"";
+          $("#studentDepartment").value = s.department||"";
+          $("#studentCampus").value = s.campus||"";
+          $("#studentSemester").value = s.semester||"";
+          $("#studentYear").value = s.yearOfStudy||"";
+          $("#studentAddress").value = s.address||"";
+          $("#studentGender").value = s.gender||"";
+          $("#studentDOB").value = s.dob||"";
+          $("#studentPhotoPreview").src = s.photoURL || "https://placehold.co/80x80";
+        }
+        $("#studentModalTitle").textContent = "Edit Student";
+      } else {
+        $("#studentModalTitle").textContent = "Add Student";
+      }
+      $("#studentModal").classList.remove("hidden");
+    }
+
+    $("#studentPhoto").addEventListener("change", (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      $("#studentPhotoPreview").src = url;
+    });
+
+    async function upsertStudent(e) {
+      e.preventDefault();
+      const id = $("#studentId").value || null;
+      const payload = {
+        name: $("#studentName").value.trim(),
+        email: $("#studentEmail").value.trim(),
+        regNo: $("#studentRegNo").value.trim(),
+        programme: $("#studentProgramme").value.trim(),
+        department: $("#studentDepartment").value.trim(),
+        campus: $("#studentCampus").value.trim(),
+        semester: $("#studentSemester").value.trim(),
+        yearOfStudy: $("#studentYear").value.trim(),
+        address: $("#studentAddress").value.trim(),
+        gender: $("#studentGender").value.trim(),
+        dob: $("#studentDOB").value.trim(),
+        updatedAt: serverTimestamp(),
+      };
+      try {
+        setLoading(true, id ? "Updating student..." : "Adding student...");
+        let docRefId = id;
+        if (id) {
+          await updateDoc(doc(db, "students", id), payload);
+        } else {
+          payload.createdAt = serverTimestamp();
+          const ref = await addDoc(collection(db, "students"), payload);
+          docRefId = ref.id;
+        }
+
+        // Photo upload?
+        const file = $("#studentPhoto").files?.[0];
+        if (file) {
+          const path = `students/${docRefId}/profile.jpg`;
+          const sRef = storageRef(storage, path);
+          await uploadBytes(sRef, file);
+          const url = await getDownloadURL(sRef);
+          await updateDoc(doc(db, "students", docRefId), { photoURL: url, updatedAt: serverTimestamp() });
+        }
+
+        $("#studentModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", id ? "Student updated" : "Student added");
+      } catch(err) {
+        console.error(err);
+        setLoading(false);
+        showToast("error", err.message || "Failed to save student");
+      }
+    }
+
+    function confirmDeleteStudent(id) {
+      $("#confirmDeleteBtn").setAttribute("data-id", id);
+      $("#confirmDeleteModal").classList.remove("hidden");
+    }
+    async function deleteStudentNow() {
+      const id = $("#confirmDeleteBtn").getAttribute("data-id");
+      if (!id) return;
+      try {
+        setLoading(true, "Deleting student...");
+        // Try deleting profile photo if any
+        try {
+          const docSnap = await getDoc(doc(db, "students", id));
+          if (docSnap.exists()) {
+            const d = docSnap.data();
+            if (d.photoURL) {
+              const url = new URL(d.photoURL);
+              const parts = decodeURIComponent(url.pathname).split("/");
+              const idx = parts.indexOf("o");
+              const path = parts[idx+1]; // may vary, best-effort
+              if (path) {
+                const sRef = storageRef(storage, path);
+                await deleteObject(sRef).catch(()=>{});
+              }
+            }
+          }
+        } catch {}
+        await deleteDoc(doc(db, "students", id));
+        $("#confirmDeleteModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok","Student deleted");
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed");
+      }
+    }
+
+    // ------------------------------------
+    // SUBCOLLECTION HELPERS (Grades, Fees, Registrations) – by selected student
+    // ------------------------------------
+    function pickStudentForSubcollections() {
+      const id = prompt("Enter Student Document ID for this operation:");
+      if (!id) return null;
+      state.selectedStudentId = id;
+      $("#subcStudentLabel").textContent = id;
+      return id;
+    }
+
+    // GRADES
+    async function loadGrades() {
+      const sid = state.selectedStudentId || pickStudentForSubcollections();
+      if (!sid) return;
+      const tbody = $("#gradesTableBody");
+      tbody.innerHTML = "";
+      const qRef = collection(db, `students/${sid}/grades`);
+      const snap = await getDocs(qRef);
+      snap.forEach(d => {
+        const x = d.data();
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-sm">${x.courseCode||'-'}</td>
+          <td class="p-3 text-sm">${x.courseName||'-'}</td>
+          <td class="p-3 text-sm">${x.courseUnit||'-'}</td>
+          <td class="p-3 text-sm">${x.grade||'-'}</td>
+          <td class="p-3 text-sm">
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      $$("#gradesTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openGradeModal(btn.getAttribute("data-edit"))));
+      $$("#gradesTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => removeGrade(btn.getAttribute("data-del"))));
+    }
+    function openGradeModal(id=null) {
+      $("#gradeForm").reset();
+      $("#gradeId").value = id||"";
+      const sid = state.selectedStudentId;
+      $("#gradeStudentLabel").textContent = sid||"-";
+      if (id) {
+        // load existing
+        // We can best-effort fetch once
+        getDoc(doc(db, `students/${sid}/grades`, id)).then(snap => {
+          if (snap.exists()) {
+            const x = snap.data();
+            $("#gCourseCode").value = x.courseCode||"";
+            $("#gCourseName").value = x.courseName||"";
+            $("#gCourseUnit").value = x.courseUnit||"";
+            $("#gGrade").value = x.grade||"";
+          }
+        });
+        $("#gradeModalTitle").textContent = "Edit Grade";
+      } else {
+        $("#gradeModalTitle").textContent = "Add Grade";
+      }
+      $("#gradeModal").classList.remove("hidden");
+    }
+    async function upsertGrade(e) {
+      e.preventDefault();
+      const sid = state.selectedStudentId;
+      if (!sid) return;
+      const id = $("#gradeId").value || null;
+      const payload = {
+        courseCode: $("#gCourseCode").value.trim(),
+        courseName: $("#gCourseName").value.trim(),
+        courseUnit: $("#gCourseUnit").value.trim(),
+        grade: $("#gGrade").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+      try {
+        setLoading(true, id ? "Updating grade..." : "Adding grade...");
+        if (id) {
+          await updateDoc(doc(db, `students/${sid}/grades`, id), payload);
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, `students/${sid}/grades`), payload);
+        }
+        $("#gradeModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", id ? "Grade updated" : "Grade added");
+        loadGrades();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Save failed");
+      }
+    }
+    async function removeGrade(id) {
+      const sid = state.selectedStudentId;
+      if (!sid || !id) return;
+      if (!confirm("Delete this grade?")) return;
+      try {
+        setLoading(true, "Deleting grade...");
+        await deleteDoc(doc(db, `students/${sid}/grades`, id));
+        setLoading(false);
+        showToast("ok","Grade deleted");
+        loadGrades();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed");
+      }
+    }
+
+    // FEES
+    async function loadFees() {
+      const sid = state.selectedStudentId || pickStudentForSubcollections();
+      if (!sid) return;
+      const tbody = $("#feesTableBody");
+      tbody.innerHTML = "";
+      const qRef = collection(db, `students/${sid}/feesStatement`);
+      const snap = await getDocs(qRef);
+      snap.forEach(d => {
+        const x = d.data();
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-sm">${x.date||'-'}</td>
+          <td class="p-3 text-sm">${x.description||'-'}</td>
+          <td class="p-3 text-sm">${x.debit||'-'}</td>
+          <td class="p-3 text-sm">${x.credit||'-'}</td>
+          <td class="p-3 text-sm">
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      $$("#feesTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openFeeModal(btn.getAttribute("data-edit"))));
+      $$("#feesTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => removeFee(btn.getAttribute("data-del"))));
+    }
+    function openFeeModal(id=null) {
+      $("#feeForm").reset();
+      $("#feeId").value = id||"";
+      const sid = state.selectedStudentId;
+      $("#feeStudentLabel").textContent = sid||"-";
+      if (id) {
+        getDoc(doc(db, `students/${sid}/feesStatement`, id)).then(snap => {
+          if (snap.exists()) {
+            const x = snap.data();
+            $("#fDate").value = x.date||"";
+            $("#fDescription").value = x.description||"";
+            $("#fDebit").value = x.debit||"";
+            $("#fCredit").value = x.credit||"";
+          }
+        });
+        $("#feeModalTitle").textContent = "Edit Fee Entry";
+      } else {
+        $("#feeModalTitle").textContent = "Add Fee Entry";
+      }
+      $("#feeModal").classList.remove("hidden");
+    }
+    async function upsertFee(e) {
+      e.preventDefault();
+      const sid = state.selectedStudentId;
+      if (!sid) return;
+      const id = $("#feeId").value || null;
+      const payload = {
+        date: $("#fDate").value.trim(),
+        description: $("#fDescription").value.trim(),
+        debit: $("#fDebit").value.trim(),
+        credit: $("#fCredit").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+      try {
+        setLoading(true, id ? "Updating entry..." : "Adding entry...");
+        if (id) {
+          await updateDoc(doc(db, `students/${sid}/feesStatement`, id), payload);
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, `students/${sid}/feesStatement`), payload);
+        }
+        $("#feeModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", id ? "Fees updated" : "Fees added");
+        loadFees();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Save failed");
+      }
+    }
+    async function removeFee(id) {
+      const sid = state.selectedStudentId;
+      if (!sid || !id) return;
+      if (!confirm("Delete this entry?")) return;
+      try {
+        setLoading(true, "Deleting...");
+        await deleteDoc(doc(db, `students/${sid}/feesStatement`, id));
+        setLoading(false);
+        showToast("ok","Entry deleted");
+        loadFees();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed");
+      }
+    }
+
+    // REGISTRATIONS
+    async function loadRegistrations() {
+      const sid = state.selectedStudentId || pickStudentForSubcollections();
+      if (!sid) return;
+      const tbody = $("#regsTableBody");
+      tbody.innerHTML = "";
+      const qRef = collection(db, `students/${sid}/registrations`);
+      const snap = await getDocs(qRef);
+      snap.forEach(d => {
+        const x = d.data();
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-sm">${x.courseCode||'-'}</td>
+          <td class="p-3 text-sm">${x.courseName||'-'}</td>
+          <td class="p-3 text-sm">${x.department||'-'}</td>
+          <td class="p-3 text-sm">${x.yearOfStudy||'-'}</td>
+          <td class="p-3 text-sm">${x.semester||'-'}</td>
+          <td class="p-3 text-sm">${x.status||'-'}</td>
+          <td class="p-3 text-sm">
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      $$("#regsTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openRegModal(btn.getAttribute("data-edit"))));
+      $$("#regsTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => removeRegistration(btn.getAttribute("data-del"))));
+    }
+    function openRegModal(id=null) {
+      $("#regForm").reset();
+      $("#regId").value = id||"";
+      const sid = state.selectedStudentId;
+      $("#regStudentLabel").textContent = sid||"-";
+      if (id) {
+        getDoc(doc(db, `students/${sid}/registrations`, id)).then(snap => {
+          if (snap.exists()) {
+            const x = snap.data();
+            $("#rCourseCode").value = x.courseCode||"";
+            $("#rCourseName").value = x.courseName||"";
+            $("#rDepartment").value = x.department||"";
+            $("#rYear").value = x.yearOfStudy||"";
+            $("#rSemester").value = x.semester||"";
+            $("#rStatus").value = x.status||"";
+          }
+        });
+        $("#regModalTitle").textContent = "Edit Registration";
+      } else {
+        $("#regModalTitle").textContent = "Add Registration";
+      }
+      $("#regModal").classList.remove("hidden");
+    }
+    async function upsertRegistration(e) {
+      e.preventDefault();
+      const sid = state.selectedStudentId;
+      if (!sid) return;
+      const id = $("#regId").value || null;
+      const payload = {
+        courseCode: $("#rCourseCode").value.trim(),
+        courseName: $("#rCourseName").value.trim(),
+        department: $("#rDepartment").value.trim(),
+        yearOfStudy: $("#rYear").value.trim(),
+        semester: $("#rSemester").value.trim(),
+        status: $("#rStatus").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+      try {
+        setLoading(true, id ? "Updating registration..." : "Adding registration...");
+        if (id) {
+          await updateDoc(doc(db, `students/${sid}/registrations`, id), payload);
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, `students/${sid}/registrations`), payload);
+        }
+        $("#regModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", id ? "Registration updated" : "Registration added");
+        loadRegistrations();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Save failed");
+      }
+    }
+    async function removeRegistration(id) {
+      const sid = state.selectedStudentId;
+      if (!sid || !id) return;
+      if (!confirm("Delete this registration?")) return;
+      try {
+        setLoading(true, "Deleting...");
+        await deleteDoc(doc(db, `students/${sid}/registrations`, id));
+        setLoading(false);
+        showToast("ok","Registration deleted");
+        loadRegistrations();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed");
+      }
+    }
+
+    // ------------------------------------
+    // ROOT COLLECTIONS (Announcements, Courses, Timetables, Hostels)
+    // ------------------------------------
+    async function genericList(collectionName, tableBodySel, columns) {
+      const tbody = document.querySelector(tableBodySel);
+      tbody.innerHTML = "";
+      const qRef = collection(db, collectionName);
+      const snap = await getDocs(qRef);
+      snap.forEach(d => {
+        const x = d.data();
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        const tds = columns.map(c => `<td class="p-3 text-sm">${(x[c] ?? "-")}</td>`).join("");
+        tr.innerHTML = `${tds}
+          <td class="p-3 text-sm text-right">
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      // bind
+      $$(tableBodySel + " [data-edit]").forEach(btn => btn.addEventListener("click", () => openGenericModal(collectionName, btn.getAttribute("data-edit"))));
+      $$(tableBodySel + " [data-del]").forEach(btn => btn.addEventListener("click", () => removeGenericDoc(collectionName, btn.getAttribute("data-del"))));
+    }
+
+    function openGenericModal(collectionName, id=null) {
+      $("#genericForm").reset();
+      $("#genericCollection").value = collectionName;
+      $("#genericId").value = id || "";
+      $("#genericFields").innerHTML = "";
+      // Build fields per collection
+      const map = {
+        announcements: [
+          ["date","Date"],["title","Title"],["content","Content","textarea"]
+        ],
+        courses: [
+          ["courseCode","Course Code"],["courseName","Course Name"],["department","Department"],["yearOfStudy","Year"],["semester","Semester"],["courseUnit","Course Unit"]
+        ],
+        timetables: [
+          ["department","Department"],["yearOfStudy","Year"],["semester","Semester"],["day","Day"],["startTime","Start Time"],["endTime","End Time"],["venue","Venue"],["courseCode","Course Code"]
+        ],
+        hostels: [
+          ["name","Name"],["capacity","Capacity"],["price","Price"],["status","Status"]
+        ]
+      };
+      const fields = map[collectionName] || [];
+      for (const [key,label,type] of fields) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "mb-3";
+        if (type === "textarea") {
+          wrapper.innerHTML = `
+            <label class="block text-sm font-medium mb-1">${label}</label>
+            <textarea id="gf-${key}" class="w-full border rounded p-2" rows="4"></textarea>
+          `;
+        } else {
+          wrapper.innerHTML = `
+            <label class="block text-sm font-medium mb-1">${label}</label>
+            <input id="gf-${key}" class="w-full border rounded p-2" />
+          `;
+        }
+        $("#genericFields").appendChild(wrapper);
+      }
+
+      if (id) {
+        getDoc(doc(db, collectionName, id)).then(snap => {
+          if (snap.exists()) {
+            const x = snap.data();
+            fields.forEach(([key]) => {
+              const el = document.getElementById(`gf-${key}`);
+              if (el) el.value = x[key] ?? "";
+            });
+          }
+        });
+        $("#genericModalTitle").textContent = `Edit ${collectionName.slice(0,1).toUpperCase()+collectionName.slice(1,)} Document`;
+      } else {
+        $("#genericModalTitle").textContent = `Add ${collectionName.slice(0,1).toUpperCase()+collectionName.slice(1,)} Document`;
+      }
+
+      $("#genericModal").classList.remove("hidden");
+    }
+
+    async function upsertGeneric(e) {
+      e.preventDefault();
+      const col = $("#genericCollection").value;
+      const id = $("#genericId").value || null;
+      const keys = Array.from($$("#genericFields [id^='gf-']")).map(el => el.id.replace("gf-",""));
+      const payload = { updatedAt: serverTimestamp() };
+      keys.forEach(k => payload[k] = (document.getElementById("gf-"+k).value||"").trim());
+      try {
+        setLoading(true, id ? "Updating..." : "Adding...");
+        if (id) {
+          await updateDoc(doc(db, col, id), payload);
+        } else {
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, col), payload);
+        }
+        $("#genericModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", id ? "Updated" : "Added");
+        // reload list
+        if (col === "announcements") genericList("announcements","#annTableBody",["date","title","content"]);
+        if (col === "courses") genericList("courses","#coursesTableBody",["courseCode","courseName","department","yearOfStudy","semester","courseUnit"]);
+        if (col === "timetables") genericList("timetables","#ttTableBody",["department","yearOfStudy","semester","day","startTime","endTime","venue","courseCode"]);
+        if (col === "hostels") genericList("hostels","#hostelsTableBody",["name","capacity","price","status"]);
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Failed");
+      }
+    }
+
+    async function removeGenericDoc(collectionName, id) {
+      if (!confirm("Delete this document?")) return;
+      try {
+        setLoading(true, "Deleting...");
+        await deleteDoc(doc(db, collectionName, id));
+        setLoading(false);
+        showToast("ok","Deleted");
+        // refresh
+        if (collectionName === "announcements") genericList("announcements","#annTableBody",["date","title","content"]);
+        if (collectionName === "courses") genericList("courses","#coursesTableBody",["courseCode","courseName","department","yearOfStudy","semester","courseUnit"]);
+        if (collectionName === "timetables") genericList("timetables","#ttTableBody",["department","yearOfStudy","semester","day","startTime","endTime","venue","courseCode"]);
+        if (collectionName === "hostels") genericList("hostels","#hostelsTableBody",["name","capacity","price","status"]);
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed");
+      }
+    }
+
+    // ------------------------------------
+    // EXPLORER (simple)
+    // ------------------------------------
+    async function explorerBrowse() {
+      const path = $("#explorerPath").value.trim();
+      if (!path) return;
+      const out = $("#explorerOutput");
+      out.textContent = "Loading...";
+      try {
+        // If path has even segments => document, odd => collection
+        const segs = path.split("/").filter(Boolean);
+        if (segs.length % 2 === 0) {
+          // document
+          const snap = await getDoc(doc(db, path));
+          out.textContent = snap.exists() ? JSON.stringify({ id: snap.id, ...snap.data() }, null, 2) : "Document not found";
+        } else {
+          // collection
+          const snap = await getDocs(collection(db, path));
+          const list = [];
+          snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+          out.textContent = JSON.stringify(list, null, 2);
+        }
+      } catch(err) {
+        out.textContent = "Error: " + (err.message||String(err));
+      }
+    }
+    async function explorerAddUpdate() {
+      const path = $("#explorerPath").value.trim();
+      const payloadRaw = $("#explorerPayload").value.trim();
+      if (!path) return;
+      try {
+        const segs = path.split("/").filter(Boolean);
+        let payload = {};
+        if (payloadRaw) {
+          try { payload = JSON.parse(payloadRaw); } catch { alert("Payload must be valid JSON"); return; }
+        }
+        setLoading(true, "Saving...");
+        if (segs.length % 2 === 0) {
+          // document path -> set/merge
+          await setDoc(doc(db, path), payload, { merge: true });
+        } else {
+          // collection -> add
+          await addDoc(collection(db, path), payload);
+        }
+        setLoading(false);
+        showToast("ok","Saved");
+        explorerBrowse();
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Save failed");
+      }
+    }
+    async function explorerDelete() {
+      const path = $("#explorerPath").value.trim();
+      if (!path) return;
+      const segs = path.split("/").filter(Boolean);
+      if (segs.length % 2 !== 0) { alert("Provide a full document path to delete."); return; }
+      if (!confirm("Delete this document?")) return;
+      try {
+        setLoading(true, "Deleting...");
+        await deleteDoc(doc(db, path));
+        setLoading(false);
+        showToast("ok","Deleted");
+        $("#explorerOutput").textContent = "";
+      } catch(err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed");
+      }
+    }
+
+    // ------------------------------------
+    // NAV + SECTION LOADING
+    // ------------------------------------
+    window.addEventListener("DOMContentLoaded", () => {
+      initAuthWatcher();
+
+      // Nav actions
+      $$(".nav-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const id = item.getAttribute("data-target");
+          activateNav(id);
+          if (id === "announcements") genericList("announcements","#annTableBody",["date","title","content"]);
+          if (id === "courses") genericList("courses","#coursesTableBody",["courseCode","courseName","department","yearOfStudy","semester","courseUnit"]);
+          if (id === "timetables") genericList("timetables","#ttTableBody",["department","yearOfStudy","semester","day","startTime","endTime","venue","courseCode"]);
+          if (id === "hostels") genericList("hostels","#hostelsTableBody",["name","capacity","price","status"]);
         });
       });
-    };
 
-    // Basic CRUD exposed globally for inline handlers
-    window.addStudent = () => {
-      const name = prompt('Full name'); if(!name) return;
-      const email = prompt('Email (document id)'); if(!email) return;
-      setDoc(doc(db,'students', email.toLowerCase()), { name, email: email.toLowerCase(), createdAt: serverTimestamp() });
-    };
-    window.editStudent = async(uid) => {
-      const snap = await getDoc(doc(db,'students', uid)); if(!snap.exists()) return alert('Not found');
-      const cur = snap.data();
-      const name = prompt('Full name', cur.name||''); if(!name) return;
-      await updateDoc(doc(db,'students', uid), { name });
-      activateSection('students');
-    };
-    window.deleteStudent = async(uid) => { if(!confirm('Delete this student?')) return; await deleteDoc(doc(db,'students', uid)); activateSection('students'); };
+      // Buttons
+      $("#loginForm").addEventListener("submit", loginEmailPassword);
+      $("#logoutBtn").addEventListener("click", logout);
 
-    /* ============= Courses ============= */
-    const fetchCourses = async () => {
-      const sec = $('#coursesSection');
-      const snap = await getDocs(collection(db,'courses'));
-      const rows = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      const hdrs = ['Code','Name','Credits','Lecturer','Schedule','Actions'];
-      sec.innerHTML = `
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Manage courses</div>
-          <div class="flex gap-2">
-            <button class="btn btn-primary" onclick="window.addCourse()"><i class="fa-solid fa-plus"></i> Add</button>
-            <button class="btn" onclick="window.exportById('coursesTbl','Courses')"><i class="fa-solid fa-file-export"></i> Export</button>
-          </div>
-        </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
-          <table id="coursesTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
-            ${rows.length? rows.map(r=>`<tr>
-              <td>${r.code||r.id}</td><td>${r.title||'—'}</td><td>${r.credits||'—'}</td><td>${r.lecturer||'—'}</td><td>${r.schedule||'—'}</td>
-              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editCourse('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteCourse('${r.id}')">Delete</button></div></td>
-            </tr>`).join('') : `<tr><td colspan="6" class="py-6 text-center text-slate-400">No courses yet.</td></tr>`}
-          </tbody></table>
-        </div>`;
-    };
-    window.addCourse = async () => {
-      const code = prompt('Course code (doc id)'); if(!code) return;
-      const title = prompt('Course name'); if(!title) return;
-      await setDoc(doc(db,'courses', code), { code, title, createdAt: serverTimestamp() });
-      activateSection('courses');
-    };
-    window.editCourse = async (id) => {
-      const snap = await getDoc(doc(db,'courses', id)); if(!snap.exists()) return alert('Not found');
-      const cur = snap.data();
-      const title = prompt('Course name', cur.title||''); if(!title) return;
-      await updateDoc(doc(db,'courses', id), { title });
-      activateSection('courses');
-    };
-    window.deleteCourse = async(id) => { if(!confirm('Delete this course?')) return; await deleteDoc(doc(db,'courses', id)); activateSection('courses'); };
+      // Students
+      $("#addStudentBtn").addEventListener("click", () => openStudentModal(null));
+      $("#studentForm").addEventListener("submit", upsertStudent);
+      $("#closeStudentModal").addEventListener("click", () => $("#studentModal").classList.add("hidden"));
+      $("#cancelStudent").addEventListener("click", () => $("#studentModal").classList.add("hidden"));
+      $("#confirmDeleteCancel").addEventListener("click", () => $("#confirmDeleteModal").classList.add("hidden"));
+      $("#confirmDeleteBtn").addEventListener("click", deleteStudentNow);
 
-    /* ============= Fees ============= */
-    const renderFeesSearch = () => {
-      const sec = $('#feesSection');
-      sec.innerHTML = `
-        <div class="glass rounded-2xl p-4 space-y-3">
-          <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-            <input id="feesEmail" class="w-full sm:w-80 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search student by email…"/>
-            <button class="btn btn-primary" id="btnFeesSearch"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
-          </div>
-          <div id="feesInfo"></div>
-          <div id="feesTableWrap"></div>
-        </div>`;
-      $('#btnFeesSearch').addEventListener('click', doFeesSearch);
-      renderPlaceholder($('#feesInfo'), { title:'Fees Management', icon:'fa-solid fa-money-bill-wave', lines:['Look up a student to view their statement.']});
-    };
+      // Subs
+      $("#loadGradesBtn").addEventListener("click", loadGrades);
+      $("#addGradeBtn").addEventListener("click", () => openGradeModal(null));
+      $("#gradeForm").addEventListener("submit", upsertGrade);
+      $("#closeGradeModal").addEventListener("click", () => $("#gradeModal").classList.add("hidden"));
+      $("#cancelGrade").addEventListener("click", () => $("#gradeModal").classList.add("hidden"));
 
-    const doFeesSearch = async () => {
-      const email = ($('#feesEmail').value||'').toLowerCase();
-      if(!email) return alert('Enter a student email.');
-      const q = query(collection(db,'students'), where('email','==', email));
-      const res = await getDocs(q);
-      if(res.empty) { $('#feesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3">Student not found.</div>'; return; }
-      const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
-      $('#feesInfo').innerHTML = `<div class="text-sm text-slate-300">Statement for <span class="font-semibold">${stu.name||email}</span></div>`;
-      // simple demo table — adapt to your structure
-      const hdrs = ['Date','Description','Amount','Balance'];
-      const rows = [];
-      $('#feesTableWrap').innerHTML = table(hdrs, rows);
-    };
+      $("#loadFeesBtn").addEventListener("click", loadFees);
+      $("#addFeeBtn").addEventListener("click", () => openFeeModal(null));
+      $("#feeForm").addEventListener("submit", upsertFee);
+      $("#closeFeeModal").addEventListener("click", () => $("#feeModal").classList.add("hidden"));
+      $("#cancelFee").addEventListener("click", () => $("#feeModal").classList.add("hidden"));
 
-    /* ============= Grades ============= */
-    const renderGradesSearch = () => {
-      const sec = $('#gradesSection');
-      sec.innerHTML = `
-        <div class="glass rounded-2xl p-4 space-y-3">
-          <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-            <input id="gradesEmail" class="w-full sm:w-80 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search student by email…"/>
-            <button class="btn btn-primary" id="btnGradesSearch"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
-          </div>
-          <div id="gradesInfo"></div>
-          <div id="gradesTableWrap"></div>
-        </div>`;
-      $('#btnGradesSearch').addEventListener('click', doGradesSearch);
-      renderPlaceholder($('#gradesInfo'), { title:'Grades Management', icon:'fa-solid fa-award', lines:['Look up a student to view their grades.']});
-    };
-    const doGradesSearch = async () => {
-      const email = ($('#gradesEmail').value||'').toLowerCase();
-      if(!email) return alert('Enter a student email.');
-      const q = query(collection(db,'students'), where('email','==', email));
-      const res = await getDocs(q);
-      if(res.empty) { $('#gradesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3">Student not found.</div>'; return; }
-      const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
-      $('#gradesInfo').innerHTML = `<div class="text-sm text-slate-300">Grades for <span class="font-semibold">${stu.name||email}</span></div>`;
-      const hdrs = ['Course Code','Course Name','Grade'];
-      const rows = [];
-      $('#gradesTableWrap').innerHTML = table(hdrs, rows);
-    };
+      $("#loadRegsBtn").addEventListener("click", loadRegistrations);
+      $("#addRegBtn").addEventListener("click", () => openRegModal(null));
+      $("#regForm").addEventListener("submit", upsertRegistration);
+      $("#closeRegModal").addEventListener("click", () => $("#regModal").classList.add("hidden"));
+      $("#cancelReg").addEventListener("click", () => $("#regModal").classList.add("hidden"));
 
-    /* ============= Hostels ============= */
-    const fetchHostels = async () => {
-      const sec = $('#hostelsSection');
-      const snap = await getDocs(collection(db,'hostels'));
-      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-      const hdrs = ['Hostel','Capacity','Occupied','Status','Actions'];
-      sec.innerHTML = `
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Manage hostels</div>
-          <button class="btn btn-primary" onclick="window.addHostel()"><i class="fa-solid fa-plus"></i> Add</button>
-        </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
-          <table id="hostelsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
-            ${rows.length? rows.map(r=>`<tr>
-              <td>${r.name||r.id}</td><td>${r.capacity||'—'}</td><td>${r.occupied||0}</td>
-              <td>${r.open===false?'<span class="chip">Closed</span>':'<span class="chip">Open</span>'}</td>
-              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editHostel('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteHostel('${r.id}')">Delete</button></div></td>
-            </tr>`).join('') : `<tr><td colspan="5" class="py-6 text-center text-slate-400">No hostels yet.</td></tr>`}
-          </tbody></table>
-        </div>`;
-    };
-    window.addHostel = async () => {
-      const id = prompt('Hostel id'); if(!id) return;
-      const name = prompt('Hostel name'); if(!name) return;
-      await setDoc(doc(db,'hostels', id), { name, capacity: 0, occupied: 0, open: true, createdAt: serverTimestamp() });
-      activateSection('hostels');
-    };
-    window.editHostel = async (id) => {
-      const snap = await getDoc(doc(db,'hostels', id)); if(!snap.exists()) return alert('Not found');
-      const cur = snap.data();
-      const capacity = parseInt(prompt('Capacity', cur.capacity||0));
-      await updateDoc(doc(db,'hostels', id), { capacity });
-      activateSection('hostels');
-    };
-    window.deleteHostel = async (id) => { if(!confirm('Delete hostel?')) return; await deleteDoc(doc(db,'hostels', id)); activateSection('hostels'); };
+      // Generic modal
+      $("#genericForm").addEventListener("submit", upsertGeneric);
+      $("#closeGenericModal").addEventListener("click", () => $("#genericModal").classList.add("hidden"));
+      $("#cancelGeneric").addEventListener("click", () => $("#genericModal").classList.add("hidden"));
 
-    /* ============= Announcements ============= */
-    const fetchAnnouncements = async () => {
-      const sec = $('#announcementsSection');
-      const snap = await getDocs(collection(db,'announcements'));
-      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-      const hdrs = ['Title','Body','Created','Actions'];
-      sec.innerHTML = `
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Post updates for students</div>
-          <button class="btn btn-primary" onclick="window.addAnnouncement()"><i class="fa-solid fa-plus"></i> Add</button>
-        </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
-          <table id="annTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
-            ${rows.length? rows.map(r=>`<tr>
-              <td>${r.title||'—'}</td><td>${r.body||'—'}</td><td>${(r.createdAt && r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'}</td>
-              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editAnnouncement('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteAnnouncement('${r.id}')">Delete</button></div></td>
-            </tr>`).join('') : `<tr><td colspan="4" class="py-6 text-center text-slate-400">No announcements yet.</td></tr>`}
-          </tbody></table>
-        </div>`;
-    };
-    window.addAnnouncement = async () => {
-      const id = crypto.randomUUID();
-      const title = prompt('Title'); if(!title) return;
-      const body = prompt('Body'); if(!body) return;
-      await setDoc(doc(db,'announcements', id), { title, body, createdAt: serverTimestamp() });
-      activateSection('announcements');
-    };
-    window.editAnnouncement = async (id) => {
-      const snap = await getDoc(doc(db,'announcements', id)); if(!snap.exists()) return alert('Not found');
-      const cur = snap.data();
-      const title = prompt('Title', cur.title||''); if(!title) return;
-      const body = prompt('Body', cur.body||''); if(!body) return;
-      await updateDoc(doc(db,'announcements', id), { title, body });
-      activateSection('announcements');
-    };
-    window.deleteAnnouncement = async (id) => { if(!confirm('Delete announcement?')) return; await deleteDoc(doc(db,'announcements', id)); activateSection('announcements'); };
+      // Explorer
+      $("#explorerBrowseBtn").addEventListener("click", explorerBrowse);
+      $("#explorerSaveBtn").addEventListener("click", explorerAddUpdate);
+      $("#explorerDeleteBtn").addEventListener("click", explorerDelete);
 
-    /* ============= Graduation & Clearance ============= */
-    const fetchGraduation = async () => {
-      const sec = $('#graduationSection');
-      const snap = await getDocs(collection(db,'graduationRequests'));
-      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-      sec.innerHTML = table(['Student','Status','Requested'], rows.map(r=>[
-        r.studentEmail||r.id, r.status||'—', (r.createdAt&&r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'
-      ]));
-    };
-    const fetchClearance = async () => {
-      const sec = $('#clearanceSection');
-      const snap = await getDocs(collection(db,'clearanceRequests'));
-      const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-      sec.innerHTML = table(['Student','Status','Requested'], rows.map(r=>[
-        r.studentEmail||r.id, r.status||'—', (r.createdAt&&r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'
-      ]));
-    };
+      // Dashboard exports
+      $("#exportCSVBtn").addEventListener("click", exportStudentsCSV);
+      $("#exportPDFBtn").addEventListener("click", exportStudentsPDF);
 
-    /* ============= Admins ============= */
-    const fetchAdmins = async () => {
-      const sec = $('#adminsSection');
-      const snap = await getDocs(collection(db,'admins'));
-      const rows = snap.docs.map(d=>({ uid:d.id, ...d.data() }));
-      const hdrs = ['UID','Email','isAdmin','Actions'];
-      sec.innerHTML = `
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Manage administrator accounts</div>
-          <button class="btn btn-primary" onclick="window.addAdmin()"><i class="fa-solid fa-user-plus"></i> Add</button>
-        </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
-          <table id="adminsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
-            ${rows.length? rows.map(r=>`<tr>
-              <td>${r.uid}</td><td>${r.email||'—'}</td><td>${r.isAdmin? 'Yes':'No'}</td>
-              <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.toggleAdmin('${r.uid}', ${!!r.isAdmin})">Toggle</button><button class="btn btn-muted" onclick="window.deleteAdmin('${r.uid}')">Delete</button></div></td>
-            </tr>`).join('') : `<tr><td colspan="4" class="py-6 text-center text-slate-400">No admins yet.</td></tr>`}
-          </tbody></table>
-        </div>`;
-    };
-    window.addAdmin = async () => {
-      const uid = prompt('Auth UID'); if(!uid) return;
-      const email = prompt('Email');
-      await setDoc(doc(db,'admins', uid), { email: email||null, isAdmin:true, createdAt: serverTimestamp()});
-      activateSection('admins');
-    };
-    window.toggleAdmin = async (uid, cur) => { await updateDoc(doc(db,'admins', uid), { isAdmin: !cur }); activateSection('admins'); };
-    window.deleteAdmin = async (uid) => { if(!confirm('Delete admin doc?')) return; await deleteDoc(doc(db,'admins', uid)); activateSection('admins'); };
-
-    // Utility export by DOM id
-    window.exportById = (id, name) => exportTable(id, name);
-
-    // Start on dashboard placeholders if html opens already authenticated
-    // (onAuthStateChanged will re-render)
-    preloadSection('dashboard');
+      // Default view
+      activateNav("dashboard");
+    });
   </script>
+
+  <style>
+    /* Smooth scrollbar & spacing */
+    ::-webkit-scrollbar { height: 8px; width: 8px; }
+    ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+    html, body { height: 100%; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 shadow-xl w-80 flex flex-col items-center gap-3">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600"></div>
+      <div id="loadingText" class="text-sm text-gray-700">Working...</div>
+    </div>
+  </div>
+
+  <!-- Auth screen -->
+  <div id="authScreen" class="min-h-screen flex items-center justify-center px-4 py-10">
+    <div class="bg-white w-full max-w-md rounded-xl shadow p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <img src="myschoollogo.png" class="h-10 w-10 object-contain" alt="Logo">
+        <h1 class="text-2xl font-bold text-blue-800">Admin Sign In</h1>
+      </div>
+      <p class="text-sm text-gray-600 mb-4">Only users listed in <code>admins/{uid}</code> with <code>isAdmin: true</code> can access.</p>
+      <form id="loginForm" class="space-y-3">
+        <div>
+          <label class="text-sm font-medium">Email</label>
+          <input id="loginEmail" type="email" required class="mt-1 w-full border rounded p-2" placeholder="admin@example.com" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Password</label>
+          <input id="loginPassword" type="password" required class="mt-1 w-full border rounded p-2" placeholder="••••••••" />
+        </div>
+        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded py-2 font-medium">Sign In</button>
+      </form>
+      <p class="text-xs text-gray-500 mt-4">Tip: Create a document in <code>admins</code> with your UID and <code>{ isAdmin: true }</code>.</p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="appScreen" class="hidden">
+
+    <!-- Topbar -->
+    <header class="bg-white border-b">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="myschoollogo.png" class="h-9 w-9 object-contain" alt="Logo">
+          <div>
+            <h1 class="text-xl font-bold text-blue-800 leading-tight">Admin Panel</h1>
+            <p class="text-xs text-gray-500 -mt-1">Student Portal Management</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="logoutBtn" class="px-3 py-1.5 rounded bg-red-600 text-white text-sm hover:bg-red-700"><i class="fa fa-right-from-bracket mr-2"></i>Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-4 px-4 py-6">
+
+      <!-- Sidebar -->
+      <aside class="md:col-span-3 lg:col-span-2">
+        <nav class="bg-white rounded-xl shadow overflow-hidden">
+          <div class="p-3 text-xs uppercase text-gray-500">Navigation</div>
+          <ul class="text-sm">
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="dashboard"><i class="fa fa-gauge"></i><span>Dashboard</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="students"><i class="fa fa-user-graduate"></i><span>Students</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="grades"><i class="fa fa-list-check"></i><span>Grades</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="fees"><i class="fa fa-receipt"></i><span>Fees</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="registrations"><i class="fa fa-clipboard-list"></i><span>Registrations</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="announcements"><i class="fa fa-bullhorn"></i><span>Announcements</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="courses"><i class="fa fa-book"></i><span>Courses</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="timetables"><i class="fa fa-calendar-days"></i><span>Timetables</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="hostels"><i class="fa fa-house-user"></i><span>Hostels</span></button></li>
+            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="explorer"><i class="fa fa-database"></i><span>Firestore Explorer</span></button></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <main class="md:col-span-9 lg:col-span-10 space-y-6">
+
+        <!-- Dashboard -->
+        <section id="sec-dashboard" class="bg-white rounded-xl shadow p-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Dashboard</h2>
+            <div class="flex gap-2">
+              <button id="exportCSVBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"><i class="fa fa-file-csv mr-2"></i>Export CSV</button>
+              <button id="exportPDFBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"><i class="fa fa-file-pdf mr-2"></i>Export PDF</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="p-4 rounded-lg border">
+              <div class="text-xs uppercase text-gray-500">Students</div>
+              <div id="countStudents" class="text-3xl font-bold text-blue-800 mt-1">-</div>
+            </div>
+            <div class="p-4 rounded-lg border">
+              <div class="text-xs uppercase text-gray-500">Courses</div>
+              <div id="countCourses" class="text-3xl font-bold text-blue-800 mt-1">-</div>
+            </div>
+            <div class="p-4 rounded-lg border">
+              <div class="text-xs uppercase text-gray-500">Announcements</div>
+              <div id="countAnnouncements" class="text-3xl font-bold text-blue-800 mt-1">-</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Students -->
+        <section id="sec-students" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Students <span class="text-xs text-gray-500">(total <span id="studentsTotal">0</span>)</span></h2>
+            <button id="addStudentBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"><i class="fa fa-plus mr-2"></i>New Student</button>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 mb-3">
+            <input id="studentSearch" class="flex-1 border rounded p-2" placeholder="Search by name, regNo or email..." />
+            <select id="studentSortBy" class="w-48 border rounded p-2">
+              <option value="name">Sort: Name (A–Z)</option>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Student</th>
+                  <th class="p-3">Reg No</th>
+                  <th class="p-3">Programme</th>
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Year</th>
+                  <th class="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Grades -->
+        <section id="sec-grades" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Grades & Transcripts</h2>
+            <div class="text-sm text-gray-600">Student: <span id="subcStudentLabel" class="font-semibold">None</span></div>
+          </div>
+          <div class="flex gap-2 mb-3">
+            <button id="loadGradesBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm"><i class="fa fa-rotate mr-2"></i>Load</button>
+            <button id="addGradeBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"><i class="fa fa-plus mr-2"></i>Add Grade</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Course Code</th>
+                  <th class="p-3">Course Name</th>
+                  <th class="p-3">Unit</th>
+                  <th class="p-3">Grade</th>
+                  <th class="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="gradesTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Fees -->
+        <section id="sec-fees" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Fees Statement</h2>
+            <div class="text-sm text-gray-600">Student: <span id="subcStudentLabel" class="font-semibold">None</span></div>
+          </div>
+          <div class="flex gap-2 mb-3">
+            <button id="loadFeesBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm"><i class="fa fa-rotate mr-2"></i>Load</button>
+            <button id="addFeeBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"><i class="fa fa-plus mr-2"></i>Add Entry</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Description</th>
+                  <th class="p-3">Debit</th>
+                  <th class="p-3">Credit</th>
+                  <th class="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="feesTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Registrations -->
+        <section id="sec-registrations" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Course Registrations</h2>
+            <div class="text-sm text-gray-600">Student: <span id="subcStudentLabel" class="font-semibold">None</span></div>
+          </div>
+          <div class="flex gap-2 mb-3">
+            <button id="loadRegsBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm"><i class="fa fa-rotate mr-2"></i>Load</button>
+            <button id="addRegBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"><i class="fa fa-plus mr-2"></i>Add Registration</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Course Code</th>
+                  <th class="p-3">Course Name</th>
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Year</th>
+                  <th class="p-3">Semester</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="regsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Announcements -->
+        <section id="sec-announcements" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Announcements</h2>
+            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('announcements')"><i class="fa fa-plus mr-2"></i>New</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Title</th>
+                  <th class="p-3">Content</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="annTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Courses -->
+        <section id="sec-courses" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Courses</h2>
+            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('courses')"><i class="fa fa-plus mr-2"></i>New</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Code</th>
+                  <th class="p-3">Name</th>
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Year</th>
+                  <th class="p-3">Semester</th>
+                  <th class="p-3">Unit</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="coursesTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Timetables -->
+        <section id="sec-timetables" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Timetables</h2>
+            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('timetables')"><i class="fa fa-plus mr-2"></i>New</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Year</th>
+                  <th class="p-3">Semester</th>
+                  <th class="p-3">Day</th>
+                  <th class="p-3">Start</th>
+                  <th class="p-3">End</th>
+                  <th class="p-3">Venue</th>
+                  <th class="p-3">Course</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ttTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Hostels -->
+        <section id="sec-hostels" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Hostels</h2>
+            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('hostels')"><i class="fa fa-plus mr-2"></i>New</button>
+          </div>
+          <div class="overflow-auto">
+            <table class="min-w-full">
+              <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b">
+                  <th class="p-3">Name</th>
+                  <th class="p-3">Capacity</th>
+                  <th class="p-3">Price</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hostelsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Explorer -->
+        <section id="sec-explorer" class="bg-white rounded-xl shadow p-4 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-blue-800">Firestore Explorer (Simple)</h2>
+          </div>
+          <div class="space-y-3">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input id="explorerPath" class="flex-1 border rounded p-2" placeholder="Path e.g. students or students/ABC123" />
+              <div class="flex gap-2">
+                <button id="explorerBrowseBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm">Browse</button>
+                <button id="explorerSaveBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm">Save</button>
+                <button id="explorerDeleteBtn" class="px-3 py-1.5 bg-red-600 text-white rounded text-sm">Delete</button>
+              </div>
+            </div>
+            <textarea id="explorerPayload" class="w-full border rounded p-2" rows="6" placeholder='Optional JSON payload for Save (use valid JSON)'></textarea>
+            <pre id="explorerOutput" class="w-full border rounded p-3 bg-gray-50 text-xs overflow-auto" style="max-height: 320px;"></pre>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <!-- Student Modal -->
+  <div id="studentModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-2xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="studentModalTitle" class="text-lg font-semibold text-blue-800">Add Student</h3>
+        <button id="closeStudentModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="studentForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <input type="hidden" id="studentId" />
+        <div>
+          <label class="text-sm font-medium">Name</label>
+          <input id="studentName" class="mt-1 w-full border rounded p-2" required />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Email</label>
+          <input id="studentEmail" type="email" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Reg No</label>
+          <input id="studentRegNo" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Programme</label>
+          <input id="studentProgramme" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Department</label>
+          <input id="studentDepartment" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Campus</label>
+          <input id="studentCampus" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Semester</label>
+          <input id="studentSemester" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Year of Study</label>
+          <input id="studentYear" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium">Address</label>
+          <input id="studentAddress" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Gender</label>
+          <select id="studentGender" class="mt-1 w-full border rounded p-2">
+            <option value="">Select</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Date of Birth</label>
+          <input id="studentDOB" type="date" class="mt-1 w-full border rounded p-2" />
+        </div>
+
+        <!-- Photo -->
+        <div class="sm:col-span-2">
+          <label class="text-sm font-medium">Profile Photo</label>
+          <div class="mt-1 flex items-center gap-3">
+            <img id="studentPhotoPreview" src="https://placehold.co/80x80" class="h-16 w-16 rounded object-cover border" />
+            <input id="studentPhoto" type="file" accept="image/*" />
+          </div>
+        </div>
+
+        <div class="sm:col-span-2 flex justify-end gap-2 mt-2">
+          <button id="cancelStudent" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
+          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm Delete -->
+  <div id="confirmDeleteModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-sm p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-blue-800">Confirm Delete</h3>
+        <button id="confirmDeleteCancel" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+      </div>
+      <p class="text-sm text-gray-600">This action cannot be undone.</p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="confirmDeleteCancel" class="px-3 py-1.5 rounded border">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-3 py-1.5 rounded bg-red-600 text-white">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade Modal -->
+  <div id="gradeModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-lg p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="gradeModalTitle" class="text-lg font-semibold text-blue-800">Add Grade</h3>
+        <button id="closeGradeModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="gradeForm" class="grid grid-cols-1 gap-3">
+        <input type="hidden" id="gradeId" />
+        <div class="text-xs text-gray-500">Student: <span id="gradeStudentLabel">-</span></div>
+        <div>
+          <label class="text-sm font-medium">Course Code</label>
+          <input id="gCourseCode" class="mt-1 w-full border rounded p-2" required />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Course Name</label>
+          <input id="gCourseName" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Course Unit</label>
+          <input id="gCourseUnit" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Grade</label>
+          <input id="gGrade" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button id="cancelGrade" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
+          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Fee Modal -->
+  <div id="feeModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-lg p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="feeModalTitle" class="text-lg font-semibold text-blue-800">Add Fee Entry</h3>
+        <button id="closeFeeModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="feeForm" class="grid grid-cols-1 gap-3">
+        <input type="hidden" id="feeId" />
+        <div class="text-xs text-gray-500">Student: <span id="feeStudentLabel">-</span></div>
+        <div>
+          <label class="text-sm font-medium">Date</label>
+          <input id="fDate" type="date" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Description</label>
+          <input id="fDescription" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Debit</label>
+          <input id="fDebit" type="number" step="0.01" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Credit</label>
+          <input id="fCredit" type="number" step="0.01" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button id="cancelFee" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
+          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Registration Modal -->
+  <div id="regModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-lg p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="regModalTitle" class="text-lg font-semibold text-blue-800">Add Registration</h3>
+        <button id="closeRegModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="regForm" class="grid grid-cols-1 gap-3">
+        <input type="hidden" id="regId" />
+        <div class="text-xs text-gray-500">Student: <span id="regStudentLabel">-</span></div>
+        <div>
+          <label class="text-sm font-medium">Course Code</label>
+          <input id="rCourseCode" class="mt-1 w-full border rounded p-2" required />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Course Name</label>
+          <input id="rCourseName" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Department</label>
+          <input id="rDepartment" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Year of Study</label>
+          <input id="rYear" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Semester</label>
+          <input id="rSemester" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Status</label>
+          <input id="rStatus" class="mt-1 w-full border rounded p-2" />
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button id="cancelReg" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
+          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Generic Modal (Announcements, Courses, Timetables, Hostels) -->
+  <div id="genericModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-2xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="genericModalTitle" class="text-lg font-semibold text-blue-800">Add</h3>
+        <button id="closeGenericModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="genericForm" class="grid grid-cols-1 gap-3">
+        <input type="hidden" id="genericCollection" />
+        <input type="hidden" id="genericId" />
+        <div id="genericFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button id="cancelGeneric" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
+          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>
+
+        <input type="hidden" id="genericCollection" />
+        <input type="hidden" id="genericId" />
+        <div id="genericFields" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        <div class="sm:col-span-2 flex justify-end gap-2 mt-2">
+          <button id="cancelGeneric" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
+          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>
