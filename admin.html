@@ -290,7 +290,7 @@
           <div class="text-sm text-gray-300">Control Center</div>
         </div>
       </div>
-      <nav class="mt-4 space-y-1 flex-1">
+      <nav class="mt-4 space-y-3 flex-1">
         <a data-section="dashboard" class="navlink active" href="#"><i class="fa-solid fa-chart-line w-6 text-center"></i><span>Dashboard</span></a>
         <a data-section="students" class="navlink" href="#"><i class="fa-solid fa-users w-6 text-center"></i><span>Students</span></a>
         <a data-section="courses" class="navlink" href="#"><i class="fa-solid fa-book w-6 text-center"></i><span>Courses</span></a>
@@ -771,7 +771,7 @@
               $('#feesTableWrap').innerHTML = '<div class="no-data rounded-lg p-3 bg-red-100 border-red-400 text-red-700">Student not found with that email.</div>';
               return;
           }
-          const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
+          const stu = { uid: res.docs[0].id, ...res.docs[0].data() }; // Corrected line: removed 'федера'
           $('#feesInfo').innerHTML = `<div class="text-lg font-semibold text-gray-800">Statement for <span class="text-green-700">${stu.name||email}</span></div>`;
           // simple demo table — adapt to your structure
           const hdrs = ['Date','Description','Amount','Balance', 'Actions'];
