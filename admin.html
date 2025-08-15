@@ -502,8 +502,8 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, where, orderBy } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"; // Added signInWithEmailAndPassword, onAuthStateChanged, signOut
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"; // Added query, where, orderBy, writeBatch
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -569,37 +569,37 @@
 
             try {
                 showLoading('Authenticating...');
-                const res = await auth.signInWithEmailAndPassword(email, password);
+                const res = await signInWithEmailAndPassword(auth, email, password); // Use signInWithEmailAndPassword with auth instance
                 const user = res.user;
 
                 // Check if the user is an admin
                 const adminDoc = await getDoc(doc(db, 'admins', user.email));
-                if (adminDoc.exists && adminDoc.data().isAdmin) {
-                    hideLoading();
+                if (adminDoc.exists() && adminDoc.data().isAdmin) {
                     showCustomModal('Success', 'Admin login successful!', false);
                 } else {
                     // Not authorized, sign out
-                    await auth.signOut();
-                    hideLoading();
+                    await signOut(auth); // Use signOut with auth instance
                     showCustomModal('Authorization Failed', 'You are not authorized to access this dashboard. Please log in with a valid admin account.', false);
                 }
 
             } catch (error) {
-                hideLoading();
                 showCustomModal('Login Failed', error.message, false);
+            } finally {
+                hideLoading();
             }
         });
 
-        auth.onAuthStateChanged(async (user) => {
+        onAuthStateChanged(auth, async (user) => { // Use onAuthStateChanged with auth instance
             if (user) {
+                showLoading('Verifying admin access...');
                 // Check for admin status on every state change
                 const adminDoc = await getDoc(doc(db, 'admins', user.email));
-                if (adminDoc.exists && adminDoc.data().isAdmin) {
+                if (adminDoc.exists() && adminDoc.data().isAdmin) {
                     authWrapper.classList.add('hidden');
                     dashboardContainer.classList.remove('hidden');
                     showAdminSection('dashboard'); // Default to dashboard view
                 } else {
-                    await auth.signOut(); // Force sign out if not an admin
+                    await signOut(auth); // Force sign out if not an admin
                     authWrapper.classList.remove('hidden');
                     dashboardContainer.classList.add('hidden');
                     showCustomModal('Authorization Failed', 'You are not authorized to access this dashboard. Logging you out.', false);
@@ -613,10 +613,13 @@
 
         function confirmLogout() {
             showCustomModal('Confirm Logout', 'Are you sure you want to log out?', true, () => {
-                auth.signOut().then(() => {
+                showLoading('Logging out...');
+                signOut(auth).then(() => { // Use signOut with auth instance
                     showCustomModal('Logged Out', 'You have been logged out successfully.', false);
                 }).catch((error) => {
                     showCustomModal('Error', error.message, false);
+                }).finally(() => {
+                    hideLoading();
                 });
             });
         }
@@ -629,6 +632,7 @@
         // Dashboard Navigation
         let currentSection = 'dashboardSection';
         function showAdminSection(sectionId) {
+            showLoading('Loading section...'); // Added loading indicator for section changes
             document.getElementById(currentSection).classList.add('hidden');
             const newSection = document.getElementById(sectionId + 'Section');
             if (newSection) {
@@ -652,11 +656,13 @@
                         // Search functionality handled separately
                         document.getElementById('feesContent').classList.add('hidden');
                         document.getElementById('feesSearch').value = '';
+                        hideLoading(); // Hide loading if no immediate fetch
                         break;
                     case 'grades':
                         // Search functionality handled separately
                         document.getElementById('gradesContent').classList.add('hidden');
                         document.getElementById('gradesSearch').value = '';
+                        hideLoading(); // Hide loading if no immediate fetch
                         break;
                     case 'hostels':
                         fetchHostels();
@@ -673,7 +679,12 @@
                     case 'admins':
                         fetchAdmins();
                         break;
+                    default:
+                        hideLoading(); // Default hide for undefined sections
+                        break;
                 }
+            } else {
+                hideLoading(); // Hide loading if section not found
             }
         }
 
@@ -696,8 +707,8 @@
                 ] = await Promise.all([
                     getDocs(studentsRef),
                     getDocs(coursesRef),
-                    getDocs(collection(db, 'graduationRequests').where('status', '==', 'Pending')),
-                    getDocs(collection(db, 'clearanceRequests').where('status', '==', 'Pending')),
+                    getDocs(query(gradRequestsRef, where('status', '==', 'Pending'))), // Use query and where
+                    getDocs(query(clearanceRequestsRef, where('status', '==', 'Pending'))), // Use query and where
                     getDocs(feesRef)
                 ]);
 
@@ -738,8 +749,11 @@
                     if (col === 'balance') {
                         cell.innerText = `GHS ${item[col].toFixed(2)}`;
                         cell.classList.add(item[col] > 0 ? 'text-red-600' : 'text-green-600');
-                    } else if (col.includes('Date')) { // Assuming date fields
-                        cell.innerText = item[col] ? new Date(item[col]).toLocaleDateString() : 'N/A';
+                    } else if (col.includes('Date') && item[col]) { // Assuming date fields
+                        cell.innerText = new Date(item[col]).toLocaleDateString();
+                    }
+                    else if (col === 'isAdmin') {
+                        cell.innerText = item[col] ? 'Yes' : 'No';
                     }
                     else {
                         cell.innerText = item[col] || 'N/A';
@@ -751,11 +765,14 @@
                     const actionsCell = document.createElement('td');
                     actionsCell.className = "flex space-x-2";
                     actions.forEach(action => {
-                        const button = document.createElement('button');
-                        button.innerText = action.text;
-                        button.className = action.class;
-                        button.onclick = () => action.handler(item);
-                        actionsCell.appendChild(button);
+                        // Only render action buttons if the item meets specific conditions (e.g., not current admin for remove)
+                        if (!action.condition || action.condition(item)) {
+                            const button = document.createElement('button');
+                            button.innerText = action.text;
+                            button.className = action.class;
+                            button.onclick = () => action.handler(item);
+                            actionsCell.appendChild(button);
+                        }
                     });
                     row.appendChild(actionsCell);
                 }
@@ -766,18 +783,23 @@
         // --- Manage Students ---
         async function fetchStudents() {
             showLoading('Fetching student records...');
-            const studentsRef = collection(db, 'students');
-            const snapshot = await getDocs(studentsRef);
-            const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+            try {
+                const studentsRef = collection(db, 'students');
+                const snapshot = await getDocs(studentsRef);
+                const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
 
-            const columns = ['name', 'email', 'programme', 'year', 'contact']; // Updated column names
-            const actions = [
-                { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (student) => editStudentModal(student) },
-                { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (student) => deleteStudent(student.uid) }
-            ];
+                const columns = ['name', 'email', 'programme', 'year', 'contact']; // Updated column names
+                const actions = [
+                    { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (student) => editStudentModal(student) },
+                    { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (student) => deleteStudent(student.uid) }
+                ];
 
-            renderTable('studentsTable', students, columns, actions);
-            hideLoading();
+                renderTable('studentsTable', students, columns, actions);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch student records: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
         }
 
         function addStudentModal() {
@@ -805,8 +827,6 @@
         async function addStudent(studentData) {
             showLoading('Adding student...');
             try {
-                // For student collection, use email as the UID if it's unique, or generate a new one
-                // For simplicity, let's assume email is unique and can be used as doc ID
                 await setDoc(doc(db, 'students', studentData.email), studentData);
                 showCustomModal('Success', 'Student added successfully.', false);
                 fetchStudents();
@@ -871,28 +891,20 @@
             showLoading('Searching students...');
             try {
                 const studentsRef = collection(db, 'students');
-                let q = studentsRef;
-
-                if (searchTerm) {
-                    // For more robust search, you'd need a dedicated search index (e.g., Algolia or Firebase extensions)
-                    // This simple filter works on fetched data. For real-time filtering, you'd do this:
-                    const snapshot = await getDocs(q);
-                    const allStudents = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
-                    const filteredStudents = allStudents.filter(student => 
-                        student.name.toLowerCase().includes(searchTerm) ||
-                        student.email.toLowerCase().includes(searchTerm) ||
-                        student.programme.toLowerCase().includes(searchTerm) ||
-                        (student.contact && student.contact.toLowerCase().includes(searchTerm))
-                    );
-                    const columns = ['name', 'email', 'programme', 'year', 'contact'];
-                    const actions = [
-                        { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (student) => editStudentModal(student) },
-                        { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (student) => deleteStudent(student.uid) }
-                    ];
-                    renderTable('studentsTable', filteredStudents, columns, actions);
-                } else {
-                    fetchStudents(); // Reload all students if search term is empty
-                }
+                const snapshot = await getDocs(studentsRef);
+                const allStudents = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
+                const filteredStudents = allStudents.filter(student => 
+                    student.name.toLowerCase().includes(searchTerm) ||
+                    student.email.toLowerCase().includes(searchTerm) ||
+                    (student.programme && student.programme.toLowerCase().includes(searchTerm)) || // Added null check
+                    (student.contact && student.contact.toLowerCase().includes(searchTerm))
+                );
+                const columns = ['name', 'email', 'programme', 'year', 'contact'];
+                const actions = [
+                    { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (student) => editStudentModal(student) },
+                    { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (student) => deleteStudent(student.uid) }
+                ];
+                renderTable('studentsTable', filteredStudents, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Error during student search: ' + error.message, false);
             } finally {
@@ -904,18 +916,23 @@
         // --- Manage Courses ---
         async function fetchCourses() {
             showLoading('Fetching course records...');
-            const coursesRef = collection(db, 'courses');
-            const snapshot = await getDocs(coursesRef);
-            const courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            try {
+                const coursesRef = collection(db, 'courses');
+                const snapshot = await getDocs(coursesRef);
+                const courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            const columns = ['courseCode', 'courseName', 'credits', 'lecturer', 'schedule'];
-            const actions = [
-                { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (course) => editCourseModal(course) },
-                { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (course) => deleteCourse(course.id) }
-            ];
+                const columns = ['courseCode', 'courseName', 'credits', 'lecturer', 'schedule'];
+                const actions = [
+                    { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (course) => editCourseModal(course) },
+                    { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (course) => deleteCourse(course.id) }
+                ];
 
-            renderTable('coursesTable', courses, columns, actions);
-            hideLoading();
+                renderTable('coursesTable', courses, columns, actions);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch course records: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
         }
 
         function addCourseModal() {
@@ -1012,7 +1029,7 @@
                 const filteredCourses = allCourses.filter(course => 
                     course.courseCode.toLowerCase().includes(searchTerm) ||
                     course.courseName.toLowerCase().includes(searchTerm) ||
-                    course.lecturer.toLowerCase().includes(searchTerm)
+                    (course.lecturer && course.lecturer.toLowerCase().includes(searchTerm))
                 );
                 const columns = ['courseCode', 'courseName', 'credits', 'lecturer', 'schedule'];
                 const actions = [
@@ -1039,7 +1056,7 @@
             showLoading(`Searching for ${email}'s fees...`);
             try {
                 const studentsRef = collection(db, 'students');
-                const studentQuery = await getDocs(studentsRef.where('email', '==', email).limit(1));
+                const studentQuery = await getDocs(query(studentsRef, where('email', '==', email))); // Use query and where
 
                 if (studentQuery.empty) {
                     showCustomModal('Not Found', `No student found with email: ${email}`, false);
@@ -1055,12 +1072,13 @@
                 // Fetch fees for this student
                 const feesDoc = await getDoc(doc(db, 'fees', currentFeesStudentUid));
                 let feesHistory = [];
-                let currentBalance = 0;
+                let totalFeesCharged = 0; // Track total charges
+                let totalPaymentsMade = 0; // Track total payments made
 
                 if (feesDoc.exists()) {
                     const data = feesDoc.data();
                     feesHistory = data.payments || [];
-                    currentBalance = data.balance || 0;
+                    totalFeesCharged = data.totalFees || 0;
                 } else {
                     // Initialize fee record if not exists
                     await setDoc(doc(db, 'fees', currentFeesStudentUid), {
@@ -1071,34 +1089,45 @@
                     });
                 }
                 
-                // Add current balance as a "virtual" entry for display clarity, adjust to reflect actual balance
-                const displayData = feesHistory.map(p => ({
-                    date: p.date,
-                    description: p.description,
-                    amount: p.amount
-                }));
-
-                // Sort payments by date
-                displayData.sort((a,b) => new Date(a.date) - new Date(b.date));
-
-                // Calculate running balance for display
-                let runningBalance = (feesDoc.exists() && feesDoc.data().totalFees) ? feesDoc.data().totalFees : 0;
+                // Prepare data for display with running balance
                 const displayWithBalance = [];
+                // Sort payments by date to calculate running balance correctly
+                feesHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
 
-                if (runningBalance > 0 && feesHistory.length === 0) {
-                    displayWithBalance.push({ date: new Date().toISOString(), description: "Initial Fee Due", amount: runningBalance, balance: runningBalance });
+                // Start with the initial total fees charged (if any) as the beginning balance
+                let runningBalance = totalFeesCharged;
+
+                // Add an initial entry for total fees if it's not zero and there are no previous transactions representing it
+                if (totalFeesCharged > 0 && feesHistory.length === 0) {
+                    displayWithBalance.push({ date: new Date().toISOString(), description: "Initial Total Fees Due", amount: totalFeesCharged, balance: totalFeesCharged });
+                } else if (totalFeesCharged > 0) { // If there are payments, ensure initial fees are represented
+                    // Find the last "charge" type entry or assume totalFeesCharged is part of the initial state
+                    // This logic might need refinement based on how you track charges vs. payments in Firestore.
+                    // For now, we'll ensure the current balance reflects totalFeesCharged - sum of payments.
+                    const sumPayments = feesHistory.reduce((sum, p) => sum + p.amount, 0);
+                    runningBalance = totalFeesCharged - sumPayments; // Recalculate based on total fees and all payments
+
+                     // Add a summary of total fees charged if there are payments
+                    if (totalFeesCharged > 0 && feesHistory.length > 0 && displayWithBalance.length === 0) {
+                        displayWithBalance.push({ date: 'Start', description: 'Initial Fees Charged', amount: totalFeesCharged, balance: totalFeesCharged });
+                    }
                 }
-
-                feesHistory.forEach(payment => {
-                    runningBalance -= payment.amount;
-                    displayWithBalance.push({
-                        date: payment.date,
-                        description: payment.description,
-                        amount: payment.amount,
-                        balance: runningBalance // This is the balance *after* this transaction
-                    });
-                });
                 
+                // Add sorted transactions and update running balance
+                feesHistory.forEach(payment => {
+                    if (payment.description === "Initial Total Fees Due" && displayWithBalance[0] && displayWithBalance[0].description === "Initial Total Fees Due") {
+                        // Skip if already added as initial entry
+                    } else {
+                        runningBalance += (payment.type === 'charge' ? payment.amount : -payment.amount); // Account for charges vs payments
+                        displayWithBalance.push({
+                            date: payment.date,
+                            description: payment.description,
+                            amount: payment.amount,
+                            balance: runningBalance // This is the balance *after* this transaction
+                        });
+                    }
+                });
+
                 const columns = ['date', 'description', 'amount', 'balance'];
                 renderTable('feesTable', displayWithBalance, columns);
                 document.getElementById('feesContent').classList.remove('hidden');
@@ -1145,16 +1174,25 @@
                 const newTransaction = {
                     date: new Date().toISOString(),
                     description: description,
-                    amount: amount
+                    amount: amount,
+                    type: type // Added type to transaction
                 };
 
-                if (type === 'payment') {
-                    currentFees.payments.push(newTransaction);
-                    currentFees.balance -= amount;
-                } else if (type === 'charge') {
-                    currentFees.totalFees += amount;
-                    currentFees.balance += amount;
-                }
+                currentFees.payments.push(newTransaction);
+                
+                // Recalculate balance and totalFees based on all payments and charges
+                let calculatedTotalFees = 0;
+                let calculatedBalance = 0;
+                currentFees.payments.forEach(p => {
+                    if (p.type === 'charge') {
+                        calculatedTotalFees += p.amount;
+                        calculatedBalance += p.amount;
+                    } else if (p.type === 'payment') {
+                        calculatedBalance -= p.amount;
+                    }
+                });
+                currentFees.totalFees = calculatedTotalFees;
+                currentFees.balance = calculatedBalance;
                 
                 await setDoc(feesDocRef, currentFees, { merge: true });
                 showCustomModal('Success', 'Fee record updated successfully.', false);
@@ -1178,7 +1216,7 @@
             showLoading(`Searching for ${email}'s grades...`);
             try {
                 const studentsRef = collection(db, 'students');
-                const studentQuery = await getDocs(studentsRef.where('email', '==', email).limit(1));
+                const studentQuery = await getDocs(query(studentsRef, where('email', '==', email))); // Use query and where
 
                 if (studentQuery.empty) {
                     showCustomModal('Not Found', `No student found with email: ${email}`, false);
@@ -1191,7 +1229,7 @@
                 currentGradesStudentUid = studentDoc.id;
                 document.getElementById('studentNameGrades').innerText = studentData.name || email;
 
-                const gradesQuery = await getDocs(collection(db, 'grades').where('studentId', '==', currentGradesStudentUid));
+                const gradesQuery = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid))); // Use query and where
                 const grades = gradesQuery.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 const columns = ['courseCode', 'courseName', 'grade'];
@@ -1212,7 +1250,7 @@
             }
             showLoading('Fetching current grades for editing...');
             try {
-                const gradesQuery = await getDocs(collection(db, 'grades').where('studentId', '==', currentGradesStudentUid));
+                const gradesQuery = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid))); // Use query and where
                 const grades = gradesQuery.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 let gradeInputsHtml = grades.map(grade => `
@@ -1253,7 +1291,7 @@
         async function updateStudentGrades(gradesToUpdate) {
             showLoading('Updating grades...');
             try {
-                const batch = db.batch();
+                const batch = writeBatch(db); // Use writeBatch
                 gradesToUpdate.forEach(grade => {
                     const gradeRef = doc(db, 'grades', grade.id);
                     batch.update(gradeRef, { grade: grade.grade });
@@ -1271,19 +1309,24 @@
         // --- Hostel Management ---
         async function fetchHostels() {
             showLoading('Fetching hostel records...');
-            const hostelsRef = collection(db, 'hostels');
-            const snapshot = await getDocs(hostelsRef);
-            const hostels = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            try {
+                const hostelsRef = collection(db, 'hostels');
+                const snapshot = await getDocs(hostelsRef);
+                const hostels = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            const columns = ['name', 'capacity', 'availableRooms'];
-            const actions = [
-                { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (hostel) => editHostelModal(hostel) },
-                { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (hostel) => deleteHostel(hostel.id) }
-            ];
+                const columns = ['name', 'capacity', 'availableRooms'];
+                const actions = [
+                    { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (hostel) => editHostelModal(hostel) },
+                    { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (hostel) => deleteHostel(hostel.id) }
+                ];
 
-            renderTable('hostelsTable', hostels, columns, actions);
-            hideLoading();
-            updateToggleHostelAppButton();
+                renderTable('hostelsTable', hostels, columns, actions);
+                updateToggleHostelAppButton();
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch hostel records: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
         }
 
         function addHostelModal() {
@@ -1403,18 +1446,23 @@
         // --- Announcements ---
         async function fetchAnnouncements() {
             showLoading('Fetching announcements...');
-            const announcementsRef = collection(db, 'announcements');
-            const snapshot = await getDocs(announcementsRef.orderBy('date', 'desc'));
-            const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            try {
+                const announcementsRef = collection(db, 'announcements');
+                const snapshot = await getDocs(query(announcementsRef, orderBy('date', 'desc'))); // Use query and orderBy
+                const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            const columns = ['date', 'title', 'message'];
-            const actions = [
-                { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (ann) => editAnnouncementModal(ann) },
-                { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (ann) => deleteAnnouncement(ann.id) }
-            ];
+                const columns = ['date', 'title', 'message'];
+                const actions = [
+                    { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (ann) => editAnnouncementModal(ann) },
+                    { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (ann) => deleteAnnouncement(ann.id) }
+                ];
 
-            renderTable('announcementsTable', announcements, columns, actions);
-            hideLoading();
+                renderTable('announcementsTable', announcements, columns, actions);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch announcements: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
         }
 
         function addAnnouncementModal() {
@@ -1494,27 +1542,38 @@
         // --- Graduation Requests ---
         async function fetchGraduationRequests() {
             showLoading('Fetching graduation requests...');
-            const requestsRef = collection(db, 'graduationRequests');
-            const studentsRef = collection(db, 'students');
-            const snapshot = await getDocs(requestsRef);
-            const requests = [];
+            try {
+                const requestsRef = collection(db, 'graduationRequests');
+                const studentsRef = collection(db, 'students');
+                const snapshot = await getDocs(requestsRef);
+                const requests = [];
 
-            for (const d of snapshot.docs) {
-                const data = d.data();
-                const studentDoc = await getDoc(doc(db, 'students', data.studentId));
-                const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
-                const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
-                requests.push({ id: d.id, studentName, studentEmail, ...data });
+                for (const d of snapshot.docs) {
+                    const data = d.data();
+                    // Ensure studentId exists before fetching student details
+                    if (data.studentId) {
+                        const studentDoc = await getDoc(doc(db, 'students', data.studentId));
+                        const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
+                        const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
+                        requests.push({ id: d.id, studentName, studentEmail, ...data });
+                    } else {
+                        // Handle cases where studentId might be missing or malformed
+                        requests.push({ id: d.id, studentName: 'Missing Student ID', studentEmail: 'N/A', ...data });
+                    }
+                }
+
+                const columns = ['studentName', 'studentEmail', 'date', 'status'];
+                const actions = [
+                    { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handler: (req) => updateGraduationRequestStatus(req.id, 'Approved'), condition: (req) => req.status !== 'Approved' }, // Only show if not already approved
+                    { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (req) => updateGraduationRequestStatus(req.id, 'Denied'), condition: (req) => req.status !== 'Denied' } // Only show if not already denied
+                ];
+
+                renderTable('graduationRequestsTable', requests, columns, actions);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch graduation requests: ' + error.message, false);
+            } finally {
+                hideLoading();
             }
-
-            const columns = ['studentName', 'studentEmail', 'date', 'status'];
-            const actions = [
-                { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handler: (req) => updateGraduationRequestStatus(req.id, 'Approved') },
-                { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (req) => updateGraduationRequestStatus(req.id, 'Denied') }
-            ];
-
-            renderTable('graduationRequestsTable', requests, columns, actions);
-            hideLoading();
         }
 
         async function updateGraduationRequestStatus(id, status) {
@@ -1533,27 +1592,38 @@
         // --- Clearance Requests ---
         async function fetchClearanceRequests() {
             showLoading('Fetching clearance requests...');
-            const requestsRef = collection(db, 'clearanceRequests');
-            const studentsRef = collection(db, 'students');
-            const snapshot = await getDocs(requestsRef);
-            const requests = [];
+            try {
+                const requestsRef = collection(db, 'clearanceRequests');
+                const studentsRef = collection(db, 'students');
+                const snapshot = await getDocs(requestsRef);
+                const requests = [];
 
-            for (const d of snapshot.docs) {
-                const data = d.data();
-                const studentDoc = await getDoc(doc(db, 'students', data.studentId));
-                const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
-                const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
-                requests.push({ id: d.id, studentName, studentEmail, ...data });
+                for (const d of snapshot.docs) {
+                    const data = d.data();
+                     // Ensure studentId exists before fetching student details
+                    if (data.studentId) {
+                        const studentDoc = await getDoc(doc(db, 'students', data.studentId));
+                        const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
+                        const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
+                        requests.push({ id: d.id, studentName, studentEmail, ...data });
+                    } else {
+                        // Handle cases where studentId might be missing or malformed
+                        requests.push({ id: d.id, studentName: 'Missing Student ID', studentEmail: 'N/A', ...data });
+                    }
+                }
+
+                const columns = ['studentName', 'studentEmail', 'date', 'status'];
+                const actions = [
+                    { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handler: (req) => updateClearanceRequestStatus(req.id, 'Approved'), condition: (req) => req.status !== 'Approved' },
+                    { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (req) => updateClearanceRequestStatus(req.id, 'Denied'), condition: (req) => req.status !== 'Denied' }
+                ];
+
+                renderTable('clearanceRequestsTable', requests, columns, actions);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch clearance requests: ' + error.message, false);
+            } finally {
+                hideLoading();
             }
-
-            const columns = ['studentName', 'studentEmail', 'date', 'status'];
-            const actions = [
-                { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handler: (req) => updateClearanceRequestStatus(req.id, 'Approved') },
-                { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (req) => updateClearanceRequestStatus(req.id, 'Denied') }
-            ];
-
-            renderTable('clearanceRequestsTable', requests, columns, actions);
-            hideLoading();
         }
 
         async function updateClearanceRequestStatus(id, status) {
@@ -1572,20 +1642,25 @@
         // --- Admin Management ---
         async function fetchAdmins() {
             showLoading('Fetching admin users...');
-            const adminsRef = collection(db, 'admins');
-            const snapshot = await getDocs(adminsRef);
-            const admins = snapshot.docs.map(d => ({ id: d.id, email: d.id, isAdmin: d.data().isAdmin }));
+            try {
+                const adminsRef = collection(db, 'admins');
+                const snapshot = await getDocs(adminsRef);
+                const admins = snapshot.docs.map(d => ({ id: d.id, email: d.id, isAdmin: d.data().isAdmin }));
 
-            // Filter out the current logged-in admin from the list to prevent self-deletion
-            const filteredAdmins = admins.filter(admin => auth.currentUser && admin.email !== auth.currentUser.email);
+                // Filter out the current logged-in admin from the list to prevent self-deletion
+                const filteredAdmins = admins.filter(admin => auth.currentUser && admin.email !== auth.currentUser.email);
 
-            const columns = ['email', 'isAdmin'];
-            const actions = [
-                { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (admin) => removeAdmin(admin.id) }
-            ];
+                const columns = ['email', 'isAdmin'];
+                const actions = [
+                    { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (admin) => removeAdmin(admin.id), condition: (admin) => admin.email !== auth.currentUser.email } // Condition to prevent removing self
+                ];
 
-            renderTable('adminsTable', filteredAdmins, columns, actions);
-            hideLoading();
+                renderTable('adminsTable', filteredAdmins, columns, actions);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to fetch admin users: ' + error.message, false);
+            } finally {
+                hideLoading();
+            }
         }
 
         function addAdminModal() {
@@ -1604,9 +1679,6 @@
         async function addNewAdmin(email) {
             showLoading('Adding new admin...');
             try {
-                // Here you might typically create the user first via Firebase Auth,
-                // and then set their admin status in Firestore. For simplicity,
-                // this assumes the user already exists or will be created/logged in later.
                 await setDoc(doc(db, 'admins', email), { isAdmin: true });
                 showCustomModal('Success', `${email} added as admin successfully.`, false);
                 fetchAdmins();
