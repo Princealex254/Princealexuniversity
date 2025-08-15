@@ -125,7 +125,7 @@
   </div>
 
   <!-- Authentication Forms Container (Original Login/Signup/Forgot Password) -->
-  <div id="authContainer">
+  <div id="authContainer" class="hidden"> <!-- ADDED hidden CLASS HERE -->
     <!-- Login Form Wrapper -->
     <div class="auth-wrapper">
       <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-[420px] text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5 active">
@@ -552,7 +552,7 @@
         } else {
           // User is signed out or not logged in, show the new simplified login page
           dashboardContainer.classList.add('hidden'); // Ensure dashboard is hidden
-          authContainer.classList.add('hidden'); // Hide the main auth forms container
+          authContainer.classList.add('hidden'); // Hide the main auth forms container (now hidden by default in HTML anyway)
           loginSection.style.display = 'block'; // Show the new simplified login form
         }
       } catch (error) {
@@ -560,7 +560,8 @@
           await showCustomModal("Initialization Error", "Failed to load user data or dashboard. Please try again.");
           // Fallback to showing login form on unhandled error during dashboard init
           dashboardContainer.classList.add('hidden');
-          loginSection.style.display = 'block'; // Fallback to new simple login
+          authContainer.classList.add('hidden'); // On error, also hide complex forms
+          loginSection.style.display = 'block';
       } finally {
           hideLoading(); // Ensure loading overlay is hidden regardless of outcome
       }
@@ -2086,7 +2087,7 @@
             break;
         default:
           showLoading(`Loading ${section.charAt(0).toUpperCase() + section.slice(1)}...`);
-          content.innerHTML = generateBreadcrumb(section.charAt(0).toUpperCase() + section.slice(1)) + `<p class="text-center text-gray-500 py-8">Content for this section is coming soon.</p>`;
+          content.innerHTML = generateBreadcrumb(section.charAt(0).toUpperCase() + section.slice(1)) + `<p class="text-center text-gray-500 py-8\">Content for this section is coming soon.</p>`;
           hideLoading();
           break;
       }
