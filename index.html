@@ -49,6 +49,10 @@
       fill: none;
       transition: stroke-dasharray 0.5s ease-in-out;
     }
+    /* Style for GPA circle when GPA is zero/no data */
+    .gpa-circle-progress.no-gpa {
+      stroke: #a0a0a0; /* Grey color for no GPA */
+    }
     .gpa-text {
       position: absolute;
       top: 50%;
@@ -57,6 +61,10 @@
       font-size: 1.8rem;
       font-weight: bold;
       color: #006400;
+    }
+    /* Style for GPA text when GPA is zero */
+    .gpa-text.no-gpa {
+        color: #718096; /* Tailwind gray-600 */
     }
     .fees-balance-text.red {
         color: #dc2626; /* Tailwind red-600 */
@@ -559,7 +567,7 @@
       setButtonLoading(loginBtn, true);
 
       const email = emailInput.value.trim().toLowerCase();
-      const password = passwordInput.value;
+      const password = password.value;
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -616,7 +624,7 @@
 
       const fullName = fullNameInput.value.trim();
       const email = emailInput.value.trim().toLowerCase();
-      const password = passwordInput.value;
+      const password = password.value;
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -735,9 +743,9 @@
       </div>`;
     }
 
-    // Helper to generate a "No data available" row
-    function generateNoDataRow(colSpan) {
-        return `<tr class="no-data-row"><td colspan="${colSpan}" class="py-3 px-6">No data available.</td></tr>`;
+    // Helper to generate a "No data available" row for tables
+    function generateNoDataRow(colSpan, message = "No data available.") {
+        return `<tr class="no-data-row"><td colspan="${colSpan}" class="py-3 px-6">${message}</td></tr>`;
     }
 
     // New: Calculate GPA
@@ -764,7 +772,13 @@
             // Fetch student profile info
             const studentDocRef = doc(db, `students`, currentUserId);
             const studentDocSnap = await getDoc(studentDocRef);
-            const studentProfile = studentDocSnap.exists() ? studentDocSnap.data() : { name: "User", regNo: "N/A", programme: "N/A", profilePhotoURL: 'https://placehold.co/100x100/eeeeee/333333?text=Avatar' };
+            // Default profile for empty state
+            const studentProfile = studentDocSnap.exists() ? studentDocSnap.data() : {
+                name: "Student", // Default name
+                regNo: "N/A",
+                programme: "N/A",
+                profilePhotoURL: 'https://placehold.co/100x100/e0e0e0/333333?text=Avatar' // Default avatar
+            };
 
             // Fetch latest 3 announcements
             const announcementsRef = collection(db, `announcements`);
@@ -777,7 +791,7 @@
             const feesSnapshot = await getDoc(feesDocRef);
             const feesData = feesSnapshot.exists() ? feesSnapshot.data() : { totalFees: 0, payments: [] };
             const totalPayments = feesData.payments.reduce((sum, p) => sum + p.amount, 0);
-            const outstandingBalance = feesData.totalFees - totalPayments;
+            const outstandingBalance = (feesData.totalFees || 0) - totalPayments; // Ensure totalFees defaults to 0 if not present
 
             // Fetch grades for GPA
             const gradesRef = collection(db, `grades`);
@@ -793,20 +807,29 @@
             const registrationsSnapshot = await getDocs(registrationsQuery);
             const registrationsData = registrationsSnapshot.docs.map(doc => doc.data().courses || []).flat();
 
-            let nextUpcomingCourse = "No upcoming registrations.";
+            let nextUpcomingCourse = `
+                <p class="text-xl font-bold text-gray-800">No upcoming classes.</p>
+                <p class="text-gray-600 text-sm mt-2">Time to register for new courses!</p>
+                <button onclick="showDashboardSection('registrations')" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                    Register for Courses
+                </button>
+            `;
             const now = new Date();
             const futureRegistrations = registrationsData.filter(reg => new Date(reg.registrationDeadline) > now);
             if (futureRegistrations.length > 0) {
                 futureRegistrations.sort((a,b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
                 const nextReg = futureRegistrations[0];
-                nextUpcomingCourse = `${nextReg.courseName} (Deadline: ${new Date(nextReg.registrationDeadline).toLocaleDateString()})`;
+                nextUpcomingCourse = `
+                    <p class="text-xl font-bold text-gray-800">${nextReg.courseName} (${nextReg.courseCode})</p>
+                    <p class="text-gray-600 text-sm mt-2">Registration Deadline: ${new Date(nextReg.registrationDeadline).toLocaleDateString()}</p>
+                `;
             }
 
             const balanceColorClass = outstandingBalance > 0 ? 'text-red-600' : 'text-green-600';
-            const balanceText = outstandingBalance > 0 ? `GHS ${outstandingBalance.toFixed(2)}` : `GHS ${outstandingBalance.toFixed(2)} (Paid in Full)`;
-            const latestGradeHtml = latestGrade ? `Your latest grade is a **${latestGrade.grade}** in **${latestGrade.courseName || latestGrade.courseCode}**. ` : '';
+            const balanceText = `GHS ${outstandingBalance.toFixed(2)}`;
+            const latestGradeHtml = latestGrade ? `Your latest grade is a **${latestGrade.grade}** in **${latestGrade.courseName || latestGrade.courseCode}**. ` : 'No grades recorded yet.';
 
-            let announcementsHtml = `<p class="text-gray-600 text-center py-4">No new announcements at this time.</p>`;
+            let announcementsHtml = `<p class="text-gray-600 text-center py-4">No new announcements at this time. Check back later for updates!</p>`;
             if (announcements.length > 0) {
                 announcementsHtml = `<ul class="space-y-3">${announcements.map(ann => `
                     <li class="pb-2 border-b border-green-100 last:border-b-0">
@@ -816,6 +839,10 @@
                     </li>
                 `).join('')}</ul>`;
             }
+
+            const gpaCircleClass = parseFloat(gpa) === 0.00 ? 'gpa-circle-progress no-gpa' : 'gpa-circle-progress';
+            const gpaTextClass = parseFloat(gpa) === 0.00 ? 'gpa-text no-gpa' : 'gpa-text';
+
 
             const homeContentHtml = `
                 <div class="bg-white p-6 rounded-xl shadow-lg mb-6 flex flex-col md:flex-row items-center">
@@ -832,9 +859,9 @@
                         <div class="gpa-circle-container">
                             <svg class="gpa-circle-svg" width="120" height="120">
                                 <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${(gpa / 4) * (2 * Math.PI * 50)};"></circle>
+                                <circle class="${gpaCircleClass}" r="50" cx="60" cy="60" style="stroke-dasharray: ${(parseFloat(gpa) / 4) * (2 * Math.PI * 50)};"></circle>
                             </svg>
-                            <span class="gpa-text">${gpa}</span>
+                            <span class="${gpaTextClass}">${gpa}</span>
                         </div>
                         <p class="text-gray-600 text-sm mt-2">${latestGradeHtml}</p>
                     </div>
@@ -848,13 +875,12 @@
                         <p class="text-gray-600 text-sm mt-2">Check your fees statement for a full breakdown.</p>
                     </div>
 
-                    <div class="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <div class="bg-white p-6 rounded-xl shadow-lg text-center flex flex-col items-center">
                         <h3 class="text-xl font-semibold text-green-800 mb-2">Next Upcoming</h3>
                         <div class="my-6">
                             <i class="fas fa-calendar-alt text-5xl text-blue-600"></i>
                         </div>
-                        <p class="text-xl font-bold text-gray-800">${nextUpcomingCourse}</p>
-                        <p class="text-gray-600 text-sm mt-2">Don't miss a key date!</p>
+                        ${nextUpcomingCourse}
                     </div>
                 </div>
 
@@ -869,8 +895,26 @@
             content.innerHTML = generateBreadcrumb('Dashboard Overview') + homeContentHtml;
         } catch (error) {
             console.error("Error loading home dashboard data:", error);
+            // Even on error, render the basic structure with error message
+            content.innerHTML = generateBreadcrumb('Dashboard Overview') + `
+                <div class="bg-white p-6 rounded-xl shadow-lg mb-6 flex flex-col md:flex-row items-center">
+                    <img src="https://placehold.co/100x100/e0e0e0/333333?text=Error" alt="Profile" class="w-24 h-24 rounded-full object-cover mr-4 mb-4 md:mb-0 border-4 border-red-200">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-red-800 mb-2">Oops!</h2>
+                        <p class="text-gray-700 text-lg">Failed to load dashboard data.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg text-center"><p class="text-gray-500 py-4">Error loading GPA.</p></div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg text-center"><p class="text-gray-500 py-4">Error loading fees.</p></div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg text-center"><p class="text-gray-500 py-4">Error loading upcoming.</p></div>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h4 class="text-2xl font-semibold text-green-700 mb-4 flex items-center"><i class="fas fa-bullhorn mr-3"></i> Latest Announcements</h4>
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert"><strong class="font-bold">Error!</strong><span class="block sm:inline"> Could not load announcements.</span></div>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load dashboard data. Please try again later.");
-            content.innerHTML = generateBreadcrumb('Dashboard Overview') + `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert"><strong class="font-bold">Error!</strong><span class="block sm:inline"> Could not load dashboard data.</span></div>`;
         } finally {
             hideLoading();
         }
@@ -883,9 +927,10 @@
         const profileDocRef = doc(db, `students`, currentUserId);
         try {
             const profileSnap = await getDoc(profileDocRef);
+            // Default student data for empty state
             const studentData = profileSnap.exists() ? profileSnap.data() : {
-                name: "N/A", email: "N/A", regNo: "N/A", programme: "N/A", campus: "N/A",
-                dob: "N/A", gender: "N/A", address: "N/A", profilePhotoURL: 'https://placehold.co/100x100/eeeeee/333333?text=Avatar'
+                name: "New Student", email: "user@example.com", regNo: "N/A", programme: "Not Set Yet", campus: "Not Set Yet",
+                dob: "", gender: "", address: "Not Set Yet", profilePhotoURL: 'https://placehold.co/100x100/eeeeee/333333?text=Avatar'
             };
 
             let profilePhotoURL = studentData.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
@@ -905,23 +950,23 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="profile-name" class="block text-gray-700 font-semibold mb-2">Full Name</label>
-                                <input type="text" id="profile-name" value="${studentData.name || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                                <input type="text" id="profile-name" value="${studentData.name || 'Not set yet'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
                             </div>
                             <div>
                                 <label for="profile-email" class="block text-gray-700 font-semibold mb-2">Email</label>
-                                <input type="email" id="profile-email" value="${studentData.email || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed" readonly>
+                                <input type="email" id="profile-email" value="${studentData.email || 'N/A'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed" readonly>
                             </div>
                             <div>
                                 <label for="profile-regNo" class="block text-gray-700 font-semibold mb-2">Registration Number</label>
-                                <input type="text" id="profile-regNo" value="${studentData.regNo || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <input type="text" id="profile-regNo" value="${studentData.regNo || 'Not set yet'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                             </div>
                             <div>
                                 <label for="profile-programme" class="block text-gray-700 font-semibold mb-2">Programme</label>
-                                <input type="text" id="profile-programme" value="${studentData.programme || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <input type="text" id="profile-programme" value="${studentData.programme || 'Not set yet'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                             </div>
                             <div>
                                 <label for="profile-campus" class="block text-gray-700 font-semibold mb-2">Campus</label>
-                                <input type="text" id="profile-campus" value="${studentData.campus || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <input type="text" id="profile-campus" value="${studentData.campus || 'Not set yet'}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                             </div>
                             <div>
                                 <label for="profile-dob" class="block text-gray-700 font-semibold mb-2">Date of Birth</label>
@@ -938,7 +983,7 @@
                             </div>
                             <div class="md:col-span-2">
                                 <label for="profile-address" class="block text-gray-700 font-semibold mb-2">Address</label>
-                                <textarea id="profile-address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">${studentData.address || ''}</textarea>
+                                <textarea id="profile-address" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">${studentData.address || 'Not set yet'}</textarea>
                             </div>
                         </div>
                         <button type="submit" id="save-profile-btn" class="mt-8 w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">
@@ -1000,7 +1045,7 @@
             });
 
         } catch(e) {
-            content.innerHTML = generateBreadcrumb('Personal Profile') + `<p class="text-center text-gray-500 py-8">Error loading profile data.</p>`;
+            content.innerHTML = generateBreadcrumb('Personal Profile') + `<p class="text-center text-gray-500 py-8">Error loading profile data. Please try again.</p>`;
             await showCustomModal("Error", "Failed to load personal profile. Please try again.");
         } finally {
             hideLoading();
@@ -1021,14 +1066,15 @@
                 courses.sort((a, b) => a.courseCode.localeCompare(b.courseCode));
                 courseTableRows = courses.map(course => `
                     <tr class="border-b border-gray-200 hover:bg-gray-100">
-                        <td class="py-3 px-6">${course.courseCode}</td>
-                        <td class="py-3 px-6">${course.courseName}</td>
-                        <td class="py-3 px-6 text-center">${course.creditHours}</td>
-                        <td class="py-3 px-6">${course.department}</td>
+                        <td class="py-3 px-6">${course.courseCode || 'N/A'}</td>
+                        <td class="py-3 px-6">${course.courseName || 'N/A'}</td>
+                        <td class="py-3 px-6 text-center">${course.creditHours || 'N/A'}</td>
+                        <td class="py-3 px-6">${course.lecturer || 'N/A'}</td>
+                        <td class="py-3 px-6">${course.schedule || 'N/A'}</td>
                     </tr>
                 `).join('');
             } else {
-                courseTableRows = generateNoDataRow(4); // 4 columns in the table
+                courseTableRows = generateNoDataRow(5, "No courses found at this time. Please check back later for course listings."); // 5 columns in the table
             }
 
             const coursesHtml = `
@@ -1043,8 +1089,9 @@
                                 <tr>
                                     <th class="py-3 px-6 text-left">Course Code</th>
                                     <th class="py-3 px-6 text-left">Course Name</th>
-                                    <th class="py-3 px-6 text-center">Credit Hours</th>
-                                    <th class="py-3 px-6 text-left">Department</th>
+                                    <th class="py-3 px-6 text-center">Credits</th>
+                                    <th class="py-3 px-6 text-left">Lecturer</th>
+                                    <th class="py-3 px-6 text-left">Schedule</th>
                                 </tr>
                             </thead>
                             <tbody id="courses-table-body">
@@ -1060,28 +1107,35 @@
             document.getElementById('course-search').addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
                 const filteredCourses = courses.filter(course =>
-                    course.courseCode.toLowerCase().includes(searchTerm) ||
-                    course.courseName.toLowerCase().includes(searchTerm)
+                    (course.courseCode || '').toLowerCase().includes(searchTerm) ||
+                    (course.courseName || '').toLowerCase().includes(searchTerm) ||
+                    (course.lecturer || '').toLowerCase().includes(searchTerm)
                 );
                 let filteredRows = '';
                 if (filteredCourses.length > 0) {
                     filteredRows = filteredCourses.map(course => `
                         <tr class="border-b border-gray-200 hover:bg-gray-100">
-                            <td class="py-3 px-6">${course.courseCode}</td>
-                            <td class="py-3 px-6">${course.courseName}</td>
-                            <td class="py-3 px-6 text-center">${course.creditHours}</td>
-                            <td class="py-3 px-6">${course.department}</td>
+                            <td class="py-3 px-6">${course.courseCode || 'N/A'}</td>
+                            <td class="py-3 px-6">${course.courseName || 'N/A'}</td>
+                            <td class="py-3 px-6 text-center">${course.creditHours || 'N/A'}</td>
+                            <td class="py-3 px-6">${course.lecturer || 'N/A'}</td>
+                            <td class="py-3 px-6">${course.schedule || 'N/A'}</td>
                         </tr>
                     `).join('');
                 } else {
-                    filteredRows = generateNoDataRow(4);
+                    filteredRows = generateNoDataRow(5, "No courses match your search criteria.");
                 }
                 document.getElementById('courses-table-body').innerHTML = filteredRows;
             });
 
         } catch(e) {
             console.error("Error loading courses:", e);
-            content.innerHTML = generateBreadcrumb('All Courses') + `<p class="text-center text-gray-500 py-8">Error loading courses data.</p>`;
+            content.innerHTML = generateBreadcrumb('All Courses') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">All Available Courses</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading courses data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load courses. Please try again.");
         } finally {
             hideLoading();
@@ -1098,26 +1152,41 @@
             const registeredCourses = registrationsSnap.exists() ? registrationsSnap.data().courses || [] : [];
 
             let registrationsTableRows = '';
+            let registrationActionHtml = '';
             if (registeredCourses.length > 0) {
                 // Sort by academicYear, then semester, then courseCode
                 registeredCourses.sort((a, b) => {
-                    if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
-                    if (a.semester !== b.semester) return a.semester.localeCompare(b.semester);
-                    return a.courseCode.localeCompare(b.courseCode);
+                    if (a.academicYear !== b.academicYear) return (a.academicYear || '').localeCompare(b.academicYear || '');
+                    if (a.semester !== b.semester) return (a.semester || '').localeCompare(b.semester || '');
+                    return (a.courseCode || '').localeCompare(b.courseCode || '');
                 });
 
                 registrationsTableRows = registeredCourses.map(course => `
                     <tr class="border-b border-gray-200 hover:bg-gray-100">
-                        <td class="py-3 px-6">${course.academicYear}</td>
-                        <td class="py-3 px-6">${course.semester}</td>
-                        <td class="py-3 px-6">${course.courseCode}</td>
-                        <td class="py-3 px-6">${course.courseName}</td>
-                        <td class="py-3 px-6 text-center">${course.status}</td>
+                        <td class="py-3 px-6">${course.academicYear || 'N/A'}</td>
+                        <td class="py-3 px-6">${course.semester || 'N/A'}</td>
+                        <td class="py-3 px-6">${course.courseCode || 'N/A'}</td>
+                        <td class="py-3 px-6">${course.courseName || 'N/A'}</td>
+                        <td class="py-3 px-6 text-center">${course.status || 'N/A'}</td>
                         <td class="py-3 px-6 text-center">${course.registrationDate ? new Date(course.registrationDate).toLocaleDateString() : 'N/A'}</td>
                     </tr>
                 `).join('');
+                 registrationActionHtml = `
+                    <div class="text-center mt-6">
+                        <button onclick="showDashboardSection('courses')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                            <i class="fas fa-plus-circle mr-2"></i>Add/Drop Courses
+                        </button>
+                    </div>
+                `;
             } else {
-                registrationsTableRows = generateNoDataRow(6); // 6 columns
+                registrationsTableRows = generateNoDataRow(6, "No courses registered yet. Click the button below to start your registration!"); // 6 columns
+                registrationActionHtml = `
+                    <div class="text-center mt-6">
+                        <button onclick="showDashboardSection('courses')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                            <i class="fas fa-plus-circle mr-2"></i>Register for Courses
+                        </button>
+                    </div>
+                `;
             }
 
             const registrationsHtml = `
@@ -1140,13 +1209,19 @@
                             </tbody>
                         </table>
                     </div>
+                    ${registrationActionHtml}
                 </div>
             `;
             content.innerHTML = generateBreadcrumb('Course Registrations') + registrationsHtml;
 
         } catch(e) {
             console.error("Error loading registrations:", e);
-            content.innerHTML = generateBreadcrumb('Course Registrations') + `<p class="text-center text-gray-500 py-8">Error loading registration data.</p>`;
+            content.innerHTML = generateBreadcrumb('Course Registrations') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">My Course Registrations</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading registration data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load course registrations. Please try again.");
         } finally {
             hideLoading();
@@ -1159,22 +1234,20 @@
         const feesDocRef = doc(db, `fees`, currentUserId); // Path: /fees/{uid}
         try {
             const feesSnap = await getDoc(feesDocRef);
-            if (!feesSnap.exists()) {
-                content.innerHTML = generateBreadcrumb('Fees Statement') + `
-                    <div class="bg-white p-8 rounded-xl shadow-lg text-center">
-                        <h2 class="text-3xl font-bold text-green-800 mb-6">Fees Statement</h2>
-                        <p class="text-center text-gray-500 py-8">No fees data found for your account.</p>
-                        <p class="text-gray-600">Please contact the finance department if you believe this is an error.</p>
-                    </div>
-                `;
-                return;
-            }
-            const feesData = feesSnap.data();
+            // Default to empty/zero values if no fees document exists
+            const feesData = feesSnap.exists() ? feesSnap.data() : { totalFees: 0, payments: [] };
             // Ensure payments is an array, default to empty if not found
             const payments = Array.isArray(feesData.payments) ? feesData.payments : [];
             const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
-            const balance = feesData.totalFees - totalPayments;
-            const balanceColorClass = balance > 0 ? 'text-red-600' : 'text-green-600';
+            const balance = (feesData.totalFees || 0) - totalPayments; // Ensure totalFees defaults to 0 if not present
+            
+            // Neutral color for 0 balance, red for positive, green for negative (credit)
+            let balanceColorClass = 'text-gray-600';
+            if (balance > 0) {
+                balanceColorClass = 'text-red-600';
+            } else if (balance < 0) {
+                balanceColorClass = 'text-green-600';
+            }
 
             let paymentHistoryRows = '';
             if (payments.length > 0) {
@@ -1182,13 +1255,13 @@
                 payments.sort((a,b) => new Date(b.date) - new Date(a.date));
                 paymentHistoryRows = payments.map(p => `
                     <tr class="border-b border-gray-200 hover:bg-gray-100">
-                        <td class="py-3 px-6">${new Date(p.date).toLocaleDateString()}</td>
-                        <td class="py-3 px-6">${p.description}</td>
-                        <td class="py-3 px-6 text-right">${p.amount.toFixed(2)}</td>
+                        <td class="py-3 px-6">${p.date ? new Date(p.date).toLocaleDateString() : 'N/A'}</td>
+                        <td class="py-3 px-6">${p.description || 'N/A'}</td>
+                        <td class="py-3 px-6 text-right">GHS ${p.amount !== undefined ? p.amount.toFixed(2) : '0.00'}</td>
                         <td class="py-3 px-6 text-right">${p.transactionId || 'N/A'}</td>
                     </tr>`).join('');
             } else {
-                paymentHistoryRows = generateNoDataRow(4); // 4 columns
+                paymentHistoryRows = generateNoDataRow(4, "No payment history available. Payments will appear here."); // 4 columns
             }
 
             const feesHtml = `
@@ -1197,7 +1270,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8">
                         <div class="bg-blue-50 p-6 rounded-lg shadow-inner">
                             <h4 class="text-lg font-semibold text-blue-700">Total Fees Due</h4>
-                            <p class="text-3xl font-bold text-blue-900 mt-2">GHS ${feesData.totalFees ? feesData.totalFees.toFixed(2) : '0.00'}</p>
+                            <p class="text-3xl font-bold text-blue-900 mt-2">GHS ${(feesData.totalFees || 0).toFixed(2)}</p>
                         </div>
                         <div class="bg-green-50 p-6 rounded-lg shadow-inner">
                             <h4 class="text-lg font-semibold text-green-700">Total Payments</h4>
@@ -1257,7 +1330,7 @@
                     doc.setFontSize(14);
                     doc.text("Summary:", 14, 60);
                     doc.setFontSize(12);
-                    doc.text(`Total Fees Due: GHS ${feesData.totalFees ? feesData.totalFees.toFixed(2) : '0.00'}`, 14, 68);
+                    doc.text(`Total Fees Due: GHS ${(feesData.totalFees || 0).toFixed(2)}`, 14, 68);
                     doc.text(`Total Payments: GHS ${totalPayments.toFixed(2)}`, 14, 75);
                     doc.setFont("helvetica", "bold");
                     doc.text(`Outstanding Balance: GHS ${balance.toFixed(2)}`, 14, 82);
@@ -1272,9 +1345,9 @@
 
                     payments.forEach(p => {
                         const rowData = [
-                            new Date(p.date).toLocaleDateString(),
-                            p.description,
-                            p.amount.toFixed(2),
+                            p.date ? new Date(p.date).toLocaleDateString() : 'N/A',
+                            p.description || 'N/A',
+                            p.amount !== undefined ? p.amount.toFixed(2) : '0.00',
                             p.transactionId || 'N/A'
                         ];
                         tableRows.push(rowData);
@@ -1302,7 +1375,12 @@
 
         } catch(e) {
             console.error("Error loading fees data:", e);
-            content.innerHTML = generateBreadcrumb('Fees Statement') + `<p class="text-center text-gray-500 py-8">Error loading fees data.</p>`;
+            content.innerHTML = generateBreadcrumb('Fees Statement') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Fees Statement</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading fees data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load fees statement. Please try again.");
         } finally {
             hideLoading();
@@ -1320,44 +1398,51 @@
 
             let gradesTableRows = '';
             let gpa = "0.00";
+            let latestGradeHtml = "No grades recorded yet.";
 
             if (grades.length > 0) {
                 gpa = calculateGPA(grades);
                 // Sort grades by academicYear, then semester, then courseCode
                 grades.sort((a, b) => {
-                    if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
-                    if (a.semester !== b.semester) return a.semester.localeCompare(b.semester);
-                    return a.courseCode.localeCompare(b.courseCode);
+                    if (a.academicYear !== b.academicYear) return (a.academicYear || '').localeCompare(b.academicYear || '');
+                    if (a.semester !== b.semester) return (a.semester || '').localeCompare(b.semester || '');
+                    return (a.courseCode || '').localeCompare(b.courseCode || '');
                 });
 
                 gradesTableRows = grades.map(grade => `
                     <tr class="border-b border-gray-200 hover:bg-gray-100">
                         <td class="py-3 px-6">${grade.academicYear || 'N/A'}</td>
                         <td class="py-3 px-6">${grade.semester || 'N/A'}</td>
-                        <td class="py-3 px-6">${grade.courseCode}</td>
-                        <td class="py-3 px-6">${grade.courseName}</td>
-                        <td class="py-3 px-6 text-center">${grade.grade}</td>
-                        <td class="py-3 px-6 text-center">${grade.courseUnit || 'N/A'}</td>
+                        <td class="py-3 px-6">${grade.courseCode || 'N/A'}</td>
+                        <td class="py-3 px-6">${grade.courseName || 'N/A'}</td>
+                        <td class="py-3 px-6 text-center">${grade.grade || 'N/A'}</td>
+                        <td class="py-3 px-6 text-center">${grade.remarks || 'N/A'}</td>
                     </tr>
                 `).join('');
+                latestGradeHtml = `Your latest grade is a **${grades[0].grade || 'N/A'}** in **${grades[0].courseName || grades[0].courseCode || 'N/A'}**.`;
             } else {
-                gradesTableRows = generateNoDataRow(6); // 6 columns
+                gradesTableRows = generateNoDataRow(6, "No grades available yet. Please check back after exams."); // 6 columns
             }
+
+            const gpaCircleClass = parseFloat(gpa) === 0.00 ? 'gpa-circle-progress no-gpa' : 'gpa-circle-progress';
+            const gpaTextClass = parseFloat(gpa) === 0.00 ? 'gpa-text no-gpa' : 'gpa-text';
+
 
             const gradesHtml = `
                 <div class="bg-white p-8 rounded-xl shadow-lg">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">My Grades</h2>
-                    <div class="flex justify-center my-6">
+                    <div class="flex flex-col items-center my-6">
                         <div class="bg-green-50 p-6 rounded-xl shadow-inner text-center w-64">
                             <h3 class="text-xl font-semibold text-green-800 mb-2">Overall GPA</h3>
                             <div class="gpa-circle-container">
                                 <svg class="gpa-circle-svg" width="120" height="120">
                                     <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                    <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${(gpa / 4) * (2 * Math.PI * 50)};"></circle>
+                                    <circle class="${gpaCircleClass}" r="50" cx="60" cy="60" style="stroke-dasharray: ${(parseFloat(gpa) / 4) * (2 * Math.PI * 50)};"></circle>
                                 </svg>
-                                <span class="gpa-text">${gpa}</span>
+                                <span class="${gpaTextClass}">${gpa}</span>
                             </div>
                         </div>
+                        <p class="text-gray-600 text-sm mt-4 text-center">${latestGradeHtml}</p>
                     </div>
                     <div class="overflow-x-auto mt-8">
                         <table class="styled-table">
@@ -1368,7 +1453,7 @@
                                     <th class="py-3 px-6 text-left">Course Code</th>
                                     <th class="py-3 px-6 text-left">Course Name</th>
                                     <th class="py-3 px-6 text-center">Grade</th>
-                                    <th class="py-3 px-6 text-center">Credit Hours</th>
+                                    <th class="py-3 px-6 text-center">Remarks</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1381,7 +1466,12 @@
             content.innerHTML = generateBreadcrumb('My Grades') + gradesHtml;
         } catch(e) {
             console.error("Error loading grades:", e);
-            content.innerHTML = generateBreadcrumb('My Grades') + `<p class="text-center text-gray-500 py-8">Error loading grades data.</p>`;
+            content.innerHTML = generateBreadcrumb('My Grades') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">My Grades</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading grades data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load grades. Please try again.");
         } finally {
             hideLoading();
@@ -1392,35 +1482,55 @@
         showLoading("Loading hostel information...");
         const content = document.getElementById("dashboardContent");
         const hostelsRef = collection(db, `hostels`); // Path: /hostels
+        const settingsDocRef = doc(db, `settings`, `hostelApplications`); // Path: /settings/hostelApplications
         try {
             const hostelsSnapshot = await getDocs(hostelsRef);
             const hostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const settingsSnap = await getDoc(settingsDocRef);
+            const hostelApplicationsOpen = settingsSnap.exists() && settingsSnap.data().open === true;
 
             let hostelsHtml = '';
             if (hostels.length > 0) {
                 hostelsHtml = hostels.map(hostel => `
                     <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center text-center">
-                        <img src="${hostel.imageUrl || 'https://placehold.co/200x150/e0e0e0/333333?text=Hostel'}" alt="${hostel.name}" class="w-full h-40 object-cover rounded-lg mb-4">
-                        <h3 class="text-xl font-semibold text-green-800 mb-2">${hostel.name}</h3>
-                        <p class="text-gray-700 mb-2">${hostel.location}</p>
+                        <img src="${hostel.imageUrl || 'https://placehold.co/200x150/e0e0e0/333333?text=Hostel'}" alt="${hostel.name || 'Hostel'}" class="w-full h-40 object-cover rounded-lg mb-4">
+                        <h3 class="text-xl font-semibold text-green-800 mb-2">${hostel.name || 'Unknown Hostel'}</h3>
+                        <p class="text-gray-700 mb-2">${hostel.location || 'N/A'}</p>
                         <div class="flex justify-between items-center w-full mb-4">
-                            <span class="text-md font-medium text-gray-600">Capacity: ${hostel.capacity}</span>
-                            <span class="text-md font-bold ${hostel.availableSpaces > 0 ? 'text-green-600' : 'text-red-600'}">Available: ${hostel.availableSpaces}</span>
+                            <span class="text-md font-medium text-gray-600">Capacity: ${hostel.capacity !== undefined ? hostel.capacity : 'N/A'}</span>
+                            <span class="text-md font-bold ${hostel.availableSpaces > 0 ? 'text-green-600' : 'text-red-600'}">Available: ${hostel.availableSpaces !== undefined ? hostel.availableSpaces : 'N/A'}</span>
                         </div>
-                        <p class="text-gray-600 text-sm mb-4">${hostel.description || ''}</p>
-                        <button onclick="applyForHostel('${hostel.id}', '${hostel.name}')" ${hostel.availableSpaces <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm ${hostel.availableSpaces <= 0 ? 'opacity-50 cursor-not-allowed' : ''}">
-                            <i class="fas fa-bed mr-2"></i>Apply Now
+                        <p class="text-gray-600 text-sm mb-4">Price: GHS ${hostel.price !== undefined ? hostel.price.toFixed(2) : 'N/A'}</p>
+                        <p class="text-gray-600 text-sm mb-4">${hostel.description || 'No description available.'}</p>
+                        <button onclick="applyForHostel('${hostel.id}', '${hostel.name || 'Unknown Hostel'}')" ${hostel.availableSpaces <= 0 || !hostelApplicationsOpen ? 'disabled' : ''} class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm ${hostel.availableSpaces <= 0 || !hostelApplicationsOpen ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <i class="fas fa-bed mr-2"></i>${hostelApplicationsOpen ? 'Apply Now' : 'Applications Closed'}
                         </button>
                     </div>
                 `).join('');
                 hostelsHtml = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${hostelsHtml}</div>`;
             } else {
-                hostelsHtml = `<p class="text-center text-gray-500 py-8">No hostel information available at this time.</p>`;
+                hostelsHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-lg text-center col-span-full">
+                        <h3 class="text-xl font-semibold text-green-800 mb-2">No Hostel Availability Data</h3>
+                        <p class="text-gray-700 py-4">It looks like there is no information about hostels available right now.</p>
+                        <p class="text-gray-600 text-sm mb-4">Please check back later, or contact administration for more details.</p>
+                        <button onclick="showCustomModal('Info', 'For inquiries, please contact the Accommodation Office.');" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                            <i class="fas fa-info-circle mr-2"></i>Contact Info
+                        </button>
+                    </div>
+                `;
+                 hostelsHtml = `<div class="grid grid-cols-1">${hostelsHtml}</div>`; // Wrap in grid for consistency
             }
 
             content.innerHTML = generateBreadcrumb('Accommodation') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Hostel Accommodation</h2>
+                    ${hostelApplicationsOpen ? `
+                        <p class="text-green-700 font-medium mb-4 text-center"><i class="fas fa-check-circle mr-2"></i>Hostel applications are currently OPEN!</p>
+                    ` : `
+                        <p class="text-red-700 font-medium mb-4 text-center"><i class="fas fa-times-circle mr-2"></i>Hostel applications are currently CLOSED.</p>
+                    `}
                     ${hostelsHtml}
                 </div>
             `;
@@ -1433,7 +1543,7 @@
                         const applicationRef = collection(db, `hostelApplications`); // New collection for applications
                         await addDoc(applicationRef, {
                             studentId: currentUserId,
-                            studentName: currentUserData.name,
+                            studentName: currentUserData.name || 'N/A', // Ensure student name is provided
                             hostelId: hostelId,
                             hostelName: hostelName,
                             applicationDate: new Date().toISOString(),
@@ -1453,7 +1563,12 @@
 
         } catch(e) {
             console.error("Error loading hostels:", e);
-            content.innerHTML = generateBreadcrumb('Accommodation') + `<p class="text-center text-gray-500 py-8">Error loading hostel data.</p>`;
+            content.innerHTML = generateBreadcrumb('Accommodation') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Hostel Accommodation</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading hostel data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load hostel information. Please try again.");
         } finally {
             hideLoading();
@@ -1475,16 +1590,20 @@
                 announcementsListHtml += announcements.map(ann => `
                     <li class="bg-green-50 p-4 rounded-lg shadow-sm border border-green-200">
                         <div class="flex items-center justify-between mb-2">
-                            <h3 class="text-xl font-semibold text-green-800">${ann.title}</h3>
-                            <span class="text-sm text-gray-500">${new Date(ann.date).toLocaleDateString()}</span>
+                            <h3 class="text-xl font-semibold text-green-800">${ann.title || 'No Title'}</h3>
+                            <span class="text-sm text-gray-500">${ann.date ? new Date(ann.date).toLocaleDateString() : 'N/A'}</span>
                         </div>
-                        <p class="text-gray-700">${ann.message}</p>
+                        <p class="text-gray-700">${ann.message || 'No message content.'}</p>
                         ${ann.detailsLink ? `<a href="${ann.detailsLink}" target="_blank" class="text-blue-600 hover:underline mt-2 inline-block">Read More <i class="fas fa-external-link-alt ml-1 text-xs"></i></a>` : ''}
                     </li>
                 `).join('');
                 announcementsListHtml += `</ul>`;
             } else {
-                announcementsListHtml = `<p class="text-center text-gray-500 py-8">No announcements available at this time.</p>`;
+                announcementsListHtml = `
+                    <div class="text-center bg-gray-50 p-6 rounded-lg shadow-inner">
+                        <p class="text-gray-700 py-8">No announcements available at this time. Check back later for university updates!</p>
+                    </div>
+                `;
             }
 
             content.innerHTML = generateBreadcrumb('Announcements') + `
@@ -1495,7 +1614,12 @@
             `;
         } catch(e) {
             console.error("Error loading announcements:", e);
-            content.innerHTML = generateBreadcrumb('Announcements') + `<p class="text-center text-gray-500 py-8">Error loading announcements data.</p>`;
+            content.innerHTML = generateBreadcrumb('Announcements') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">University Announcements</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading announcements data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load announcements. Please try again.");
         } finally {
             hideLoading();
@@ -1513,6 +1637,7 @@
 
             let statusHtml = '';
             let formHtml = '';
+            let requestTableRows = '';
 
             if (requestData) {
                 let statusColorClass = 'text-gray-700';
@@ -1520,18 +1645,22 @@
                 else if (requestData.status === 'Approved') statusColorClass = 'text-green-600';
                 else if (requestData.status === 'Denied') statusColorClass = 'text-red-600';
 
-                statusHtml = `
-                    <div class="mb-8 p-6 bg-green-50 rounded-lg border border-green-200 shadow-sm">
-                        <h3 class="text-xl font-semibold text-green-800 mb-4">Your Request Status</h3>
-                        <p class="text-lg mb-2">Status: <span class="font-bold ${statusColorClass}">${requestData.status}</span></p>
-                        <p class="text-gray-700 mb-2">Submitted On: ${new Date(requestData.submissionDate).toLocaleDateString()}</p>
-                        <p class="text-gray-700">Notes: ${requestData.notes || 'N/A'}</p>
-                    </div>
+                // Display single request in a table-like format for consistency
+                requestTableRows = `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6">${requestData.academicYear || 'N/A'}</td>
+                        <td class="py-3 px-6">${requestData.program || 'N/A'}</td>
+                        <td class="py-3 px-6 text-center"><span class="font-bold ${statusColorClass}">${requestData.status || 'N/A'}</span></td>
+                        <td class="py-3 px-6">${requestData.submissionDate ? new Date(requestData.submissionDate).toLocaleDateString() : 'N/A'}</td>
+                        <td class="py-3 px-6">${requestData.notes || 'No notes.'}</td>
+                    </tr>
                 `;
                 formHtml = `<p class="text-center text-gray-600 mt-4">You have an active graduation request. Only one request is allowed at a time.</p>`;
             } else {
+                requestTableRows = generateNoDataRow(5, "No graduation requests submitted yet.");
                 formHtml = `
-                    <form id="graduation-request-form" class="space-y-6">
+                    <form id="graduation-request-form" class="space-y-6 mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+                        <h3 class="text-xl font-semibold text-blue-800 mb-4">Submit New Request</h3>
                         <p class="text-gray-700 mb-4">Please fill out the form below to submit your graduation request. Ensure all academic and financial requirements are met before submission.</p>
                         <div>
                             <label for="grad-academic-year" class="block text-gray-700 font-semibold mb-2">Academic Year of Graduation</label>
@@ -1555,7 +1684,23 @@
             content.innerHTML = generateBreadcrumb('Graduation Request') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Graduation Request</h2>
-                    ${statusHtml}
+                     <h3 class="text-2xl font-semibold text-green-700 mb-4">Request History</h3>
+                    <div class="overflow-x-auto mb-8">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-3 px-6 text-left">Academic Year</th>
+                                    <th class="py-3 px-6 text-left">Program</th>
+                                    <th class="py-3 px-6 text-center">Status</th>
+                                    <th class="py-3 px-6 text-left">Submitted On</th>
+                                    <th class="py-3 px-6 text-left">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${requestTableRows}
+                            </tbody>
+                        </table>
+                    </div>
                     ${formHtml}
                 </div>
             `;
@@ -1586,7 +1731,12 @@
             }
         } catch(e) {
             console.error("Error loading graduation requests:", e);
-            content.innerHTML = generateBreadcrumb('Graduation Request') + `<p class="text-center text-gray-500 py-8">Error loading graduation requests data.</p>`;
+            content.innerHTML = generateBreadcrumb('Graduation Request') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Graduation Request</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading graduation requests data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load graduation requests. Please try again.");
         } finally {
             hideLoading();
@@ -1604,6 +1754,7 @@
 
             let statusHtml = '';
             let formHtml = '';
+            let requestTableRows = '';
 
             if (requestData) {
                 let statusColorClass = 'text-gray-700';
@@ -1611,19 +1762,20 @@
                 else if (requestData.status === 'Approved') statusColorClass = 'text-green-600';
                 else if (requestData.status === 'Denied') statusColorClass = 'text-red-600';
 
-                statusHtml = `
-                    <div class="mb-8 p-6 bg-green-50 rounded-lg border border-green-200 shadow-sm">
-                        <h3 class="text-xl font-semibold text-green-800 mb-4">Your Request Status</h3>
-                        <p class="text-lg mb-2">Status: <span class="font-bold ${statusColorClass}">${requestData.status}</span></p>
-                        <p class="text-gray-700 mb-2">Submitted On: ${new Date(requestData.submissionDate).toLocaleDateString()}</p>
-                        <p class="text-gray-700">Uploaded Document: ${requestData.documentURL ? `<a href="${requestData.documentURL}" target="_blank" class="text-blue-600 hover:underline">View Document <i class="fas fa-external-link-alt ml-1 text-xs"></i></a>` : 'N/A'}</p>
-                        <p class="text-gray-700">Notes: ${requestData.notes || 'N/A'}</p>
-                    </div>
+                requestTableRows = `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-center"><span class="font-bold ${statusColorClass}">${requestData.status || 'N/A'}</span></td>
+                        <td class="py-3 px-6">${requestData.submissionDate ? new Date(requestData.submissionDate).toLocaleDateString() : 'N/A'}</td>
+                        <td class="py-3 px-6">${requestData.documentURL ? `<a href="${requestData.documentURL}" target="_blank" class="text-blue-600 hover:underline">View Document <i class="fas fa-external-link-alt ml-1 text-xs"></i></a>` : 'N/A'}</td>
+                        <td class="py-3 px-6">${requestData.notes || 'No notes.'}</td>
+                    </tr>
                 `;
                 formHtml = `<p class="text-center text-gray-600 mt-4">You have an active clearance request. Only one request is allowed at a time.</p>`;
             } else {
+                requestTableRows = generateNoDataRow(4, "No clearance requests submitted yet.");
                 formHtml = `
-                    <form id="clearance-request-form" class="space-y-6">
+                    <form id="clearance-request-form" class="space-y-6 mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+                        <h3 class="text-xl font-semibold text-blue-800 mb-4">Submit New Request</h3>
                         <p class="text-gray-700 mb-4">To apply for clearance, please upload any required documents (e.g., completed clearance form) and provide any relevant notes.</p>
                         <div>
                             <label for="clearance-document-upload" class="block text-gray-700 font-semibold mb-2">Upload Clearance Document (PDF only)</label>
@@ -1644,7 +1796,22 @@
             content.innerHTML = generateBreadcrumb('Clearance Request') + `
                 <div class="bg-white p-8 rounded-xl shadow-lg">
                     <h2 class="text-3xl font-bold text-green-800 mb-6">Clearance Request</h2>
-                    ${statusHtml}
+                     <h3 class="text-2xl font-semibold text-green-700 mb-4">Request History</h3>
+                    <div class="overflow-x-auto mb-8">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-3 px-6 text-center">Status</th>
+                                    <th class="py-3 px-6 text-left">Submitted On</th>
+                                    <th class="py-3 px-6 text-left">Document</th>
+                                    <th class="py-3 px-6 text-left">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${requestTableRows}
+                            </tbody>
+                        </table>
+                    </div>
                     ${formHtml}
                 </div>
             `;
@@ -1704,11 +1871,32 @@
             }
         } catch(e) {
             console.error("Error loading clearance requests:", e);
-            content.innerHTML = generateBreadcrumb('Clearance Request') + `<p class="text-center text-gray-500 py-8">Error loading clearance requests data.</p>`;
+            content.innerHTML = generateBreadcrumb('Clearance Request') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Clearance Request</h2>
+                    <p class="text-center text-gray-500 py-8">Error loading clearance requests data. Please try again.</p>
+                </div>
+            `;
             await showCustomModal("Error", "Failed to load clearance requests. Please try again.");
         } finally {
             hideLoading();
         }
+    }
+
+    async function loadTranscripts() {
+        showLoading("Loading transcripts...");
+        const content = document.getElementById("dashboardContent");
+        // For now, this is a placeholder. In a real app, you would fetch transcript data.
+        content.innerHTML = generateBreadcrumb('Transcripts') + `
+            <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                <h2 class="text-3xl font-bold text-green-800 mb-6">Academic Transcripts</h2>
+                <p class="text-gray-700 py-8">Your academic transcripts are not yet available online. Please contact the academic registrar's office for assistance.</p>
+                <button onclick="showCustomModal('Contact Info', 'Academic Registrar Office: registrar@university.edu');" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                    <i class="fas fa-envelope mr-2"></i>Contact Registrar
+                </button>
+            </div>
+        `;
+        hideLoading();
     }
 
 
@@ -1769,30 +1957,67 @@
           await loadClearanceRequest();
           break;
         case 'timetable':
-            content.innerHTML = generateBreadcrumb('Timetable') + `<p class="text-center text-gray-500 py-8">Timetable section is under development.</p>`;
+            content.innerHTML = generateBreadcrumb('Timetable') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Academic Timetable</h2>
+                    <p class="text-gray-700 py-8">The academic timetable is currently being finalized. Please check back closer to the semester start date.</p>
+                    <button onclick="showCustomModal('Info', 'Timetable updates will be posted on the announcements board.');" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                        <i class="fas fa-calendar-check mr-2"></i>View Announcements
+                    </button>
+                </div>
+            `;
             break;
         case 'evaluation':
-            content.innerHTML = generateBreadcrumb('Course Evaluation') + `<p class="text-center text-gray-500 py-8">Course Evaluation section is under development.</p>`;
+            content.innerHTML = generateBreadcrumb('Course Evaluation') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Course Evaluation</h2>
+                    <p class="text-gray-700 py-8">Course evaluations are not open at this time. They usually become available towards the end of the semester.</p>
+                </div>
+            `;
             break;
         case 'receipts':
-            content.innerHTML = generateBreadcrumb('Receipts') + `<p class="text-center text-gray-500 py-8">Receipts section is under development.</p>`;
+            content.innerHTML = generateBreadcrumb('Receipts') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Payment Receipts</h2>
+                    <p class="text-gray-700 py-8">No official receipts are available online at this moment. You can always refer to your <a href="#" onclick="showDashboardSection('fees')" class="text-blue-600 hover:underline">Fees Statement</a> for payment records.</p>
+                </div>
+            `;
             break;
         case 'examCard':
-            content.innerHTML = generateBreadcrumb('Exam Card') + `<p class="text-center text-gray-500 py-8">Exam Card section is under development.</p>`;
+            content.innerHTML = generateBreadcrumb('Exam Card') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Exam Card</h2>
+                    <p class="text-gray-700 py-8">Your exam card will be generated once all your fees are cleared and your course registration is confirmed.</p>
+                    <button onclick="showDashboardSection('fees')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Check Fees Statement
+                    </button>
+                </div>
+            `;
             break;
         case 'examTimetable':
-            content.innerHTML = generateBreadcrumb('Exam Timetable') + `<p class="text-center text-gray-500 py-8">Exam Timetable section is under development.</p>`;
+            content.innerHTML = generateBreadcrumb('Exam Timetable') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Examination Timetable</h2>
+                    <p class="text-gray-700 py-8">The examination timetable has not been released yet. Please check back closer to the examination period.</p>
+                </div>
+            `;
             break;
         case 'transcripts':
-          await loadTranscripts();
+          await loadTranscripts(); // Calls the dedicated loadTranscripts function
           break;
         case 'settings':
-            content.innerHTML = generateBreadcrumb('Settings') + `<p class="text-center text-gray-500 py-8">Settings section is under development.</p>`;
+            content.innerHTML = generateBreadcrumb('Settings') + `
+                <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                    <h2 class="text-3xl font-bold text-green-800 mb-6">Settings</h2>
+                    <p class="text-gray-700 py-8">Settings options are under development. Check back later!</p>
+                </div>
+            `;
             break;
         default:
           content.innerHTML = generateBreadcrumb(section.charAt(0).toUpperCase() + section.slice(1)) + `<p class="text-center text-gray-500 py-8">Content for this section is coming soon.</p>`;
           break;
       }
+      hideLoading(); // Ensure loading is hidden after content is set
     }
 
     // Existing functions that don't need changes but are included for completeness
