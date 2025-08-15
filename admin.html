@@ -10,34 +10,71 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    /* Custom CSS Variables - Dark navy/charcoal for sidebar/header, light for main content */
     :root {
-      --bg: #0a0f0d;
-      --card: #0f172a;
-      --muted: #8b98a5;
+      --sidebar-bg: #1a202c; /* Dark charcoal */
+      --header-bg: #1a202c; /* Dark charcoal */
+      --main-bg: #f8fafc; /* Light gray for main content area */
+      --text-color-dark: #e2e8f0; /* Light text on dark backgrounds */
+      --text-color-light: #1a202c; /* Dark text on light backgrounds */
+      --accent-color: #10b981; /* Emerald green accent */
+      --accent-hover: #047857; /* Darker emerald for hover */
       --ring: rgba(0,0,0,.08);
-      --pri: #10b981; /* emerald */
-      --pri-700: #047857;
     }
-    html, body { height: 100%; }
-    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0b1020; color: #e5e7eb; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--main-bg); /* Default background for the entire page */
+      color: var(--text-color-light); /* Default text color for the light background */
+    }
     .glass { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); }
-    .sidebar { width: 280px; }
-    .navlink { @apply flex items-center gap-3 rounded-xl px-3 py-2 transition; }
-    .navlink:hover { background: rgba(255,255,255,.06); }
-    .navlink.active { background: rgba(16,185,129,.15); color: #fff; border: 1px solid rgba(16,185,129,.25); }
-    .skeleton { position: relative; overflow: hidden; background: rgba(255,255,255,.06); border-radius: .75rem; }
-    .skeleton:after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); animation: shimmer 1.4s infinite; }
+    /* Sidebar specific styles */
+    .sidebar {
+      background-color: var(--sidebar-bg);
+      color: var(--text-color-dark);
+      width: 280px;
+      padding: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    /* Navigation link styling */
+    .navlink {
+      @apply flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-200 ease-in-out;
+      color: var(--text-color-dark);
+    }
+    .navlink:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--accent-color);
+    }
+    .navlink.active {
+      background: rgba(16,185,129,.15); /* Accent color with transparency */
+      color: var(--accent-color);
+      border-left: 4px solid var(--accent-color); /* Highlight with border */
+      padding-left: calc(0.75rem - 4px); /* Adjust padding due to border */
+    }
+    /* Main content specific styles */
+    main {
+      background-color: var(--main-bg);
+      color: var(--text-color-light);
+    }
+    main h1, main h2, main h3 {
+        color: var(--text-color-light); /* Ensure headings are dark on light background */
+    }
+    /* Other existing styles from original */
+    .skeleton { position: relative; overflow: hidden; background: rgba(0,0,0,.06); border-radius: .75rem; }
+    .skeleton:after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(0,0,0,.08), transparent); animation: shimmer 1.4s infinite; }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
-    .no-data { background: rgba(16,185,129,.08); border: 1px dashed rgba(16,185,129,.4); color: #c7f8e7; }
-    .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border transition; border-color: rgba(255,255,255,.14); }
-    .btn-primary { background: var(--pri); color: #08130f; border-color: transparent; }
-    .btn-primary:hover { background: #34d399; }
-    .btn-muted { background: rgba(255,255,255,.06); }
+    .no-data { background: rgba(16,185,129,.08); border: 1px dashed rgba(16,185,129,.4); color: #047857; /* Darker green text on light green background */ }
+    .btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border transition; border-color: rgba(0,0,0,.14); }
+    .btn-primary { background: var(--accent-color); color: #fff; border-color: transparent; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-muted { background: rgba(0,0,0,.06); } /* Muted buttons for light background */
     .table-wrap { overflow-x: auto; }
-    table.data { width: 100%; min-width: 880px; border-collapse: collapse; }
-    table.data th, table.data td { text-align: left; padding: .9rem 1rem; border-bottom: 1px solid rgba(255,255,255,.08); }
-    table.data thead th { position: sticky; top: 0; background: #0f172a; z-index: 1; text-transform: uppercase; font-size: .75rem; letter-spacing: .05em; color: #9ca3af; }
-    .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs; background: rgba(255,255,255,.08); }
+    table.data { width: 100%; min-width: 880px; border-collapse: collapse; background-color: #fff; /* White background for tables */ }
+    table.data th, table.data td { text-align: left; padding: .9rem 1rem; border-bottom: 1px solid rgba(0,0,0,.08); }
+    table.data thead th { position: sticky; top: 0; background: #e2e8f0; /* Lighter header for tables */ z-index: 1; text-transform: uppercase; font-size: .75rem; letter-spacing: .05em; color: #64748b; }
+    .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs; background: rgba(0,0,0,.08); }
     /* Mobile tweaks */
     @media (min-width: 1024px){ #burger { display:none; } }
   </style>
@@ -45,28 +82,28 @@
 <body>
   <!-- Loading overlay -->
   <div id="loading" class="fixed inset-0 hidden place-items-center z-[100]">
-    <div class="w-72 glass p-6 rounded-2xl shadow-2xl text-center">
+    <div class="w-72 bg-white p-6 rounded-2xl shadow-2xl text-center">
       <div class="mx-auto mb-4 h-12 w-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
-      <div id="loadingText" class="text-emerald-300 font-semibold">Loading…</div>
+      <div id="loadingText" class="text-emerald-500 font-semibold">Loading…</div>
     </div>
   </div>
 
   <!-- Auth / Login Card -->
-  <div id="loginView" class="min-h-screen grid place-items-center p-6">
-    <div class="w-full max-w-md glass rounded-3xl p-6 shadow-2xl">
+  <div id="loginView" class="min-h-screen grid place-items-center p-6 bg-slate-100">
+    <div class="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl">
       <div class="flex items-center justify-center gap-3 mb-4">
-        <div class="h-10 w-10 rounded-2xl bg-emerald-500 grid place-items-center text-slate-900"><i class="fa-solid fa-shield"></i></div>
-        <h1 class="text-2xl font-bold">Admin Login</h1>
+        <div class="h-10 w-10 rounded-2xl bg-emerald-500 grid place-items-center text-white"><i class="fa-solid fa-shield"></i></div>
+        <h1 class="text-2xl font-bold text-gray-800">Admin Login</h1>
       </div>
-      <p class="text-sm text-slate-400 mb-6">Sign in with an account whose UID exists in <span class="font-mono">admins/{uid}</span> and has <span class="font-mono">isAdmin: true</span>.</p>
+      <p class="text-sm text-slate-600 mb-6">Sign in with an account whose UID exists in <span class="font-mono">admins/{uid}</span> and has <span class="font-mono">isAdmin: true</span>.</p>
       <div class="space-y-3">
         <div>
-          <label class="block text-sm text-slate-400 mb-1">Email</label>
-          <input id="email" type="email" class="w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="admin@example.com" />
+          <label class="block text-sm text-slate-700 mb-1">Email</label>
+          <input id="email" type="email" class="w-full rounded-xl bg-slate-100 border border-slate-300 px-3 py-2 text-slate-800" placeholder="admin@example.com" />
         </div>
         <div>
-          <label class="block text-sm text-slate-400 mb-1">Password</label>
-          <input id="password" type="password" class="w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="••••••••" />
+          <label class="block text-sm text-slate-700 mb-1">Password</label>
+          <input id="password" type="password" class="w-full rounded-xl bg-slate-100 border border-slate-300 px-3 py-2 text-slate-800" placeholder="••••••••" />
         </div>
         <button id="loginBtn" class="btn btn-primary w-full justify-center"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
       </div>
@@ -74,49 +111,47 @@
   </div>
 
   <!-- App Shell -->
-  <div id="app" class="hidden min-h-screen">
-    <!-- Topbar (mobile) -->
-    <header class="lg:hidden sticky top-0 z-40 px-4 py-3 flex items-center justify-between glass">
-      <button id="burger" class="btn btn-muted px-3 py-2"><i class="fa-solid fa-bars"></i></button>
-      <div class="flex items-center gap-2 font-semibold"><i class="fa-solid fa-graduation-cap text-emerald-400"></i> Admin Portal</div>
-      <button id="logoutBtn" class="btn btn-muted"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+  <div id="app" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <!-- Fixed Header (top for desktop, acts as mobile header too) -->
+    <header class="fixed top-0 left-0 right-0 z-40 px-4 py-3 flex items-center justify-between lg:justify-end bg-header-bg text-text-color-dark shadow-md lg:ml-[280px]">
+      <button id="burger" class="lg:hidden btn btn-muted px-3 py-2 text-text-color-dark"><i class="fa-solid fa-bars"></i></button>
+      <h1 class="text-xl font-bold lg:absolute lg:left-1/2 lg:-translate-x-1/2">University Portal Dashboard</h1>
+      <div class="flex items-center gap-4">
+        <span id="adminBadge" class="text-sm"><span class="chip bg-emerald-600/30 text-white">Not verified</span></span>
+        <button id="logoutBtn" class="btn btn-muted text-text-color-dark hidden lg:block"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+      </div>
     </header>
 
-    <div class="flex">
-      <!-- Sidebar -->
-      <aside id="sidebar" class="sidebar fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-[calc(100vh)] glass p-4 flex flex-col gap-4 -translate-x-full lg:translate-x-0 transition-transform z-50">
-        <div class="hidden lg:flex items-center gap-3 px-2">
-          <div class="h-9 w-9 rounded-xl bg-emerald-500 grid place-items-center text-slate-900"><i class="fa-solid fa-graduation-cap"></i></div>
-          <div>
-            <div class="font-semibold leading-tight">University Admin</div>
-            <div class="text-xs text-slate-400">Control Center</div>
-          </div>
-        </div>
-        <nav class="mt-2 space-y-1">
-          <a data-section="dashboard" class="navlink active" href="#"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a>
-          <a data-section="students" class="navlink" href="#"><i class="fa-solid fa-users"></i><span>Students</span></a>
-          <a data-section="courses" class="navlink" href="#"><i class="fa-solid fa-book"></i><span>Courses</span></a>
-          <a data-section="fees" class="navlink" href="#"><i class="fa-solid fa-money-bill-wave"></i><span>Fees</span></a>
-          <a data-section="grades" class="navlink" href="#"><i class="fa-solid fa-award"></i><span>Grades</span></a>
-          <a data-section="hostels" class="navlink" href="#"><i class="fa-solid fa-building"></i><span>Hostels</span></a>
-          <a data-section="announcements" class="navlink" href="#"><i class="fa-solid fa-bullhorn"></i><span>Announcements</span></a>
-          <a data-section="graduation" class="navlink" href="#"><i class="fa-solid fa-graduation-cap"></i><span>Graduation</span></a>
-          <a data-section="clearance" class="navlink" href="#"><i class="fa-solid fa-check-circle"></i><span>Clearance</span></a>
-          <a data-section="admins" class="navlink" href="#"><i class="fa-solid fa-user-shield"></i><span>Admins</span></a>
-        </nav>
-        <div class="mt-auto">
-          <button id="logoutBtn2" class="btn w-full justify-center"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
-        </div>
-      </aside>
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar fixed lg:sticky top-0 left-0 h-[100dvh] lg:h-screen flex flex-col gap-4 -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50">
+      <div class="py-4 px-2 text-center">
+        <!-- Logo Placeholder -->
+        <div class="mx-auto mb-4 h-20 w-20 rounded-full bg-emerald-500 grid place-items-center text-white text-3xl font-bold">UP</div>
+        <div class="text-xl font-bold leading-tight">University Admin</div>
+        <div class="text-sm text-slate-400">Control Center</div>
+      </div>
+      <nav class="flex-1 space-y-1 overflow-y-auto">
+        <a data-section="dashboard" class="navlink active" href="#"><i class="fa-solid fa-chart-line w-5"></i><span>Dashboard</span></a>
+        <a data-section="students" class="navlink" href="#"><i class="fa-solid fa-users w-5"></i><span>Students</span></a>
+        <a data-section="courses" class="navlink" href="#"><i class="fa-solid fa-book w-5"></i><span>Courses</span></a>
+        <a data-section="fees" class="navlink" href="#"><i class="fa-solid fa-money-bill-wave w-5"></i><span>Fees</span></a>
+        <a data-section="grades" class="navlink" href="#"><i class="fa-solid fa-award w-5"></i><span>Grades</span></a>
+        <a data-section="hostels" class="navlink" href="#"><i class="fa-solid fa-building w-5"></i><span>Hostels</span></a>
+        <a data-section="announcements" class="navlink" href="#"><i class="fa-solid fa-bullhorn w-5"></i><span>Announcements</span></a>
+        <a data-section="graduation" class="navlink" href="#"><i class="fa-solid fa-graduation-cap w-5"></i><span>Graduation</span></a>
+        <a data-section="clearance" class="navlink" href="#"><i class="fa-solid fa-check-circle w-5"></i><span>Clearance</span></a>
+        <a data-section="admins" class="navlink" href="#"><i class="fa-solid fa-user-shield w-5"></i><span>Admins</span></a>
+      </nav>
+      <div class="mt-auto p-2">
+        <button id="logoutBtn2" class="btn w-full justify-center bg-slate-700 text-white hover:bg-slate-600 lg:hidden"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+      </div>
+    </aside>
 
-      <!-- Main area -->
-      <main class="flex-1 min-h-[100dvh] lg:ml-[280px] p-4 lg:p-8 space-y-6">
-        <div class="hidden lg:flex items-center justify-between">
-          <h1 class="text-2xl lg:text-3xl font-bold">Admin Dashboard</h1>
-          <div class="text-sm text-slate-400" id="adminBadge"><span class="chip">Not verified</span></div>
-        </div>
+    <!-- Main area -->
+    <main class="flex-1 min-h-[100dvh] pt-[64px] lg:pt-0 lg:ml-[280px] p-4 lg:p-8 space-y-6 bg-main-bg">
+        <h1 class="text-2xl lg:text-3xl font-bold mb-6 hidden lg:block">Dashboard Overview</h1>
 
-        <!-- Sections -->
+        <!-- Sections will be rendered here -->
         <section id="dashboardSection" class="space-y-6"></section>
         <section id="studentsSection" class="hidden space-y-4"></section>
         <section id="coursesSection" class="hidden space-y-4"></section>
@@ -127,8 +162,7 @@
         <section id="graduationSection" class="hidden space-y-4"></section>
         <section id="clearanceSection" class="hidden space-y-4"></section>
         <section id="adminsSection" class="hidden space-y-4"></section>
-      </main>
-    </div>
+    </main>
   </div>
 
   <!-- Firebase + App Code -->
@@ -140,13 +174,15 @@
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
-      authDomain: "universityweb-19e1e.firebaseapp.com",
-      projectId: "universityweb-19e1e",
-      storageBucket: "universityweb-19e1e.firebaseostorage.app",
-      messagingSenderId: "401942926589",
-      appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+    // IMPORTANT: Canvas automatically injects these global variables at runtime.
+    // Replace with your actual Firebase config if running outside Canvas.
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -174,9 +210,9 @@
     const renderPlaceholder = (container, { title, icon, lines = [], note }) => {
       container.innerHTML = `
         <div class="no-data rounded-2xl p-4">
-          <h3 class="text-lg font-semibold mb-1"><i class="${icon} mr-2 text-emerald-400"></i>${title}</h3>
-          ${lines.map(l => `<p class="text-sm text-emerald-200/90">${l}</p>`).join('')}
-          ${note ? `<p class="text-xs mt-2 text-emerald-200/70">${note}</p>`: ''}
+          <h3 class="text-lg font-semibold mb-1"><i class="${icon} mr-2 text-emerald-500"></i>${title}</h3>
+          ${lines.map(l => `<p class="text-sm text-emerald-800">${l}</p>`).join('')}
+          ${note ? `<p class="text-xs mt-2 text-emerald-700">${note}</p>`: ''}
         </div>`;
     };
 
@@ -187,7 +223,7 @@
     };
 
     const table = (headers, rows) => `
-      <div class="table-wrap glass rounded-2xl">
+      <div class="table-wrap bg-white rounded-2xl border border-gray-200">
         <table class="data">
           <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
           <tbody>
@@ -221,29 +257,41 @@
         const adminDoc = await getDoc(doc(db, 'admins', user.uid));
         if(adminDoc.exists() && adminDoc.data().isAdmin === true){
           isAdminUser = true; // ✅ set once
-          $('#adminBadge').innerHTML = '<span class="chip bg-emerald-600/30">Admin verified</span>';
+          $('#adminBadge').innerHTML = '<span class="chip bg-emerald-600/30 text-white">Admin verified</span>';
           showApp();
           // default section
           activateSection('dashboard');
         } else {
           await signOut(auth);
-          alert('Your account is not authorized as an administrator.');
+          // Replaced alert with custom modal logic
+          showModal('Authorization Failed', 'Your account is not authorized as an administrator.');
         }
       } catch(err){
         console.error(err);
-        alert('Login verification failed: '+err.message);
+        // Replaced alert with custom modal logic
+        showModal('Error', 'Login verification failed: '+err.message);
       } finally { setLoading(false); }
     });
 
     $('#loginBtn').addEventListener('click', async() => {
       const email = $('#email').value.trim();
       const password = $('#password').value;
-      if(!email || !password){ alert('Enter email and password.'); return; }
+      if(!email || !password){
+        // Replaced alert with custom modal logic
+        showModal('Input Required', 'Enter email and password.');
+        return;
+      }
       setLoading(true, 'Signing in…');
-      try{ await signInWithEmailAndPassword(auth, email, password); } catch(e){ alert(e.message); } finally{ setLoading(false); }
+      try{ await signInWithEmailAndPassword(auth, email, password); } catch(e){
+        // Replaced alert with custom modal logic
+        showModal('Login Failed', e.message);
+      } finally{ setLoading(false); }
     });
 
-    const doLogout = async () => { try{ await signOut(auth); } catch(e){ alert('Logout failed: '+e.message);} };
+    const doLogout = async () => { try{ await signOut(auth); } catch(e){
+        // Replaced alert with custom modal logic
+        showModal('Logout Failed', 'Logout failed: '+e.message);
+    } };
     $('#logoutBtn').addEventListener('click', doLogout);
     $('#logoutBtn2').addEventListener('click', doLogout);
 
@@ -251,8 +299,18 @@
     $('#burger').addEventListener('click', ()=> {
       const sb = $('#sidebar');
       const open = !sb.classList.contains('-translate-x-full');
-      if(open) sb.classList.add('-translate-x-full'); else sb.classList.remove('-translate-x-full');
+      if(open) sb.classList.add('-translate-x-full'); else sb.classList.remove('hidden', '-translate-x-full'); // Remove hidden on open
     });
+    // Close sidebar when clicking outside (on overlay) - for mobile
+    const mainContent = $('main');
+    mainContent.addEventListener('click', (event) => {
+      const sidebar = $('#sidebar');
+      // If sidebar is open and the click is outside the sidebar
+      if (!sidebar.classList.contains('-translate-x-full') && !sidebar.contains(event.target) && !$('#burger').contains(event.target)) {
+        sidebar.classList.add('-translate-x-full');
+      }
+    });
+
 
     /* =========================
        Navigation + sections
@@ -265,6 +323,14 @@
       // sections
       const ids = ['dashboard','students','courses','fees','grades','hostels','announcements','graduation','clearance','admins'];
       ids.forEach(id => { const sec = document.getElementById(id+"Section"); id===key ? show(sec) : hide(sec); });
+
+      // Update main title
+      const mainTitle = $('main h1');
+      if (mainTitle) {
+        mainTitle.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' Overview';
+        if (key === 'dashboard') mainTitle.textContent = 'Dashboard Overview';
+      }
+
       // render immediate placeholders (never blocked by Firestore)
       preloadSection(key);
       // then fetch
@@ -285,10 +351,10 @@
         wrap.className = 'space-y-4';
         wrap.innerHTML = `
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Total Students</div><div id="statStudents" class="text-3xl font-extrabold mt-1">0</div></div>
-            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Total Courses</div><div id="statCourses" class="text-3xl font-extrabold mt-1">0</div></div>
-            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Pending Graduation</div><div id="statGrad" class="text-3xl font-extrabold mt-1">0</div></div>
-            <div class="glass p-4 rounded-2xl"><div class="text-sm text-slate-400">Pending Clearance</div><div id="statClear" class="text-3xl font-extrabold mt-1">0</div></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><div class="text-sm text-slate-500">Total Students</div><div id="statStudents" class="text-3xl font-extrabold mt-1 text-gray-800">0</div></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><div class="text-sm text-slate-500">Total Courses</div><div id="statCourses" class="text-3xl font-extrabold mt-1 text-gray-800">0</div></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><div class="text-sm text-slate-500">Pending Graduation</div><div id="statGrad" class="text-3xl font-extrabold mt-1 text-gray-800">0</div></div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm"><div class="text-sm text-slate-500">Pending Clearance</div><div id="statClear" class="text-3xl font-extrabold mt-1 text-gray-800">0</div></div>
           </div>
           <div id="dashTips"></div>`;
         sec.appendChild(wrap);
@@ -366,13 +432,13 @@
       box.className = 'space-y-3';
       box.innerHTML = `
         <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-          <input id="studentSearch" class="w-full sm:w-72 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search students…"/>
+          <input id="studentSearch" class="w-full sm:w-72 rounded-xl bg-slate-100 border border-slate-300 px-3 py-2 text-slate-800" placeholder="Search students…"/>
           <div class="flex gap-2">
             <button class="btn btn-primary" onclick="window.addStudent()"><i class="fa-solid fa-user-plus"></i> Add</button>
             <button class="btn" onclick="window.exportById('studentsTbl','Students')"><i class="fa-solid fa-file-export"></i> Export</button>
           </div>
         </div>
-        <div class="glass rounded-2xl p-2">
+        <div class="bg-white rounded-2xl p-2 border border-gray-200">
           <div class="table-wrap">
             <table id="studentsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
               ${rows.length? rows.map(r=>`<tr>
@@ -396,18 +462,58 @@
 
     // Basic CRUD exposed globally for inline handlers
     window.addStudent = () => {
-      const name = prompt('Full name'); if(!name) return;
-      const email = prompt('Email (document id)'); if(!email) return;
-      setDoc(doc(db,'students', email.toLowerCase()), { name, email: email.toLowerCase(), createdAt: serverTimestamp() });
+      // Replaced prompt with custom modal logic
+      showFormModal('Add New Student', [
+        { id: 'studentName', label: 'Full Name', type: 'text', required: true },
+        { id: 'studentEmail', label: 'Email (document ID)', type: 'email', required: true },
+        { id: 'studentProgramme', label: 'Programme', type: 'text' },
+        { id: 'studentYear', label: 'Year', type: 'text' },
+        { id: 'studentContact', label: 'Contact', type: 'text' }
+      ], async (data) => {
+        const { studentName, studentEmail, studentProgramme, studentYear, studentContact } = data;
+        if(!studentName || !studentEmail) { showModal('Error', 'Full Name and Email are required.'); return false; }
+        await setDoc(doc(db,'students', studentEmail.toLowerCase()), {
+          name: studentName,
+          email: studentEmail.toLowerCase(),
+          programme: studentProgramme,
+          year: studentYear,
+          contact: studentContact,
+          createdAt: serverTimestamp()
+        });
+        activateSection('students');
+        return true;
+      });
     };
     window.editStudent = async(uid) => {
-      const snap = await getDoc(doc(db,'students', uid)); if(!snap.exists()) return alert('Not found');
+      const snap = await getDoc(doc(db,'students', uid)); if(!snap.exists()) { showModal('Error', 'Student not found.'); return; }
       const cur = snap.data();
-      const name = prompt('Full name', cur.name||''); if(!name) return;
-      await updateDoc(doc(db,'students', uid), { name });
-      activateSection('students');
+      // Replaced prompt with custom modal logic
+      showFormModal('Edit Student', [
+        { id: 'editStudentName', label: 'Full Name', type: 'text', defaultValue: cur.name||'', required: true },
+        { id: 'editStudentEmail', label: 'Email', type: 'email', defaultValue: cur.email||'', readOnly: true },
+        { id: 'editStudentProgramme', label: 'Programme', type: 'text', defaultValue: cur.programme||'' },
+        { id: 'editStudentYear', label: 'Year', type: 'text', defaultValue: cur.year||'' },
+        { id: 'editStudentContact', label: 'Contact', type: 'text', defaultValue: cur.contact||'' }
+      ], async (data) => {
+        const { editStudentName, editStudentProgramme, editStudentYear, editStudentContact } = data;
+        if(!editStudentName) { showModal('Error', 'Full Name is required.'); return false; }
+        await updateDoc(doc(db,'students', uid), {
+          name: editStudentName,
+          programme: editStudentProgramme,
+          year: editStudentYear,
+          contact: editStudentContact
+        });
+        activateSection('students');
+        return true;
+      });
     };
-    window.deleteStudent = async(uid) => { if(!confirm('Delete this student?')) return; await deleteDoc(doc(db,'students', uid)); activateSection('students'); };
+    window.deleteStudent = async(uid) => {
+      // Replaced confirm with custom modal logic
+      showConfirmModal('Confirm Delete', 'Are you sure you want to delete this student record?', async () => {
+        await deleteDoc(doc(db,'students', uid));
+        activateSection('students');
+      });
+    };
 
     /* ============= Courses ============= */
     const fetchCourses = async () => {
@@ -417,13 +523,13 @@
       const hdrs = ['Code','Name','Credits','Lecturer','Schedule','Actions'];
       sec.innerHTML = `
         <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Manage courses</div>
+          <div class="text-lg font-semibold text-gray-800">Manage Courses</div>
           <div class="flex gap-2">
             <button class="btn btn-primary" onclick="window.addCourse()"><i class="fa-solid fa-plus"></i> Add</button>
             <button class="btn" onclick="window.exportById('coursesTbl','Courses')"><i class="fa-solid fa-file-export"></i> Export</button>
           </div>
         </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
+        <div class="bg-white rounded-2xl p-2 border border-gray-200 table-wrap">
           <table id="coursesTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
             ${rows.length? rows.map(r=>`<tr>
               <td>${r.code||r.id}</td><td>${r.title||'—'}</td><td>${r.credits||'—'}</td><td>${r.lecturer||'—'}</td><td>${r.schedule||'—'}</td>
@@ -433,27 +539,66 @@
         </div>`;
     };
     window.addCourse = async () => {
-      const code = prompt('Course code (doc id)'); if(!code) return;
-      const title = prompt('Course name'); if(!title) return;
-      await setDoc(doc(db,'courses', code), { code, title, createdAt: serverTimestamp() });
-      activateSection('courses');
+      // Replaced prompt with custom modal logic
+      showFormModal('Add New Course', [
+        { id: 'courseCode', label: 'Course Code (document ID)', type: 'text', required: true },
+        { id: 'courseTitle', label: 'Course Name', type: 'text', required: true },
+        { id: 'courseCredits', label: 'Credits', type: 'number' },
+        { id: 'courseLecturer', label: 'Lecturer', type: 'text' },
+        { id: 'courseSchedule', label: 'Schedule', type: 'text' }
+      ], async (data) => {
+        const { courseCode, courseTitle, courseCredits, courseLecturer, courseSchedule } = data;
+        if(!courseCode || !courseTitle) { showModal('Error', 'Course Code and Course Name are required.'); return false; }
+        await setDoc(doc(db,'courses', courseCode), {
+          code: courseCode,
+          title: courseTitle,
+          credits: courseCredits ? parseInt(courseCredits) : null,
+          lecturer: courseLecturer,
+          schedule: courseSchedule,
+          createdAt: serverTimestamp()
+        });
+        activateSection('courses');
+        return true;
+      });
     };
     window.editCourse = async (id) => {
-      const snap = await getDoc(doc(db,'courses', id)); if(!snap.exists()) return alert('Not found');
+      const snap = await getDoc(doc(db,'courses', id)); if(!snap.exists()) { showModal('Error', 'Course not found.'); return; }
       const cur = snap.data();
-      const title = prompt('Course name', cur.title||''); if(!title) return;
-      await updateDoc(doc(db,'courses', id), { title });
-      activateSection('courses');
+      // Replaced prompt with custom modal logic
+      showFormModal('Edit Course', [
+        { id: 'editCourseCode', label: 'Course Code', type: 'text', defaultValue: cur.code||'', readOnly: true },
+        { id: 'editCourseTitle', label: 'Course Name', type: 'text', defaultValue: cur.title||'', required: true },
+        { id: 'editCourseCredits', label: 'Credits', type: 'number', defaultValue: cur.credits||'' },
+        { id: 'editCourseLecturer', label: 'Lecturer', type: 'text', defaultValue: cur.lecturer||'' },
+        { id: 'editCourseSchedule', label: 'Schedule', type: 'text', defaultValue: cur.schedule||'' }
+      ], async (data) => {
+        const { editCourseCode, editCourseTitle, editCourseCredits, editCourseLecturer, editCourseSchedule } = data;
+        if(!editCourseTitle) { showModal('Error', 'Course Name is required.'); return false; }
+        await updateDoc(doc(db,'courses', id), {
+          title: editCourseTitle,
+          credits: editCourseCredits ? parseInt(editCourseCredits) : null,
+          lecturer: editCourseLecturer,
+          schedule: editCourseSchedule
+        });
+        activateSection('courses');
+        return true;
+      });
     };
-    window.deleteCourse = async(id) => { if(!confirm('Delete this course?')) return; await deleteDoc(doc(db,'courses', id)); activateSection('courses'); };
+    window.deleteCourse = async(id) => {
+      // Replaced confirm with custom modal logic
+      showConfirmModal('Confirm Delete', 'Are you sure you want to delete this course?', async () => {
+        await deleteDoc(doc(db,'courses', id));
+        activateSection('courses');
+      });
+    };
 
     /* ============= Fees ============= */
     const renderFeesSearch = () => {
       const sec = $('#feesSection');
       sec.innerHTML = `
-        <div class="glass rounded-2xl p-4 space-y-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-            <input id="feesEmail" class="w-full sm:w-80 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search student by email…"/>
+            <input id="feesEmail" class="w-full sm:w-80 rounded-xl bg-slate-100 border border-slate-300 px-3 py-2 text-slate-800" placeholder="Search student by email…"/>
             <button class="btn btn-primary" id="btnFeesSearch"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
           </div>
           <div id="feesInfo"></div>
@@ -465,15 +610,15 @@
 
     const doFeesSearch = async () => {
       const email = ($('#feesEmail').value||'').toLowerCase();
-      if(!email) return alert('Enter a student email.');
+      if(!email) { showModal('Input Required', 'Enter a student email.'); return; }
       const q = query(collection(db,'students'), where('email','==', email));
       const res = await getDocs(q);
-      if(res.empty) { $('#feesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3">Student not found.</div>'; return; }
+      if(res.empty) { $('#feesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3 text-red-700 bg-red-100 border border-red-300">Student not found.</div>'; return; }
       const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
-      $('#feesInfo').innerHTML = `<div class="text-sm text-slate-300">Statement for <span class="font-semibold">${stu.name||email}</span></div>`;
+      $('#feesInfo').innerHTML = `<div class="text-lg font-semibold text-gray-800">Statement for <span class="font-bold">${stu.name||email}</span></div>`;
       // simple demo table — adapt to your structure
       const hdrs = ['Date','Description','Amount','Balance'];
-      const rows = [];
+      const rows = []; // This should be populated with actual fees data from Firestore
       $('#feesTableWrap').innerHTML = table(hdrs, rows);
     };
 
@@ -481,9 +626,9 @@
     const renderGradesSearch = () => {
       const sec = $('#gradesSection');
       sec.innerHTML = `
-        <div class="glass rounded-2xl p-4 space-y-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <div class="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
-            <input id="gradesEmail" class="w-full sm:w-80 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2" placeholder="Search student by email…"/>
+            <input id="gradesEmail" class="w-full sm:w-80 rounded-xl bg-slate-100 border border-slate-300 px-3 py-2 text-slate-800" placeholder="Search student by email…"/>
             <button class="btn btn-primary" id="btnGradesSearch"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
           </div>
           <div id="gradesInfo"></div>
@@ -494,14 +639,14 @@
     };
     const doGradesSearch = async () => {
       const email = ($('#gradesEmail').value||'').toLowerCase();
-      if(!email) return alert('Enter a student email.');
+      if(!email) { showModal('Input Required', 'Enter a student email.'); return; }
       const q = query(collection(db,'students'), where('email','==', email));
       const res = await getDocs(q);
-      if(res.empty) { $('#gradesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3">Student not found.</div>'; return; }
+      if(res.empty) { $('#gradesTableWrap').innerHTML = '<div class="no-data rounded-2xl p-3 text-red-700 bg-red-100 border border-red-300">Student not found.</div>'; return; }
       const stu = { uid: res.docs[0].id, ...res.docs[0].data() };
-      $('#gradesInfo').innerHTML = `<div class="text-sm text-slate-300">Grades for <span class="font-semibold">${stu.name||email}</span></div>`;
+      $('#gradesInfo').innerHTML = `<div class="text-lg font-semibold text-gray-800">Grades for <span class="font-bold">${stu.name||email}</span></div>`;
       const hdrs = ['Course Code','Course Name','Grade'];
-      const rows = [];
+      const rows = []; // This should be populated with actual grades data from Firestore
       $('#gradesTableWrap').innerHTML = table(hdrs, rows);
     };
 
@@ -513,33 +658,66 @@
       const hdrs = ['Hostel','Capacity','Occupied','Status','Actions'];
       sec.innerHTML = `
         <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Manage hostels</div>
+          <div class="text-lg font-semibold text-gray-800">Manage Hostels</div>
           <button class="btn btn-primary" onclick="window.addHostel()"><i class="fa-solid fa-plus"></i> Add</button>
         </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
+        <div class="bg-white rounded-2xl p-2 border border-gray-200 table-wrap">
           <table id="hostelsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
             ${rows.length? rows.map(r=>`<tr>
               <td>${r.name||r.id}</td><td>${r.capacity||'—'}</td><td>${r.occupied||0}</td>
-              <td>${r.open===false?'<span class=chip>Closed</span>':'<span class=chip>Open</span>'}</td>
+              <td>${r.open===false?'<span class="chip bg-red-100 text-red-700">Closed</span>':'<span class="chip bg-green-100 text-green-700">Open</span>'}</td>
               <td><div class="flex gap-2"><button class="btn btn-muted" onclick="window.editHostel('${r.id}')">Edit</button><button class="btn btn-muted" onclick="window.deleteHostel('${r.id}')">Delete</button></div></td>
             </tr>`).join('') : `<tr><td colspan="5" class="py-6 text-center text-slate-400">No hostels yet.</td></tr>`}
           </tbody></table>
         </div>`;
     };
     window.addHostel = async () => {
-      const id = prompt('Hostel id'); if(!id) return;
-      const name = prompt('Hostel name'); if(!name) return;
-      await setDoc(doc(db,'hostels', id), { name, capacity: 0, occupied: 0, open: true, createdAt: serverTimestamp() });
-      activateSection('hostels');
+      // Replaced prompt with custom modal logic
+      showFormModal('Add New Hostel', [
+        { id: 'hostelId', label: 'Hostel ID (document ID)', type: 'text', required: true },
+        { id: 'hostelName', label: 'Hostel Name', type: 'text', required: true },
+        { id: 'hostelCapacity', label: 'Capacity', type: 'number', defaultValue: 0 },
+        { id: 'hostelOpen', label: 'Open for applications', type: 'checkbox', defaultValue: true }
+      ], async (data) => {
+        const { hostelId, hostelName, hostelCapacity, hostelOpen } = data;
+        if(!hostelId || !hostelName) { showModal('Error', 'Hostel ID and Name are required.'); return false; }
+        await setDoc(doc(db,'hostels', hostelId), {
+          name: hostelName,
+          capacity: parseInt(hostelCapacity) || 0,
+          occupied: 0,
+          open: !!hostelOpen,
+          createdAt: serverTimestamp()
+        });
+        activateSection('hostels');
+        return true;
+      });
     };
     window.editHostel = async (id) => {
-      const snap = await getDoc(doc(db,'hostels', id)); if(!snap.exists()) return alert('Not found');
+      const snap = await getDoc(doc(db,'hostels', id)); if(!snap.exists()) { showModal('Error', 'Hostel not found.'); return; }
       const cur = snap.data();
-      const capacity = parseInt(prompt('Capacity', cur.capacity||0));
-      await updateDoc(doc(db,'hostels', id), { capacity });
-      activateSection('hostels');
+      // Replaced prompt with custom modal logic
+      showFormModal('Edit Hostel', [
+        { id: 'editHostelName', label: 'Hostel Name', type: 'text', defaultValue: cur.name||'', readOnly: true },
+        { id: 'editHostelCapacity', label: 'Capacity', type: 'number', defaultValue: cur.capacity||0 },
+        { id: 'editHostelOccupied', label: 'Occupied', type: 'number', defaultValue: cur.occupied||0, readOnly: true },
+        { id: 'editHostelOpen', label: 'Open for applications', type: 'checkbox', defaultValue: cur.open===true }
+      ], async (data) => {
+        const { editHostelCapacity, editHostelOpen } = data;
+        await updateDoc(doc(db,'hostels', id), {
+          capacity: parseInt(editHostelCapacity) || 0,
+          open: !!editHostelOpen
+        });
+        activateSection('hostels');
+        return true;
+      });
     };
-    window.deleteHostel = async (id) => { if(!confirm('Delete hostel?')) return; await deleteDoc(doc(db,'hostels', id)); activateSection('hostels'); };
+    window.deleteHostel = async (id) => {
+      // Replaced confirm with custom modal logic
+      showConfirmModal('Confirm Delete', 'Are you sure you want to delete this hostel?', async () => {
+        await deleteDoc(doc(db,'hostels', id));
+        activateSection('hostels');
+      });
+    };
 
     /* ============= Announcements ============= */
     const fetchAnnouncements = async () => {
@@ -549,10 +727,10 @@
       const hdrs = ['Title','Body','Created','Actions'];
       sec.innerHTML = `
         <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Post updates for students</div>
+          <div class="text-lg font-semibold text-gray-800">Post Updates for Students</div>
           <button class="btn btn-primary" onclick="window.addAnnouncement()"><i class="fa-solid fa-plus"></i> Add</button>
         </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
+        <div class="bg-white rounded-2xl p-2 border border-gray-200 table-wrap">
           <table id="annTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
             ${rows.length? rows.map(r=>`<tr>
               <td>${r.title||'—'}</td><td>${r.body||'—'}</td><td>${(r.createdAt && r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'}</td>
@@ -562,38 +740,62 @@
         </div>`;
     };
     window.addAnnouncement = async () => {
-      const id = crypto.randomUUID();
-      const title = prompt('Title'); if(!title) return;
-      const body = prompt('Body'); if(!body) return;
-      await setDoc(doc(db,'announcements', id), { title, body, createdAt: serverTimestamp() });
-      activateSection('announcements');
+      // Replaced prompt with custom modal logic
+      showFormModal('Add New Announcement', [
+        { id: 'annTitle', label: 'Title', type: 'text', required: true },
+        { id: 'annBody', label: 'Body', type: 'textarea', required: true }
+      ], async (data) => {
+        const { annTitle, annBody } = data;
+        if(!annTitle || !annBody) { showModal('Error', 'Title and Body are required.'); return false; }
+        const id = crypto.randomUUID();
+        await setDoc(doc(db,'announcements', id), { title: annTitle, body: annBody, createdAt: serverTimestamp() });
+        activateSection('announcements');
+        return true;
+      });
     };
     window.editAnnouncement = async (id) => {
-      const snap = await getDoc(doc(db,'announcements', id)); if(!snap.exists()) return alert('Not found');
+      const snap = await getDoc(doc(db,'announcements', id)); if(!snap.exists()) { showModal('Error', 'Announcement not found.'); return; }
       const cur = snap.data();
-      const title = prompt('Title', cur.title||''); if(!title) return;
-      const body = prompt('Body', cur.body||''); if(!body) return;
-      await updateDoc(doc(db,'announcements', id), { title, body });
-      activateSection('announcements');
+      // Replaced prompt with custom modal logic
+      showFormModal('Edit Announcement', [
+        { id: 'editAnnTitle', label: 'Title', type: 'text', defaultValue: cur.title||'', required: true },
+        { id: 'editAnnBody', label: 'Body', type: 'textarea', defaultValue: cur.body||'', required: true }
+      ], async (data) => {
+        const { editAnnTitle, editAnnBody } = data;
+        if(!editAnnTitle || !editAnnBody) { showModal('Error', 'Title and Body are required.'); return false; }
+        await updateDoc(doc(db,'announcements', id), { title: editAnnTitle, body: editAnnBody });
+        activateSection('announcements');
+        return true;
+      });
     };
-    window.deleteAnnouncement = async (id) => { if(!confirm('Delete announcement?')) return; await deleteDoc(doc(db,'announcements', id)); activateSection('announcements'); };
+    window.deleteAnnouncement = async (id) => {
+      // Replaced confirm with custom modal logic
+      showConfirmModal('Confirm Delete', 'Are you sure you want to delete this announcement?', async () => {
+        await deleteDoc(doc(db,'announcements', id));
+        activateSection('announcements');
+      });
+    };
 
     /* ============= Graduation & Clearance ============= */
     const fetchGraduation = async () => {
       const sec = $('#graduationSection');
       const snap = await getDocs(collection(db,'graduationRequests'));
       const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-      sec.innerHTML = table(['Student','Status','Requested'], rows.map(r=>[
+      sec.innerHTML = `
+        <div class="text-lg font-semibold text-gray-800">Graduation Requests</div>
+        ${table(['Student','Status','Requested'], rows.map(r=>[
         r.studentEmail||r.id, r.status||'—', (r.createdAt&&r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'
-      ]));
+      ]))}`;
     };
     const fetchClearance = async () => {
       const sec = $('#clearanceSection');
       const snap = await getDocs(collection(db,'clearanceRequests'));
       const rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-      sec.innerHTML = table(['Student','Status','Requested'], rows.map(r=>[
+      sec.innerHTML = `
+        <div class="text-lg font-semibold text-gray-800">Clearance Requests</div>
+        ${table(['Student','Status','Requested'], rows.map(r=>[
         r.studentEmail||r.id, r.status||'—', (r.createdAt&&r.createdAt.toDate)? r.createdAt.toDate().toLocaleString():'—'
-      ]));
+      ]))}`;
     };
 
     /* ============= Admins ============= */
@@ -604,10 +806,10 @@
       const hdrs = ['UID','Email','isAdmin','Actions'];
       sec.innerHTML = `
         <div class="flex items-center justify-between gap-2">
-          <div class="text-sm text-slate-400">Manage administrator accounts</div>
+          <div class="text-lg font-semibold text-gray-800">Manage Administrator Accounts</div>
           <button class="btn btn-primary" onclick="window.addAdmin()"><i class="fa-solid fa-user-plus"></i> Add</button>
         </div>
-        <div class="glass rounded-2xl p-2 table-wrap">
+        <div class="bg-white rounded-2xl p-2 border border-gray-200 table-wrap">
           <table id="adminsTbl" class="data"><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
             ${rows.length? rows.map(r=>`<tr>
               <td>${r.uid}</td><td>${r.email||'—'}</td><td>${r.isAdmin? 'Yes':'No'}</td>
@@ -617,13 +819,32 @@
         </div>`;
     };
     window.addAdmin = async () => {
-      const uid = prompt('Auth UID'); if(!uid) return;
-      const email = prompt('Email');
-      await setDoc(doc(db,'admins', uid), { email: email||null, isAdmin:true, createdAt: serverTimestamp()});
-      activateSection('admins');
+      // Replaced prompt with custom modal logic
+      showFormModal('Add New Admin', [
+        { id: 'adminUid', label: 'Auth UID', type: 'text', required: true },
+        { id: 'adminEmail', label: 'Email', type: 'email' }
+      ], async (data) => {
+        const { adminUid, adminEmail } = data;
+        if(!adminUid) { showModal('Error', 'Auth UID is required.'); return false; }
+        await setDoc(doc(db,'admins', adminUid), { email: adminEmail||null, isAdmin:true, createdAt: serverTimestamp()});
+        activateSection('admins');
+        return true;
+      });
     };
-    window.toggleAdmin = async (uid, cur) => { await updateDoc(doc(db,'admins', uid), { isAdmin: !cur }); activateSection('admins'); };
-    window.deleteAdmin = async (uid) => { if(!confirm('Delete admin doc?')) return; await deleteDoc(doc(db,'admins', uid)); activateSection('admins'); };
+    window.toggleAdmin = async (uid, cur) => {
+      // Replaced alert with custom modal logic
+      showConfirmModal('Toggle Admin Status', `Are you sure you want to toggle admin status for ${uid}?`, async () => {
+        await updateDoc(doc(db,'admins', uid), { isAdmin: !cur });
+        activateSection('admins');
+      });
+    };
+    window.deleteAdmin = async (uid) => {
+      // Replaced confirm with custom modal logic
+      showConfirmModal('Confirm Delete', 'Are you sure you want to delete this admin record?', async () => {
+        await deleteDoc(doc(db,'admins', uid));
+        activateSection('admins');
+      });
+    };
 
     // Utility export by DOM id
     window.exportById = (id, name) => exportTable(id, name);
@@ -631,6 +852,161 @@
     // Start on dashboard placeholders if html opens already authenticated
     // (onAuthStateChanged will re-render)
     preloadSection('dashboard');
+
+    /* =========================
+       Custom Modal Components
+       (Replaces alert/confirm/prompt)
+    ==========================*/
+
+    // Generic Modal Container (hidden by default)
+    const modalContainer = document.createElement('div');
+    modalContainer.id = 'modalContainer';
+    modalContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000] hidden';
+    modalContainer.innerHTML = `
+      <div class="bg-white rounded-lg shadow-xl p-6 m-4 max-w-sm w-full relative">
+        <h3 id="modalTitle" class="text-xl font-semibold mb-4 text-gray-800"></h3>
+        <p id="modalMessage" class="text-gray-700 mb-6"></p>
+        <div id="modalContent" class="mb-6"></div>
+        <div id="modalActions" class="flex justify-end gap-2"></div>
+      </div>
+    `;
+    document.body.appendChild(modalContainer);
+
+    const closeModal = () => {
+      modalContainer.classList.add('hidden');
+      $('#modalTitle').textContent = '';
+      $('#modalMessage').textContent = '';
+      $('#modalContent').innerHTML = '';
+      $('#modalActions').innerHTML = '';
+    };
+
+    // Simple Alert/Info Modal
+    const showModal = (title, message) => {
+      $('#modalTitle').textContent = title;
+      $('#modalMessage').textContent = message;
+      $('#modalActions').innerHTML = `
+        <button class="btn btn-primary" onclick="window.closeModal()">OK</button>
+      `;
+      modalContainer.classList.remove('hidden');
+    };
+    window.showModal = showModal; // Expose to global scope for inline calls
+
+    // Confirmation Modal
+    const showConfirmModal = (title, message, onConfirm) => {
+      $('#modalTitle').textContent = title;
+      $('#modalMessage').textContent = message;
+      $('#modalActions').innerHTML = `
+        <button class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="window.closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+      `;
+      const confirmBtn = $('#confirmActionBtn');
+      confirmBtn.onclick = () => {
+        onConfirm();
+        closeModal();
+      };
+      modalContainer.classList.remove('hidden');
+    };
+    window.showConfirmModal = showConfirmModal; // Expose to global scope for inline calls
+
+    // Form Input Modal (replaces prompt)
+    const showFormModal = (title, fields, onSubmit) => {
+      $('#modalTitle').textContent = title;
+      $('#modalMessage').textContent = ''; // Clear message for form
+      const formContent = document.createElement('div');
+      formContent.className = 'space-y-3';
+
+      const inputElements = {};
+
+      fields.forEach(field => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <label for="${field.id}" class="block text-sm font-medium text-gray-700 mb-1">${field.label}${field.required ? ' <span class="text-red-500">*</span>' : ''}</label>
+        `;
+        let input;
+        if (field.type === 'textarea') {
+          input = document.createElement('textarea');
+          input.className = 'w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-gray-800';
+          input.rows = 3;
+        } else if (field.type === 'checkbox') {
+          input = document.createElement('input');
+          input.type = 'checkbox';
+          input.className = 'h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded';
+          if (field.defaultValue) input.checked = true;
+          div.className = 'flex items-center gap-2'; // Adjust for checkbox layout
+          div.innerHTML = ''; // Clear to rebuild with checkbox first
+          div.appendChild(input);
+          const label = document.createElement('label');
+          label.htmlFor = field.id;
+          label.className = 'text-sm font-medium text-gray-700';
+          label.textContent = field.label;
+          div.appendChild(label);
+        } else {
+          input = document.createElement('input');
+          input.type = field.type;
+          input.className = 'w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring focus:ring-emerald-500 focus:ring-opacity-50 text-gray-800';
+        }
+
+        input.id = field.id;
+        if (field.defaultValue !== undefined && field.type !== 'checkbox') {
+          input.value = field.defaultValue;
+        }
+        if (field.readOnly) {
+          input.readOnly = true;
+          input.classList.add('bg-gray-100');
+        }
+        if (field.required) {
+          input.required = true;
+        }
+
+        inputElements[field.id] = input; // Store reference to input element
+        if (field.type !== 'checkbox') {
+          div.appendChild(input);
+        }
+        formContent.appendChild(div);
+      });
+
+      $('#modalContent').appendChild(formContent);
+      $('#modalActions').innerHTML = `
+        <button class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="window.closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="submitFormBtn">Submit</button>
+      `;
+
+      const submitBtn = $('#submitFormBtn');
+      submitBtn.onclick = async () => {
+        const formData = {};
+        let isValid = true;
+        for (const field of fields) {
+          const input = inputElements[field.id];
+          if (field.type === 'checkbox') {
+            formData[field.id] = input.checked;
+          } else {
+            formData[field.id] = input.value;
+          }
+          if (field.required && !formData[field.id]) {
+            isValid = false;
+            // Optionally, add visual feedback for required fields
+            input.classList.add('border-red-500');
+            break;
+          } else {
+            input.classList.remove('border-red-500');
+          }
+        }
+
+        if (isValid) {
+          const success = await onSubmit(formData);
+          if (success) {
+            closeModal();
+          }
+        } else {
+            // Replaced alert with custom modal logic
+            showModal('Missing Information', 'Please fill in all required fields.');
+        }
+      };
+      modalContainer.classList.remove('hidden');
+    };
+    window.showFormModal = showFormModal; // Expose to global scope for inline calls
+
+    window.closeModal = closeModal; // Expose close function globally
   </script>
 </body>
 </html>
