@@ -317,7 +317,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
     // Firebase Config: Replace with your actual Firebase project details
@@ -1910,6 +1910,651 @@
     };
 
 
+    // --- New Feature: Hostel Accommodation Booking ---
+    async function loadHostels() {
+      const content = document.getElementById("dashboardContent");
+      const hostelsHtml = `
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <h2 class="text-2xl font-bold text-green-800 mb-6">Hostel Accommodation</h2>
+          <div id="bookingStatusContainer" class="p-4 rounded-md mb-6"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div>
+              <label for="hostel-type-filter" class="block text-gray-700 font-medium mb-2">Hostel Type</label>
+              <select id="hostel-type-filter" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                <option value="all">All</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Mixed">Mixed</option>
+              </select>
+            </div>
+            <div>
+              <label for="hostel-availability-filter" class="block text-gray-700 font-medium mb-2">Availability</label>
+              <select id="hostel-availability-filter" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                <option value="all">All</option>
+                <option value="available">Available</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="hostelsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="col-span-full text-center text-gray-500">Loading hostels...</p>
+          </div>
+        </div>
+      `;
+      content.innerHTML = generateBreadcrumb("Hostel Accommodation") + hostelsHtml;
+
+      const hostelsGrid = document.getElementById('hostelsGrid');
+      const bookingStatusContainer = document.getElementById('bookingStatusContainer');
+      const typeFilter = document.getElementById('hostel-type-filter');
+      const availabilityFilter = document.getElementById('hostel-availability-filter');
+      
+      let allHostels = [];
+      let currentBooking = null;
+      let student = currentUserData;
+
+      showLoading("Fetching hostels...");
+
+      // Check for an existing booking first
+      const checkBooking = onSnapshot(query(collection(db, 'hostelBookings'), where('studentId', '==', currentUserId)), (snapshot) => {
+        if (!snapshot.empty) {
+          currentBooking = snapshot.docs[0].data();
+          bookingStatusContainer.innerHTML = `
+            <div class="bg-green-100 text-green-800 p-4 rounded-md">
+              <p class="font-bold text-lg">✅ You have an active booking:</p>
+              <p><strong>Hostel:</strong> ${currentBooking.hostelName}</p>
+              <p><strong>Room:</strong> ${currentBooking.roomNumber}</p>
+              <button id="cancelBookingBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-4 rounded-md text-sm mt-2 transition duration-300 ease-in-out">Cancel Booking</button>
+            </div>
+          `;
+          document.getElementById('cancelBookingBtn').addEventListener('click', cancelBooking);
+        } else {
+          currentBooking = null;
+          bookingStatusContainer.innerHTML = `
+            <div class="bg-blue-100 text-blue-800 p-4 rounded-md">
+              <p class="font-bold">You do not have an active hostel booking. Select a hostel to book.</p>
+            </div>
+          `;
+        }
+        renderHostels();
+      });
+
+      // Fetch hostels data
+      const fetchHostels = onSnapshot(collection(db, 'hostels'), (snapshot) => {
+        allHostels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderHostels();
+      });
+
+      const renderHostels = () => {
+        hostelsGrid.innerHTML = '';
+        const selectedType = typeFilter.value;
+        const selectedAvailability = availabilityFilter.value;
+
+        const filteredHostels = allHostels.filter(h => {
+          const typeMatch = selectedType === 'all' || h.type === selectedType;
+          const availabilityMatch = selectedAvailability === 'all' || (h.capacity - h.occupancy > 0);
+          return typeMatch && availabilityMatch;
+        });
+
+        if (filteredHostels.length === 0) {
+          hostelsGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No hostels found matching your criteria.</p>`;
+          return;
+        }
+        
+        filteredHostels.forEach(hostel => {
+          const available = hostel.capacity - hostel.occupancy > 0;
+          const statusColor = available ? 'text-green-600' : 'text-red-600';
+          const buttonDisabled = !available || currentBooking !== null;
+          const buttonText = currentBooking ? 'Already Booked' : available ? 'Book Now' : 'Full';
+          const buttonClass = buttonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-700 hover:bg-green-800';
+
+          const hostelCard = document.createElement('div');
+          hostelCard.className = 'bg-gray-50 p-6 rounded-xl shadow-md border-t-4 border-green-600';
+          hostelCard.innerHTML = `
+            <h3 class="text-xl font-bold text-green-800 mb-2">${hostel.name}</h3>
+            <p class="text-gray-600 mb-1"><strong>Type:</strong> ${hostel.type}</p>
+            <p class="text-gray-600 mb-1"><strong>Status:</strong> <span class="font-bold ${statusColor}">${available ? 'Open' : 'Closed'}</span></p>
+            <p class="text-gray-600 mb-4"><strong>Rooms Available:</strong> ${hostel.capacity - hostel.occupancy} / ${hostel.capacity}</p>
+            <button id="bookBtn-${hostel.id}" class="w-full text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out ${buttonClass}" ${buttonDisabled ? 'disabled' : ''}>
+              ${buttonText}
+            </button>
+          `;
+          hostelsGrid.appendChild(hostelCard);
+
+          if (!buttonDisabled) {
+            document.getElementById(`bookBtn-${hostel.id}`).addEventListener('click', () => bookHostel(hostel));
+          }
+        });
+        hideLoading();
+      };
+
+      const bookHostel = async (hostel) => {
+        const response = await confirm(`Are you sure you want to book a room in ${hostel.name}?`);
+        if (response) {
+          showLoading("Booking hostel...");
+          try {
+            // Find an available room
+            const roomNumber = hostel.occupancy + 1; // Simple auto-assign
+            const bookingData = {
+              studentId: currentUserId,
+              hostelId: hostel.id,
+              hostelName: hostel.name,
+              roomNumber: `Room ${roomNumber}`,
+              bookingDate: new Date(),
+              status: 'active'
+            };
+
+            await addDoc(collection(db, 'hostelBookings'), bookingData);
+
+            // Update hostel occupancy
+            const hostelDocRef = doc(db, 'hostels', hostel.id);
+            await updateDoc(hostelDocRef, {
+              occupancy: arrayUnion(currentUserId)
+            });
+
+            await showCustomModal("Booking Successful", `✅ You have successfully booked a room in ${hostel.name}, Room ${roomNumber}.`);
+          } catch (error) {
+            console.error("Error booking hostel:", error);
+            await showCustomModal("Booking Failed", "❌ An error occurred while booking. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        }
+      };
+
+      const cancelBooking = async () => {
+        const response = await confirm("Are you sure you want to cancel your booking?");
+        if (response) {
+          showLoading("Cancelling booking...");
+          try {
+            // Remove booking from hostelBookings
+            const bookingQuery = query(collection(db, 'hostelBookings'), where('studentId', '==', currentUserId));
+            const bookingSnapshot = await getDocs(bookingQuery);
+            if (!bookingSnapshot.empty) {
+              const bookingDoc = bookingSnapshot.docs[0];
+              await deleteDoc(doc(db, 'hostelBookings', bookingDoc.id));
+
+              // Update hostel occupancy
+              const hostelDocRef = doc(db, 'hostels', currentBooking.hostelId);
+              await updateDoc(hostelDocRef, {
+                occupancy: arrayRemove(currentUserId)
+              });
+
+              await showCustomModal("Cancellation Successful", "✅ Your hostel booking has been cancelled.");
+            } else {
+              throw new Error("No active booking found to cancel.");
+            }
+          } catch (error) {
+            console.error("Error cancelling booking:", error);
+            await showCustomModal("Cancellation Failed", "❌ An error occurred while cancelling your booking. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        }
+      };
+
+      typeFilter.addEventListener('change', renderHostels);
+      availabilityFilter.addEventListener('change', renderHostels);
+    }
+
+    // --- New Feature: Exam Card ---
+    async function loadExamCard() {
+      const content = document.getElementById("dashboardContent");
+      const examCardHtml = `
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <h2 class="text-2xl font-bold text-green-800 mb-6">Exam Card</h2>
+          <div id="examCardHeader" class="bg-green-100 p-6 rounded-lg shadow-inner mb-6">
+            <h3 class="text-xl font-bold text-green-800 mb-2">Student Details</h3>
+            <p><strong>Name:</strong> ${currentUserData.name || 'N/A'}</p>
+            <p><strong>Student ID:</strong> ${currentUserData.regNo || 'N/A'}</p>
+            <p><strong>Program:</strong> ${currentUserData.programme || 'N/A'}</p>
+            <p><strong>Year of Study:</strong> ${currentUserData.yearOfStudy || 'N/A'}</p>
+            <p><strong>Semester:</strong> ${currentUserData.semester || 'N/A'}</p>
+          </div>
+          <div id="examCardStatus" class="p-4 rounded-md mb-6 text-center font-bold"></div>
+          <div id="examCardContent" class="hidden">
+            <h3 class="text-xl font-bold text-green-800 mb-4">Registered Units</h3>
+            <div class="overflow-x-auto">
+              <table id="examUnitsTable" class="min-w-full bg-white border-collapse rounded-lg overflow-hidden hidden md:table">
+                <thead class="bg-gray-200 text-gray-700">
+                  <tr>
+                    <th class="py-3 px-4 text-left font-bold border-b border-gray-300">Course Code</th>
+                    <th class="py-3 px-4 text-left font-bold border-b border-gray-300">Course Name</th>
+                  </tr>
+                </thead>
+                <tbody id="examUnitsTableBody"></tbody>
+              </table>
+            </div>
+            <div id="examUnitsMobile" class="md:hidden space-y-4"></div>
+          </div>
+          <div id="examCardFooter" class="mt-6 flex justify-center">
+            <button id="downloadExamCardBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">
+              <i class="fas fa-file-pdf mr-2"></i>Download Exam Card (PDF)
+            </button>
+          </div>
+        </div>
+      `;
+      content.innerHTML = generateBreadcrumb("Exam Card") + examCardHtml;
+      
+      const examCardStatus = document.getElementById('examCardStatus');
+      const examCardContent = document.getElementById('examCardContent');
+      const downloadBtn = document.getElementById('downloadExamCardBtn');
+      const examUnitsTableBody = document.getElementById('examUnitsTableBody');
+      const examUnitsMobile = document.getElementById('examUnitsMobile');
+      
+      const student = currentUserData;
+      if (!student.regNo || student.regNo === 'N/A' || !student.semester || student.semester === 'N/A') {
+          examCardStatus.innerText = "❌ Please complete your profile (Student ID, Program, Semester) to view your exam card.";
+          examCardStatus.classList.add('text-red-800', 'bg-red-100');
+          return;
+      }
+      
+      showLoading("Checking fees and fetching units...");
+      
+      try {
+        // Fetch fees balance
+        const feesSnapshot = await getDocs(collection(db, `students/${currentUserId}/feesStatement`));
+        let balance = 0;
+        feesSnapshot.forEach(t => {
+            balance += (t.data().debit || 0) - (t.data().credit || 0);
+        });
+
+        if (balance > 0) {
+          examCardStatus.innerHTML = `<span class="text-red-800">❌ You have an outstanding balance of GHS ${balance.toFixed(2)}. Please clear your fees to access your Exam Card.</span>`;
+          examCardStatus.classList.add('bg-red-100');
+          examCardContent.classList.add('hidden');
+          downloadBtn.classList.add('hidden');
+        } else {
+          examCardStatus.innerHTML = `<span class="text-green-800">✅ Fees Cleared. You are eligible to download your Exam Card.</span>`;
+          examCardStatus.classList.add('bg-green-100');
+          examCardContent.classList.remove('hidden');
+          downloadBtn.classList.remove('hidden');
+
+          // Fetch registered units
+          const unitsQuery = query(collection(db, `students/${currentUserId}/registrations`), where('semester', '==', student.semester));
+          const unitsSnapshot = await getDocs(unitsQuery);
+          const units = unitsSnapshot.docs.map(doc => doc.data());
+          
+          if (units.length === 0) {
+              examUnitsTableBody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-gray-500">No units registered for this semester.</td></tr>`;
+              examUnitsMobile.innerHTML = `<p class="text-center text-gray-500">No units registered for this semester.</p>`;
+              downloadBtn.disabled = true;
+              downloadBtn.innerText = "No Units to Download";
+              downloadBtn.classList.add('bg-gray-400', 'cursor-not-allowed', 'hover:bg-gray-400');
+          } else {
+              // Populate desktop table
+              examUnitsTableBody.innerHTML = units.map(u => `
+                  <tr>
+                    <td class="py-3 px-4 border-b border-gray-300">${u.courseCode}</td>
+                    <td class="py-3 px-4 border-b border-gray-300">${u.courseName}</td>
+                  </tr>
+              `).join('');
+
+              // Populate mobile list
+              examUnitsMobile.innerHTML = units.map(u => `
+                  <div class="p-4 bg-gray-50 rounded-md">
+                    <p class="font-bold">${u.courseCode}</p>
+                    <p class="text-sm text-gray-700">${u.courseName}</p>
+                  </div>
+              `).join('');
+              
+              downloadBtn.addEventListener('click', () => generateExamCardPDF(units, balance));
+          }
+        }
+      } catch (error) {
+        console.error("Error loading exam card data:", error);
+        examCardStatus.innerHTML = `<span class="text-red-800">❌ Failed to load exam card. Please try again.</span>`;
+        examCardStatus.classList.add('bg-red-100');
+        downloadBtn.classList.add('hidden');
+      } finally {
+        hideLoading();
+      }
+    }
+    
+    // PDF Generation for Exam Card
+    window.generateExamCardPDF = async function(units, feesBalance) {
+        showLoading("Generating Exam Card...");
+        try {
+            const student = currentUserData;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 15;
+            let yOffset = 20;
+
+            // Header
+            doc.setFontSize(18);
+            doc.setTextColor(0, 51, 0); // Dark Green
+            doc.text("EXAMINATION CARD", pageWidth / 2, yOffset, null, null, "center");
+            yOffset += 7;
+            doc.setFontSize(10);
+            doc.setTextColor(51, 51, 51); // Dark Gray
+            doc.text("Prince Alex Design University", pageWidth / 2, yOffset, null, null, "center");
+            yOffset += 5;
+            doc.text("P.O Box 1234, University Road, Cityville", pageWidth / 2, yOffset, null, null, "center");
+            yOffset += 15;
+            doc.addImage('myschoollogo.png', 'PNG', (pageWidth / 2) - 15, 15, 30, 30); // Logo
+
+            // Student Details
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.text("Student Details:", margin, yOffset);
+            yOffset += 7;
+            doc.setFont("helvetica", "normal");
+            doc.text(`Name: ${student.name}`, margin, yOffset);
+            yOffset += 5;
+            doc.text(`Student ID: ${student.regNo}`, margin, yOffset);
+            yOffset += 5;
+            doc.text(`Program: ${student.programme}`, margin, yOffset);
+            yOffset += 5;
+            doc.text(`Year: ${student.yearOfStudy}`, margin, yOffset);
+            yOffset += 5;
+            doc.text(`Semester: ${student.semester}`, margin, yOffset);
+            yOffset += 10;
+            
+            // Registered Units Table
+            doc.setFont("helvetica", "bold");
+            doc.text("Registered Units:", margin, yOffset);
+            yOffset += 5;
+            
+            const tableHeaders = [["Course Code", "Course Name"]];
+            const tableData = units.map(u => [u.courseCode, u.courseName]);
+            
+            doc.autoTable({
+                startY: yOffset,
+                head: tableHeaders,
+                body: tableData,
+                styles: { fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+                headStyles: { fillColor: [0, 100, 0], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [240, 240, 240] },
+                margin: { left: margin, right: margin }
+            });
+
+            // Fees Status
+            let finalY = doc.lastAutoTable.finalY + 10;
+            const feesStatusText = feesBalance <= 0 ? "Fees Status: Cleared" : `Fees Status: Outstanding (GHS ${feesBalance.toFixed(2)})`;
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(feesBalance <= 0 ? 0 : 255, feesBalance <= 0 ? 128 : 0, 0);
+            doc.text(feesStatusText, margin, finalY);
+            
+            // Signature blocks
+            finalY += 20;
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "normal");
+            doc.text("_______________________", margin, finalY);
+            doc.text("Dean of Faculty", margin, finalY + 5);
+
+            doc.text("_______________________", pageWidth - 70, finalY);
+            doc.text("Head of Department", pageWidth - 70, finalY + 5);
+            
+            // Footer
+            finalY = doc.internal.pageSize.height - 20;
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text("This card must be presented during all examinations.", pageWidth / 2, finalY, null, null, "center");
+            doc.text("Generated by Prince Alex Design University Portal", pageWidth / 2, finalY + 5, null, null, "center");
+            
+            doc.save(`Exam-Card-${student.regNo}.pdf`);
+        } catch (error) {
+            console.error("Error generating Exam Card PDF:", error);
+            await showCustomModal("PDF Generation Failed", "❌ Failed to generate the Exam Card. Please ensure all data is correct and try again.");
+        } finally {
+            hideLoading();
+        }
+    };
+    
+    // --- New Feature: Personal Profile ---
+    async function loadProfile() {
+      const content = document.getElementById("dashboardContent");
+      const profileHtml = `
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <h2 class="text-2xl font-bold text-green-800 mb-6">Personal Profile</h2>
+          <div id="profileContent" class="flex flex-col md:flex-row md:space-x-6">
+            <div class="flex-shrink-0 mb-4 md:mb-0">
+              <img id="profileImage" src="${currentUserData.profilePhotoURL || 'https://placehold.co/150x150/eeeeee/333333?text=Avatar'}" alt="Profile Picture" class="w-32 h-32 rounded-full mx-auto md:mx-0 border-4 border-green-200">
+              <div class="mt-4 text-center md:text-left">
+                <button id="changeProfilePicBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 text-sm rounded-md transition duration-300 ease-in-out">Change Photo</button>
+                <input type="file" id="profilePicInput" class="hidden" accept="image/*">
+              </div>
+            </div>
+            <div class="flex-grow">
+              <div id="profileView" class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">Full Name</p>
+                    <p id="profile-name" class="font-semibold text-gray-800">${currentUserData.name || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">Student ID</p>
+                    <p id="profile-regno" class="font-semibold text-gray-800">${currentUserData.regNo || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">Email</p>
+                    <p id="profile-email" class="font-semibold text-gray-800">${currentUserData.email || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">Phone Number</p>
+                    <p id="profile-phone" class="font-semibold text-gray-800">${currentUserData.phone || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">Gender</p>
+                    <p id="profile-gender" class="font-semibold text-gray-800">${currentUserData.gender || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">Date of Birth</p>
+                    <p id="profile-dob" class="font-semibold text-gray-800">${currentUserData.dob || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md">
+                    <p class="text-sm text-gray-500">National ID/Passport</p>
+                    <p id="profile-idno" class="font-semibold text-gray-800">${currentUserData.nationalId || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-gray-100 rounded-md col-span-1 lg:col-span-2">
+                    <p class="text-sm text-gray-500">Address</p>
+                    <p id="profile-address" class="font-semibold text-gray-800">${currentUserData.address || 'N/A'}</p>
+                  </div>
+                </div>
+                <div class="p-4 bg-green-100 rounded-md mt-4">
+                  <p class="text-sm text-gray-500">Program</p>
+                  <p id="profile-program" class="font-semibold text-green-800">${currentUserData.programme || 'N/A'}</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <div class="p-4 bg-green-100 rounded-md">
+                    <p class="text-sm text-gray-500">Year of Study</p>
+                    <p id="profile-year" class="font-semibold text-green-800">${currentUserData.yearOfStudy || 'N/A'}</p>
+                  </div>
+                  <div class="p-4 bg-green-100 rounded-md">
+                    <p class="text-sm text-gray-500">Semester</p>
+                    <p id="profile-semester" class="font-semibold text-green-800">${currentUserData.semester || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div id="profileEdit" class="space-y-4 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label for="edit-name" class="block text-gray-700 font-medium mb-2">Full Name</label>
+                    <input type="text" id="edit-name" class="w-full p-2 border border-gray-300 rounded-md" value="${currentUserData.name || ''}" required>
+                  </div>
+                  <div>
+                    <label for="edit-phone" class="block text-gray-700 font-medium mb-2">Phone Number</label>
+                    <input type="tel" id="edit-phone" class="w-full p-2 border border-gray-300 rounded-md" value="${currentUserData.phone || ''}">
+                  </div>
+                  <div>
+                    <label for="edit-gender" class="block text-gray-700 font-medium mb-2">Gender</label>
+                    <select id="edit-gender" class="w-full p-2 border border-gray-300 rounded-md">
+                      <option value="">Select Gender</option>
+                      <option value="Male" ${currentUserData.gender === 'Male' ? 'selected' : ''}>Male</option>
+                      <option value="Female" ${currentUserData.gender === 'Female' ? 'selected' : ''}>Female</option>
+                      <option value="Other" ${currentUserData.gender === 'Other' ? 'selected' : ''}>Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="edit-dob" class="block text-gray-700 font-medium mb-2">Date of Birth</label>
+                    <input type="date" id="edit-dob" class="w-full p-2 border border-gray-300 rounded-md" value="${currentUserData.dob || ''}">
+                  </div>
+                  <div>
+                    <label for="edit-national-id" class="block text-gray-700 font-medium mb-2">National ID/Passport</label>
+                    <input type="text" id="edit-national-id" class="w-full p-2 border border-gray-300 rounded-md" value="${currentUserData.nationalId || ''}">
+                  </div>
+                  <div class="col-span-1 lg:col-span-2">
+                    <label for="edit-address" class="block text-gray-700 font-medium mb-2">Address</label>
+                    <textarea id="edit-address" class="w-full p-2 border border-gray-300 rounded-md" rows="3">${currentUserData.address || ''}</textarea>
+                  </div>
+                </div>
+                <div class="mt-4 flex space-x-4">
+                  <button id="saveProfileBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Save Changes</button>
+                  <button id="cancelEditBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-sm text-gray-500 mt-6 pt-4 border-t border-gray-200">
+            Profile last updated on: <span id="lastUpdatedDate">${currentUserData.lastUpdated ? new Date(currentUserData.lastUpdated.toDate()).toLocaleString() : 'N/A'}</span>
+          </div>
+          <div class="mt-6 flex justify-start">
+            <button id="editProfileBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Edit Profile</button>
+          </div>
+        </div>
+      `;
+      content.innerHTML = generateBreadcrumb("Personal Profile") + profileHtml;
+
+      const profileView = document.getElementById('profileView');
+      const profileEdit = document.getElementById('profileEdit');
+      const editProfileBtn = document.getElementById('editProfileBtn');
+      const saveProfileBtn = document.getElementById('saveProfileBtn');
+      const cancelEditBtn = document.getElementById('cancelEditBtn');
+      const changeProfilePicBtn = document.getElementById('changeProfilePicBtn');
+      const profilePicInput = document.getElementById('profilePicInput');
+      const profileImage = document.getElementById('profileImage');
+
+      editProfileBtn.addEventListener('click', () => {
+        profileView.classList.add('hidden');
+        profileEdit.classList.remove('hidden');
+        editProfileBtn.classList.add('hidden');
+      });
+
+      cancelEditBtn.addEventListener('click', () => {
+        profileView.classList.remove('hidden');
+        profileEdit.classList.add('hidden');
+        editProfileBtn.classList.remove('hidden');
+      });
+
+      // Photo upload
+      changeProfilePicBtn.addEventListener('click', () => {
+        profilePicInput.click();
+      });
+
+      profilePicInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showLoading("Uploading profile picture...");
+        try {
+          const storageRef = ref(storage, `profile_pictures/${currentUserId}`);
+          await uploadBytes(storageRef, file);
+          const photoURL = await getDownloadURL(storageRef);
+
+          const studentDocRef = doc(db, 'students', currentUserId);
+          await updateDoc(studentDocRef, {
+            profilePhotoURL: photoURL
+          });
+
+          profileImage.src = photoURL;
+          currentUserData.profilePhotoURL = photoURL;
+          await showCustomModal("Success", "Profile picture updated successfully!");
+        } catch (error) {
+          console.error("Error uploading photo:", error);
+          await showCustomModal("Upload Failed", "❌ Failed to upload profile picture. Please try again.");
+        } finally {
+          hideLoading();
+        }
+      });
+
+      // Save profile changes
+      saveProfileBtn.addEventListener('click', async () => {
+        setButtonLoading(saveProfileBtn, true);
+
+        const newName = document.getElementById('edit-name').value;
+        const newPhone = document.getElementById('edit-phone').value;
+        const newGender = document.getElementById('edit-gender').value;
+        const newDob = document.getElementById('edit-dob').value;
+        const newNationalId = document.getElementById('edit-national-id').value;
+        const newAddress = document.getElementById('edit-address').value;
+
+        try {
+          const studentDocRef = doc(db, 'students', currentUserId);
+          await updateDoc(studentDocRef, {
+            name: newName,
+            phone: newPhone,
+            gender: newGender,
+            dob: newDob,
+            nationalId: newNationalId,
+            address: newAddress,
+            lastUpdated: new Date()
+          });
+
+          // Update local currentUserData and UI
+          currentUserData.name = newName;
+          currentUserData.phone = newPhone;
+          currentUserData.gender = newGender;
+          currentUserData.dob = newDob;
+          currentUserData.nationalId = newNationalId;
+          currentUserData.address = newAddress;
+          currentUserData.lastUpdated = new Date();
+
+          document.getElementById('profile-name').innerText = newName || 'N/A';
+          document.getElementById('profile-phone').innerText = newPhone || 'N/A';
+          document.getElementById('profile-gender').innerText = newGender || 'N/A';
+          document.getElementById('profile-dob').innerText = newDob || 'N/A';
+          document.getElementById('profile-idno').innerText = newNationalId || 'N/A';
+          document.getElementById('profile-address').innerText = newAddress || 'N/A';
+          document.getElementById('lastUpdatedDate').innerText = new Date().toLocaleString();
+
+          profileView.classList.remove('hidden');
+          profileEdit.classList.add('hidden');
+          editProfileBtn.classList.remove('hidden');
+
+          await showCustomModal("Success", "Profile updated successfully!");
+        } catch (error) {
+          console.error("Error saving profile:", error);
+          await showCustomModal("Save Failed", "❌ Failed to save profile changes. Please try again.");
+        } finally {
+          setButtonLoading(saveProfileBtn, false);
+        }
+      });
+
+      // Listen for real-time updates to the user's profile
+      onSnapshot(doc(db, 'students', currentUserId), (docSnap) => {
+          if (docSnap.exists()) {
+              const data = docSnap.data();
+              // Update all display elements
+              document.getElementById('profile-name').innerText = data.name || 'N/A';
+              document.getElementById('profile-regno').innerText = data.regNo || 'N/A';
+              document.getElementById('profile-email').innerText = data.email || 'N/A';
+              document.getElementById('profile-phone').innerText = data.phone || 'N/A';
+              document.getElementById('profile-gender').innerText = data.gender || 'N/A';
+              document.getElementById('profile-dob').innerText = data.dob || 'N/A';
+              document.getElementById('profile-idno').innerText = data.nationalId || 'N/A';
+              document.getElementById('profile-address').innerText = data.address || 'N/A';
+              document.getElementById('profile-program').innerText = data.programme || 'N/A';
+              document.getElementById('profile-year').innerText = data.yearOfStudy || 'N/A';
+              document.getElementById('profile-semester').innerText = data.semester || 'N/A';
+              document.getElementById('profileImage').src = data.profilePhotoURL || 'https://placehold.co/150x150/eeeeee/333333?text=Avatar';
+              document.getElementById('lastUpdatedDate').innerText = data.lastUpdated ? new Date(data.lastUpdated.toDate()).toLocaleString() : 'N/A';
+              
+              // Update edit fields as well
+              document.getElementById('edit-name').value = data.name || '';
+              document.getElementById('edit-phone').value = data.phone || '';
+              document.getElementById('edit-gender').value = data.gender || '';
+              document.getElementById('edit-dob').value = data.dob || '';
+              document.getElementById('edit-national-id').value = data.nationalId || '';
+              document.getElementById('edit-address').value = data.address || '';
+          }
+      });
+    }
+
     // --- Main Dashboard Section Handler ---
     let currentSection = null;
     window.showDashboardSection = function(sectionId) {
@@ -1923,6 +2568,9 @@
       switch (sectionId) {
         case 'home':
           loadHome();
+          break;
+        case 'profile':
+          loadProfile();
           break;
         case 'courseReg':
           loadCourseReg();
@@ -1941,6 +2589,12 @@
           break;
         case 'fees':
           loadFees();
+          break;
+        case 'examCard':
+          loadExamCard();
+          break;
+        case 'hostels':
+          loadHostels();
           break;
         default:
           document.getElementById('dashboardContent').innerHTML = `<div class="p-6 text-center text-gray-500">Page not found.</div>`;
@@ -2032,6 +2686,27 @@
               startTime: "08:00",
               endTime: "10:00"
             });
+            
+            // Sample Hostels
+            const hostelsRef = collection(db, 'hostels');
+            batch.set(doc(hostelsRef, "hostelA"), {
+                name: "Hostel A",
+                type: "Male",
+                capacity: 50,
+                occupancy: []
+            });
+            batch.set(doc(hostelsRef, "hostelB"), {
+                name: "Hostel B",
+                type: "Female",
+                capacity: 60,
+                occupancy: []
+            });
+            batch.set(doc(hostelsRef, "hostelC"), {
+                name: "Hostel C",
+                type: "Mixed",
+                capacity: 40,
+                occupancy: []
+            });
 
 
             await batch.commit();
@@ -2050,8 +2725,6 @@
         }
     });
 
-    // Helper to run a batch write
-    import { writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
   </script>
 </body>
 </html>
