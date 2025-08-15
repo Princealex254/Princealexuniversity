@@ -566,7 +566,7 @@
           apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
           authDomain: "universityweb-19e1e.firebaseapp.com",
           projectId: "universityweb-19e1e",
-          storageBucket: "universityweb-19e1e.firebasestorage.app",
+          storageBucket: "universityweb-19e1e.firebaseostorage.app",
           messagingSenderId: "401942926589",
           appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
         };
@@ -1104,7 +1104,8 @@
                 const snapshot = await getDocs(coursesRef);
                 const courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                const columns = ['courseCode', 'courseName', 'credits', 'lecturer', 'schedule'];
+                // Corrected column names to match Firestore seeding
+                const columns = ['code', 'title', 'credits', 'lecturer', 'schedule']; 
                 const actions = [
                     { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (course) => editCourseModal(course) },
                     { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (course) => deleteCourse(course.id) }
@@ -1137,7 +1138,8 @@
                     showCustomModal('Error', 'All fields are required.', false);
                     return;
                 }
-                await addCourse({ courseCode, courseName, credits: parseInt(credits), lecturer, schedule, createdAt: serverTimestamp() });
+                // When adding, ensure we use the 'code' and 'title' properties for consistency with rendering
+                await addCourse({ code: courseCode, title: courseName, credits: parseInt(credits), lecturer, schedule, createdAt: serverTimestamp() });
             });
         }
 
@@ -1151,7 +1153,8 @@
                     hideLoading();
                     return;
                 }
-                await setDoc(doc(db, 'courses', courseData.courseCode), courseData);
+                // Use courseCode (which is 'code') as the document ID for courses
+                await setDoc(doc(db, 'courses', courseData.code), courseData);
                 showCustomModal('Success', 'Course added successfully.', false);
                 fetchCourses();
             } catch (error) {
@@ -1164,8 +1167,8 @@
 
         function editCourseModal(course) {
             showCustomModal('Edit Course', `
-                <input type="text" id="editCourseCode" placeholder="Course Code" class="w-full p-2 mb-2 border rounded-md" value="${course.courseCode}" disabled />
-                <input type="text" id="editCourseName" placeholder="Course Name" class="w-full p-2 mb-2 border rounded-md" value="${course.courseName}" />
+                <input type="text" id="editCourseCode" placeholder="Course Code" class="w-full p-2 mb-2 border rounded-md" value="${course.code}" disabled />
+                <input type="text" id="editCourseName" placeholder="Course Name" class="w-full p-2 mb-2 border rounded-md" value="${course.title}" />
                 <input type="number" id="editCourseCredits" placeholder="Credits" class="w-full p-2 mb-2 border rounded-md" value="${course.credits}" />
                 <input type="text" id="editCourseLecturer" placeholder="Lecturer" class="w-full p-2 mb-2 border rounded-md" value="${course.lecturer}" />
                 <input type="text" id="editCourseSchedule" placeholder="Schedule" class="w-full p-2 mb-2 border rounded-md" value="${course.schedule}" />
@@ -1179,7 +1182,8 @@
                     showCustomModal('Error', 'All fields are required.', false);
                     return;
                 }
-                await updateCourse(course.id, { courseName, credits: parseInt(credits), lecturer, schedule });
+                // Update using 'title' instead of 'courseName'
+                await updateCourse(course.id, { title: courseName, credits: parseInt(credits), lecturer, schedule });
             });
         }
 
@@ -1243,11 +1247,12 @@
                 const snapshot = await getDocs(coursesRef);
                 const allCourses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 const filteredCourses = allCourses.filter(course => 
-                    course.courseCode.toLowerCase().includes(searchTerm) ||
-                    course.courseName.toLowerCase().includes(searchTerm) ||
+                    (course.code && course.code.toLowerCase().includes(searchTerm)) || // Search by 'code'
+                    (course.title && course.title.toLowerCase().includes(searchTerm)) || // Search by 'title'
                     (course.lecturer && course.lecturer.toLowerCase().includes(searchTerm))
                 );
-                const columns = ['courseCode', 'courseName', 'credits', 'lecturer', 'schedule'];
+                // Corrected column names for rendering search results
+                const columns = ['code', 'title', 'credits', 'lecturer', 'schedule'];
                 const actions = [
                     { text: 'Edit', class: 'bg-yellow-500 text-white px-2 py-1 rounded-lg mr-1', handler: (course) => editCourseModal(course) },
                     { text: 'Delete', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (course) => deleteCourse(course.id) }
@@ -1362,7 +1367,7 @@
             showCustomModal('Add Fee Transaction', `
                 <input type="number" id="transactionAmount" placeholder="Amount (GHS)" class="w-full p-2 mb-2 border rounded-md" step="0.01" />
                 <input type="text" id="transactionDescription" placeholder="Description (e.g., Tuition Payment)" class="w-full p-2 mb-2 border rounded-md" />
-                <select id="transactionType" class="w-full p-2 mb-2 border rounded-md">
+                <select type="text" id="transactionType" class="w-full p-2 mb-2 border rounded-md">
                     <option value="payment">Payment</option>
                     <option value="charge">Charge</option>
                 </select>
