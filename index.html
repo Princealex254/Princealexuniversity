@@ -423,19 +423,13 @@
     };
 
     // --- Auth State Check for Initial Load ---
-    // This checks if a user is already authenticated (due to persistence)
-    // and redirects to dashboard immediately.
+    // This block is modified to always show the login form,
+    // requiring a fresh login for security.
     onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in, redirect to dashboard
-        loadingText.innerText = "Logged in! Redirecting...";
-        loadingOverlay.style.display = 'flex';
-        window.location.href = window.location.origin + "/dashboard.html";
-      } else {
-        // No user signed in, hide loading overlay and show login form
-        loadingOverlay.style.display = 'none';
-        showForm('login'); // Ensure login form is visible by default
-      }
+      // Always hide the loading overlay and show the login form,
+      // regardless of authentication state, to enforce re-login on refresh.
+      loadingOverlay.style.display = 'none';
+      showForm('login'); 
     });
 
     // Function to log in user
