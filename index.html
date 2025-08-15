@@ -893,7 +893,7 @@
 
             // Fetch registrations for upcoming deadlines
             const registrationsSnap = await getDoc(registrationsRef);
-            let upcomingDeadline = "No upcoming deadlines. Enjoy your studies! �";
+            let upcomingDeadline = "No upcoming deadlines. Enjoy your studies! 📚";
             let registrationLink = `<button onclick="showDashboardSection('courseReg')" class="text-green-700 hover:underline">Register for Courses</button>`;
             if (registrationsSnap.exists()) {
                 const registrationsData = registrationsSnap.data().courses || [];
@@ -2861,4 +2861,3 @@
   </script>
 </body>
 </html>
-�
