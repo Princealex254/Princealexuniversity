@@ -9,687 +9,521 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.autotable.min.js"></script>
   <style>
-    /* Dark Mode Body and Glassmorphism Base */
+    /* Base Body and Typography for Light Mode */
     body {
-      font-family: 'Inter', sans-serif;
-      background: url('myschoolgate.png') no-repeat center center fixed;
-      background-size: cover;
-      background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
-      color: #e2e8f0; /* Light text for dark background */
+      font-family: 'Roboto', sans-serif; /* Light, professional typography */
+      background-color: #f8f9fa; /* Soft gray accent */
+      color: #343a40; /* Darker text for contrast */
     }
 
-    /* Main glassmorphism effect for panels */
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
-      backdrop-filter: blur(10px); /* Blur effect */
-      -webkit-backdrop-filter: blur(10px); /* For Safari */
-      border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
-      border-radius: 15px; /* More rounded corners */
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* Stronger shadow */
-    }
-
-    /* Override for specific elements if needed to ensure dark theme compatibility */
-    .bg-white {
-        background-color: rgba(255, 255, 255, 0.15); /* Lighter glass for cards */
-    }
-    .text-gray-700 {
-        color: #cbd5e1; /* Lighter gray for text */
-    }
-    .text-gray-600 {
-        color: #a0aec0; /* Even lighter gray */
-    }
-    .text-gray-500 {
-        color: #718096; /* Lightest gray */
-    }
-    .text-green-800 {
-        color: #34d399; /* Brighter green for headings */
-    }
-    .text-green-700 {
-        color: #10b981; /* Primary green */
-    }
-    .text-green-600 {
-        color: #059669;
-    }
-    .bg-green-700 {
-        background-color: #10b981; /* Brighter green for buttons */
-    }
-    .hover\:bg-green-800:hover {
-        background-color: #065f46; /* Darker hover green */
-    }
-    .border-gray-300 {
-        border-color: rgba(255, 255, 255, 0.3); /* Lighter border */
-    }
-    .focus\:ring-green-500:focus {
-        --tw-ring-color: #34d399; /* Bright green ring */
-    }
-    .bg-gray-100 {
-        background-color: rgba(255, 255, 255, 0.08); /* Darker background for light gray elements */
-    }
-    .bg-gray-200 {
-        background-color: rgba(255, 255, 255, 0.12);
-    }
-    .bg-green-100 {
-      background-color: rgba(16, 185, 129, 0.2); /* Light green tint with transparency */
-    }
-    .border-green-600 {
-        border-color: #059669;
-    }
-    .shadow-md {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    }
-    .shadow-lg {
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    }
-    .shadow-2xl {
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-    }
-
-    /* Specific overrides for status colors */
-    .text-red-500 {
-        color: #ef4444;
-    }
-    .text-red-600 {
-        color: #dc2626;
-    }
-    .bg-red-100 {
-      background-color: rgba(239, 68, 68, 0.2); /* Transparent red */
-    }
-    .text-blue-500 {
-        color: #3b82f6;
-    }
-    .text-blue-800 {
-        color: #60a5fa;
-    }
-    .bg-blue-100 {
-      background-color: rgba(59, 130, 246, 0.2);
-    }
-    .text-purple-800 {
-      color: #a78bfa;
-    }
-    .bg-purple-100 {
-      background-color: rgba(168, 85, 247, 0.2);
-    }
-    .text-yellow-800 {
-      color: #fcd34d;
-    }
-    .bg-yellow-100 {
-      background-color: rgba(250, 204, 21, 0.2);
-    }
-
-    /* Login/Auth forms fixed center */
-    #authContainer {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 1rem; /* Add padding for mobile */
-    }
-    .form-wrapper {
-        border-radius: 15px; /* More rounded */
-        padding: 2.5rem; /* Consistent padding */
-    }
-    @media (max-width: 768px) {
-      .form-wrapper {
-        width: 100%;
-        margin: 1rem;
-      }
-    }
-
-
-    /* GPA Circle */
-    .gpa-circle-container {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin: 20px auto;
-    }
-    .gpa-circle-svg {
-      transform: rotate(-90deg);
-    }
-    .gpa-circle-bg {
-      stroke: rgba(255, 255, 255, 0.2); /* Light on dark */
-      stroke-width: 10;
-      fill: none;
-    }
-    .gpa-circle-progress {
-      stroke: #10b981; /* University green */
-      stroke-width: 10;
-      fill: none;
-      transition: stroke-dasharray 0.5s ease-in-out;
-    }
-    .gpa-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.8rem;
-      font-weight: bold;
-      color: #10b981; /* University green */
-    }
-    .fees-balance-text.red {
-        color: #ef4444; /* Tailwind red-500 */
-    }
-    .fees-balance-text.green {
-        color: #22c55e; /* Tailwind green-500 */
-    }
-    /* Hide scrollbar for announcements panel, but allow scrolling */
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-    .no-scrollbar {
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-    }
-    /* Rotate chevron */
-    .rotate-180 {
-        transform: rotate(180deg);
-    }
-
-    /* New CSS for spacing and cards */
-    .container {
-        padding: 10px; /* Reduced padding for smaller screens */
-    }
-    /* Adjust main padding and gap on larger screens */
-    @media (min-width: 1024px) { /* Equivalent to Tailwind's lg breakpoint */
-        .main {
-            padding: 20px;
-            gap: 20px;
-        }
-    }
-
-    .cards-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
-    }
+    /* Card-based layouts */
     .card {
-      background: rgba(255, 255, 255, 0.15); /* Lighter glass for cards */
-      border-radius: 15px;
-      padding: 15px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      background-color: #ffffff; /* White background */
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05); /* Subtle shadows */
+      border-radius: 6px; /* Rounded corners */
+      padding: 1.5rem; /* Consistent padding */
+      transition: all 0.2s ease-in-out;
     }
     .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
-    }
-    .card-title {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #34d399; /* Brighter green */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Slightly more prominent shadow on hover */
     }
 
-    /* Reduce sidebar width */
-    #sidebar {
-      width: 256px; /* Retain standard width for now, can adjust if needed */
-      background: rgba(0, 0, 0, 0.5); /* Darker glass for sidebar */
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    /* Navigation Bar */
+    header, #sidebar {
+      background-color: #ffffff; /* White background */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04); /* Light shadow */
+      border-bottom: 1px solid rgba(0,0,0,0.05); /* Light border-bottom */
+      color: #343a40;
     }
     #sidebar a {
-      color: #e2e8f0; /* Light text for sidebar links */
+      color: #495057; /* Darker text for sidebar links */
+      border-radius: 4px;
     }
-    #sidebar a.hover\:bg-green-700:hover {
-        background-color: rgba(16, 185, 129, 0.3); /* Transparent green hover */
+    #sidebar a:hover {
+        background-color: #e9ecef; /* Soft gray hover */
     }
-    #sidebar h3 {
-        color: #34d399; /* Green for sidebar title */
+    #sidebar a.active-link { /* Active link highlight */
+        background-color: #e7f0fd; /* Light blue background */
+        color: #0d6efd; /* Bootstrap primary blue text */
+        font-weight: 500;
+        position: relative;
     }
-    /* Adjust main content margin to account for new sidebar width */
-    @media (min-width: 1024px) {
-        #dashboardContent {
-            margin-left: 256px; /* Keep consistent with sidebar width */
-        }
-    }
-
-    /* Timetable Specific CSS */
-    .timetable-grid {
-      display: grid;
-      grid-template-columns: 80px repeat(5, 1fr);
-      gap: 1px;
-      background-color: rgba(255, 255, 255, 0.1); /* Darker grid lines */
-      border: 1px solid rgba(255, 255, 255, 0.2);
+    #sidebar a.active-link::after { /* Blue underline for active link */
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #0d6efd;
     }
 
-    .timetable-header, .timetable-cell {
-      background-color: rgba(255, 255, 255, 0.1); /* Glass effect for cells */
-      padding: 8px;
-      text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #e2e8f0;
-    }
-
-    .timetable-header {
+    /* Buttons */
+    .btn-primary {
+      background-color: #0d6efd; /* Bootstrap primary blue */
+      background-image: linear-gradient(to bottom, #0d6efd, #0b5ed7); /* Slight gradient */
+      color: white;
       font-weight: bold;
-      background-color: rgba(255, 255, 255, 0.15); /* Slightly darker header */
-      color: #34d399;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .timetable-cell {
-      min-height: 80px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-size: 0.875rem;
+    .btn-primary:hover {
+      background-color: #0a58ca; /* Darken blue slightly on hover */
+      background-image: none; /* Remove gradient on hover for flatter look */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
-    .timetable-cell p {
-      color: #cbd5e1;
+    .btn-red {
+      background-color: #dc3545; /* Bootstrap red */
+      color: white;
+      font-weight: bold;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .timetable-cell p.font-bold {
-      color: #e2e8f0;
+    .btn-red:hover {
+      background-color: #bb2d3b; /* Darker red on hover */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
-    .timetable-cell p.text-gray-600 {
-      color: #a0aec0;
-    }
-
-    /* Responsive Timetable on Mobile */
-    @media (max-width: 1023px) {
-      .timetable-grid {
-        display: block; /* Stack on mobile */
-      }
-      .timetable-day-card {
-        background-color: rgba(255, 255, 255, 0.15); /* Glass card */
-        border-radius: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        margin-bottom: 16px;
-        padding: 16px;
-      }
-      .timetable-day-title {
-        font-size: 1.25rem;
+    .btn-outline {
+        background-color: transparent;
+        border: 1px solid #0d6efd;
+        color: #0d6efd;
         font-weight: bold;
-        color: #3b82f6; /* Blue for title */
-        margin-bottom: 12px;
-      }
-      .timetable-class-item {
-        border-top: 1px solid rgba(255, 255, 255, 0.1); /* Lighter separator */
-        padding-top: 12px;
-        margin-top: 12px;
-      }
-      .timetable-class-item:first-child {
-        border-top: none;
-        padding-top: 0;
-        margin-top: 0;
-      }
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    .btn-outline:hover {
+        background-color: #0d6efd;
+        color: white;
+        box-shadow: 0 2px 6px rgba(13,110,253,0.2);
     }
 
-    /* Collapsible styles for Settings and Announcements */
-    .collapsible-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background-color: rgba(255, 255, 255, 0.1); /* Glass header */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-        cursor: pointer;
-        font-weight: bold;
-        transition: background-color 0.2s ease;
-        border-radius: 10px; /* Slightly less rounded than main panel */
-        color: #e2e8f0;
+
+    /* Forms */
+    input, select, textarea {
+      background-color: #ffffff; /* White backgrounds */
+      border: 1px solid #ced4da; /* Slightly darker borders */
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      color: #495057;
+      transition: all 0.2s ease;
     }
-    .collapsible-header:hover {
-        background-color: rgba(255, 255, 255, 0.15);
+    input:focus, select:focus, textarea:focus {
+      border-color: #0d6efd;
+      outline: none;
+      box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.25); /* Blue glow */
     }
-    .collapsible-header h3 {
-        color: #34d399; /* Green heading */
+    input::placeholder, textarea::placeholder {
+      color: #6c757d;
     }
-    .collapsible-content {
-        padding: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-        display: none; /* Hidden by default */
-        overflow: hidden;
-        transition: max-height 0.3s ease-out; /* For smooth collapse */
-        max-height: 0;
-        background-color: rgba(0, 0, 0, 0.2); /* Darker content background */
-        border-radius: 0 0 10px 10px;
-    }
-    .collapsible-content.expanded {
-        max-height: 1000px; /* Large enough to show content */
-        display: block;
-    }
-    .collapsible-header i.fa-chevron-down {
-        transition: transform 0.3s ease;
-    }
-    .collapsible-header.expanded i.fa-chevron-down {
-        transform: rotate(180deg);
+    input:disabled, select:disabled, textarea:disabled {
+      background-color: #e9ecef; /* Light gray for disabled */
+      cursor: not-allowed;
     }
 
-    /* Specific styles for Delete Account section */
-    .collapsible-header.bg-red-100 {
-        background-color: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
+
+    /* Headings */
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 500; /* Slightly bolder */
+      color: #212529; /* Darker for better contrast */
     }
-    .collapsible-header.hover\:bg-red-200:hover {
-        background-color: rgba(239, 68, 68, 0.3);
+    h2 { font-size: 2rem; } /* Larger */
+    h3 { font-size: 1.75rem; }
+    h4 { font-size: 1.5rem; }
+
+    /* General Spacing */
+    .section-gap {
+        margin-bottom: 2rem;
     }
-    .collapsible-content.bg-red-50 {
-        background-color: rgba(239, 68, 68, 0.1);
-        border-color: rgba(239, 68, 68, 0.4);
-    }
-    .collapsible-content .text-red-700 {
-        color: #fca5a5; /* Lighter red for text */
-    }
-    .collapsible-content .text-red-500 {
-        color: #f87171;
-    }
-    .collapsible-content .border-red-300 {
-        border-color: rgba(252, 165, 165, 0.5);
+    .component-gap > * + * {
+        margin-top: 1rem;
     }
 
+    /* Specific overrides for status colors (adjusting for light mode) */
+    .text-red-500 { color: #dc3545; }
+    .text-green-500 { color: #198754; }
+    .text-blue-500 { color: #0d6efd; }
+    .text-yellow-500 { color: #ffc107; }
+
+    .bg-red-100 { background-color: #f8d7da; }
+    .bg-green-100 { background-color: #d1e7dd; }
+    .bg-blue-100 { background-color: #cfe2ff; }
+    .bg-yellow-100 { background-color: #fff3cd; }
+
+    .border-red-600 { border-color: #dc3545; }
+    .border-green-600 { border-color: #198754; }
+    .border-blue-600 { border-color: #0d6efd; }
+    .border-yellow-600 { border-color: #ffc107; }
+
+    /* Other elements adjusted for light mode */
+    #loadingOverlay { background-color: rgba(255, 255, 255, 0.8); }
+    #loadingText { color: #0d6efd; } /* Primary blue for loading */
+
+    #customModal .card {
+        background-color: #ffffff;
+        color: #343a40;
+    }
+    #modalTitle { color: #0d6efd; }
+    #modalMessage { color: #495057; }
+    #modalConfirmBtn { background-color: #0d6efd; }
+    #modalCancelBtn { background-color: #6c757d; color: white; }
+    #modalCancelBtn:hover { background-color: #5c636a; }
+
+    .gpa-circle-bg { stroke: #e9ecef; }
+    .gpa-circle-progress { stroke: #0d6efd; }
+    .gpa-text { color: #0d6efd; }
+
+    /* Login/Auth forms */
+    #authContainer {
+        background: url('myschoolgate.png') no-repeat center center fixed; /* Keep background image */
+        background-size: cover;
+    }
+    .form-wrapper {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .form-wrapper h2 {
+        color: #0d6efd; /* Bootstrap blue for auth headings */
+    }
+    .form-wrapper label {
+        color: #495057; /* Darker labels */
+    }
+    .form-wrapper a {
+        color: #0d6efd;
+    }
+    .form-wrapper a:hover {
+        color: #0b5ed7;
+    }
 
     /* Dashboard Header */
-    header {
-      background: rgba(0, 0, 0, 0.5); /* Darker glass for header */
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
-    }
-    header .text-green-800 {
-        color: #34d399;
-    }
-    header .hover\:bg-gray-100:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
+    header .text-gray-200 { color: #495057; }
+    header .hover\:bg-gray-100:hover { background-color: #e9ecef; }
+    header .text-green-700 { color: #0d6efd; } /* Adjusted to primary blue */
+    header .text-green-800 { color: #0b5ed7; } /* Adjusted to primary blue darker */
+    #headerProfilePic { border-color: #0d6efd; } /* Primary blue border */
 
     /* Footer */
     footer {
-      background: rgba(0, 0, 0, 0.5); /* Darker glass for footer */
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      color: #a0aec0;
-    }
-
-    /* Profile Image on Dashboard Header */
-    #headerProfilePic {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #10b981; /* Green border */
-    }
-    #notificationBadge {
-      position: absolute;
-      top: -5px;
-      right: -5px;
-      background-color: #ef4444; /* Red badge */
-      color: white;
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      border-radius: 9999px; /* Full pill shape */
-      font-weight: bold;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      background-color: #f8f9fa; /* Soft gray */
+      border-top: 1px solid #e9ecef;
+      color: #6c757d;
     }
 
     /* Breadcrumbs */
-    .text-gray-600 {
-      color: #cbd5e1;
-    }
-    .text-green-700 {
-      color: #10b981;
-    }
-    .text-green-800 {
-      color: #34d399;
-    }
+    .text-gray-300 { color: #6c757d; }
+    .text-green-500 { color: #0d6efd; } /* Adjusted to primary blue */
+    .text-green-300 { color: #3b82f6; } /* Adjusted to lighter blue */
 
     /* Status cards in Dashboard Home */
     .dashboard-stat-card {
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        border-top: 4px solid #10b981; /* Default green */
-        color: #e2e8f0;
+        border-top: 4px solid #0d6efd; /* Default blue */
+        color: #343a40;
     }
-    .dashboard-stat-card.red-border {
-        border-top-color: #ef4444;
-    }
-    .dashboard-stat-card.green-border {
-        border-top-color: #22c55e;
-    }
-    .dashboard-stat-card h3 {
-        color: #34d399;
-    }
-    .dashboard-stat-card p.text-gray-600 {
-        color: #a0aec0;
-    }
-    .dashboard-stat-card p.text-3xl {
-        color: #e2e8f0;
-    }
-    .dashboard-stat-card .text-4xl {
-      color: #e2e8f0;
+    .dashboard-stat-card.red-border { border-top-color: #dc3545; }
+    .dashboard-stat-card.green-border { border-top-color: #198754; }
+    .dashboard-stat-card h3 { color: #0d6efd; }
+    .dashboard-stat-card p.text-gray-400 { color: #6c757d; }
+    .dashboard-stat-card p.text-3xl { color: #212529; }
+    .dashboard-stat-card .text-4xl { color: #212529; }
+    .dashboard-stat-card .text-red-500 { color: #dc3545; }
+    .dashboard-stat-card .text-green-500 { color: #198754; }
+    .dashboard-stat-card .text-blue-500 { color: #0d6efd; }
+
+    /* Form elements inside cards */
+    input:focus, select:focus, textarea:focus {
+        box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
     }
 
+    /* Table styles for light mode */
+    table {
+        background-color: #ffffff;
+        border: 1px solid #e9ecef;
+    }
+    table thead {
+        background-color: #e9ecef;
+        color: #343a40;
+    }
+    table th, table td {
+        border-bottom: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+        color: #495057;
+    }
+    table th {
+        color: #212529;
+    }
+    table tbody tr:nth-child(even) {
+        background-color: #f8f9fa; /* Zebra striping */
+    }
 
     /* Profile Photo in Dashboard Welcome */
     #dashboardProfilePhoto {
-      border-color: rgba(255, 255, 255, 0.3);
+      border-color: #0d6efd;
     }
     #dashboardStudentName, #dashboardStudentProgramme, #dashboardStudentRegNo {
-      color: #e2e8f0;
+      color: #212529;
     }
 
-    /* Form elements inside glass panels */
-    input, select, textarea {
-        background-color: rgba(0, 0, 0, 0.3); /* Darker input fields */
-        border-color: rgba(255, 255, 255, 0.2);
-        color: #e2e8f0;
+    /* Collapsible sections */
+    .collapsible-header {
+      background-color: #f1f3f5; /* Light gray for headers */
+      border: 1px solid #e9ecef;
+      border-radius: 6px; /* Match card border-radius */
+      color: #343a40;
     }
-    input::placeholder, textarea::placeholder {
-        color: #a0aec0;
+    .collapsible-header:hover {
+      background-color: #e2e6ea;
     }
-    input:disabled {
-        background-color: rgba(0, 0, 0, 0.1);
-        color: #a0aec0;
+    .collapsible-header h3 {
+      color: #0d6efd;
     }
-
-    /* Table styles for dark mode */
-    table {
-        background-color: rgba(255, 255, 255, 0.15);
-        border-collapse: separate; /* Use separate to allow border-radius on outer table */
-        border-spacing: 0;
-        border-radius: 15px; /* Apply rounded corners to table */
-        overflow: hidden; /* Ensures content respects border-radius */
+    .collapsible-content {
+      background-color: #ffffff;
+      border: 1px solid #e9ecef;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      color: #495057;
     }
-    table thead {
-        background-color: rgba(255, 255, 255, 0.2);
-        color: #e2e8f0;
+    .collapsible-header.bg-red-100 { /* Specific red for delete account */
+        background-color: #f8d7da;
+        color: #dc3545;
+        border-color: #f5c2c7;
     }
-    table th, table td {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-        color: #e2e8f0;
+    .collapsible-header.hover\:bg-red-200:hover {
+        background-color: #f1b0b7;
     }
-    table th:last-child, table td:last-child {
-        border-right: none;
+    .collapsible-content.bg-red-50 {
+        background-color: #ffebe6; /* Very light red */
+        border-color: #f7a8b8;
     }
-    table tbody tr:last-child td {
-        border-bottom: none;
+    .collapsible-content .text-red-700 {
+        color: #dc3545;
     }
-
-    /* Loading overlay */
-    #loadingOverlay {
-        background-color: rgba(0, 0, 0, 0.8);
+    .collapsible-content .text-red-500 {
+        color: #ef4444;
     }
-    #loadingText {
-        color: #34d399;
-    }
-    .border-green-700 {
-        border-color: #10b981;
+    .collapsible-content .border-red-300 {
+        border-color: #f7a8b8;
     }
 
-    /* Custom modal */
-    #customModal .bg-white {
-        background-color: rgba(255, 255, 255, 0.15);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #e2e8f0;
-    }
-    #modalTitle {
-        color: #34d399;
-    }
-    #modalMessage {
-        color: #cbd5e1;
-    }
-    #modalConfirmBtn {
-        background-color: #10b981;
-    }
-    #modalCancelBtn {
-        background-color: rgba(255, 255, 255, 0.2);
-        color: #e2e8f0;
-    }
-    #modalCancelBtn:hover {
-        background-color: rgba(255, 255, 255, 0.3);
+    /* Hostel page specific styles (Glassmorphism for web, Cards for mobile) */
+    @media (min-width: 1024px) { /* Web view: apply dark mode glassmorphism */
+        #hostels-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .hostel-item-glass {
+            background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+            backdrop-filter: blur(10px); /* Blur effect */
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+            border-radius: 15px; /* More rounded corners */
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* Stronger shadow */
+            padding: 1.5rem;
+            color: #e2e8f0; /* Light text */
+        }
+        .hostel-item-glass h4 {
+            color: #34d399; /* Green for hostel names */
+        }
+        .hostel-item-glass .text-gray-300 {
+            color: #cbd5e1;
+        }
+        .hostel-item-glass .text-blue-500 {
+            color: #60a5fa; /* Lighter blue for status */
+        }
+        .hostel-item-glass .btn-primary {
+            background-color: #10b981; /* Green for booking button on dark glass */
+            background-image: linear-gradient(to bottom, #10b981, #059669);
+        }
+        .hostel-item-glass .btn-primary:hover {
+            background-color: #059669;
+        }
+        .hostel-item-glass input, .hostel-item-glass select {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+        }
     }
 
+    @media (max-width: 1023px) { /* Mobile view: apply light mode cards */
+        #hostels-list-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Stack cards */
+            gap: 1rem;
+        }
+        .hostel-item-card {
+            background-color: #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            padding: 1rem;
+            color: #343a40;
+        }
+        .hostel-item-card h4 {
+            color: #0d6efd; /* Bootstrap blue for hostel names */
+        }
+        .hostel-item-card .text-gray-700 {
+            color: #495057;
+        }
+        .hostel-item-card .btn-primary {
+            background-color: #0d6efd;
+            background-image: linear-gradient(to bottom, #0d6efd, #0b5ed7);
+        }
+        .hostel-item-card .btn-primary:hover {
+            background-color: #0a58ca;
+            background-image: none;
+        }
+    }
   </style>
 </head>
 <body class="h-screen flex items-center justify-center">
   <div id="loadingOverlay" class="fixed inset-0 bg-opacity-90 flex flex-col justify-center items-center z-[2000] hidden">
-    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-700"></div>
-    <div id="loadingText" class="mt-4 text-xl text-green-700">Loading...</div>
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-700"></div>
+    <div id="loadingText" class="mt-4 text-xl text-blue-700">Loading...</div>
   </div>
 
   <div id="customModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-[10000] hidden">
-    <div class="glass-panel p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-700">
-      <h3 id="modalTitle" class="text-2xl font-semibold mb-4 text-green-800"></h3>
-      <p id="modalMessage" class="mb-6 text-gray-200"></p>
+    <div class="card p-6 max-w-sm w-full text-center">
+      <h3 id="modalTitle" class="text-2xl font-semibold mb-4"></h3>
+      <p id="modalMessage" class="mb-6"></p>
       <div class="flex justify-center gap-4">
-        <button id="modalConfirmBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">OK</button>
-        <button id="modalCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out hidden">Cancel</button>
+        <button id="modalConfirmBtn" class="btn-primary">OK</button>
+        <button id="modalCancelBtn" class="btn-red hidden">Cancel</button>
       </div>
     </div>
   </div>
 
   <div id="authContainer" class="p-4 w-full h-full flex justify-center items-center">
-    <div id="login-form-wrapper" class="form-wrapper glass-panel p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out active">
+    <div id="login-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out active">
       <form id="login-form">
-        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Login</h2>
+        <h2 class="text-4xl font-extrabold mb-8">Login</h2>
         <div class="mb-6 text-left">
-          <label for="email-login" class="block text-gray-200 text-sm font-medium mb-2">Email</label>
+          <label for="email-login" class="block text-sm font-medium mb-2">Email</label>
           <input type="email" id="email-login" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
           <p id="email-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
         <div class="mb-6 text-left">
-          <label for="password-login" class="block text-gray-200 text-sm font-medium mb-2">Password</label>
+          <label for="password-login" class="block text-sm font-medium mb-2">Password</label>
           <input type="password" id="password-login" placeholder="Enter your password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
           <p id="password-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <button type="submit" id="login-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Login</button>
+        <button type="submit" id="login-btn" class="w-full btn-primary text-lg">Login</button>
         <div class="mt-6 text-sm flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-          <a href="#" onclick="showForm('signup')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Don't have an account? Sign Up</a>
-          <a href="#" onclick="showForm('forgot-password')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Forgot Password?</a>
+          <a href="#" onclick="showForm('signup')" class="hover:underline transition-colors duration-200">Don't have an account? Sign Up</a>
+          <a href="#" onclick="showForm('forgot-password')" class="hover:underline transition-colors duration-200">Forgot Password?</a>
         </div>
       </form>
     </div>
 
-    <div id="signup-form-wrapper" class="form-wrapper glass-panel p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="signup-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="signup-form">
-        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Sign Up</h2>
+        <h2 class="text-4xl font-extrabold mb-8">Sign Up</h2>
         <div class="mb-6 text-left">
-          <label for="full-name-signup" class="block text-gray-200 text-sm font-medium mb-2">Full Name</label>
+          <label for="full-name-signup" class="block text-sm font-medium mb-2">Full Name</label>
           <input type="text" id="full-name-signup" placeholder="Enter your full name" required autofocus class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
         </div>
         <div class="mb-6 text-left">
-          <label for="email-signup" class="block text-gray-200 text-sm font-medium mb-2">Email</label>
+          <label for="email-signup" class="block text-sm font-medium mb-2">Email</label>
           <input type="email" id="email-signup" placeholder="Enter your email" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
           <p id="email-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
         <div class="mb-6 text-left">
-          <label for="password-signup" class="block text-gray-200 text-sm font-medium mb-2">Password</label>
+          <label for="password-signup" class="block text-sm font-medium mb-2">Password</label>
           <input type="password" id="password-signup" placeholder="Create a password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
           <p id="password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
         <div class="mb-6 text-left">
-          <label for="confirm-password-signup" class="block text-gray-200 text-sm font-medium mb-2">Confirm Password</label>
+          <label for="confirm-password-signup" class="block text-sm font-medium mb-2">Confirm Password</label>
           <input type="password" id="confirm-password-signup" placeholder="Confirm your password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
           <p id="confirm-password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <button type="submit" id="signup-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Sign Up</button>
+        <button type="submit" id="signup-btn" class="w-full btn-primary text-lg">Sign Up</button>
         <div class="mt-6 text-sm">
-          <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Already have an account? Login</a>
+          <a href="#" onclick="showForm('login')" class="hover:underline transition-colors duration-200">Already have an account? Login</a>
         </div>
       </form>
     </div>
 
-    <div id="forgot-password-form-wrapper" class="form-wrapper glass-panel p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="forgot-password-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="forgot-password-form">
-        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Forgot Password</h2>
+        <h2 class="text-4xl font-extrabold mb-8">Forgot Password</h2>
         <div class="mb-6 text-left">
-          <label for="email-forgot" class="block text-gray-200 text-sm font-medium mb-2">Email</label>
+          <label for="email-forgot" class="block text-sm font-medium mb-2">Email</label>
           <input type="email" id="email-forgot" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition-colors duration-200" />
           <p id="email-forgot-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <button type="submit" id="recover-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Recover Password</button>
+        <button type="submit" id="recover-btn" class="w-full btn-primary text-lg">Recover Password</button>
         <div class="mt-6 text-sm">
-          <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Back to Login</a>
+          <a href="#" onclick="showForm('login')" class="hover:underline transition-colors duration-200">Back to Login</a>
         </div>
       </form>
     </div>
   </div>
 
   <div id="dashboardContainer" class="hidden h-screen flex flex-col w-full">
-    <header class="glass-panel text-green-800 p-4 flex justify-between items-center shadow-md sticky top-0 z-10 lg:px-8 rounded-none border-t-0 border-l-0 border-r-0">
+    <header class="p-4 flex justify-between items-center shadow-md sticky top-0 z-10 lg:px-8 rounded-none">
       <img src="myschoollogo.png" alt="University Logo" class="h-12 w-auto">
-      <button id="menuToggle" class="lg:hidden text-2xl p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500" aria-label="Toggle menu">
+      <button id="menuToggle" class="lg:hidden text-2xl p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle menu">
         <i class="fas fa-bars"></i>
       </button>
       <div class="hidden lg:flex items-center space-x-6">
         <div class="relative">
-          <i class="fas fa-bell text-2xl cursor-pointer text-gray-200 hover:text-green-500" title="Notifications"></i>
+          <i class="fas fa-bell text-2xl cursor-pointer text-gray-700 hover:text-blue-500" title="Notifications"></i>
           <span id="notificationBadge" class="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full" aria-label="Unread notifications">0</span>
         </div>
         <div class="flex items-center space-x-3">
-            <img id="headerProfilePic" src="https://placehold.co/40x40/eeeeee/333333?text=AV" alt="Profile Picture" class="w-10 h-10 rounded-full border-2 border-green-500">
+            <img id="headerProfilePic" src="https://placehold.co/40x40/eeeeee/333333?text=AV" alt="Profile Picture" class="w-10 h-10 rounded-full border-2 border-blue-500">
             <div>
-              <span id="userName" class="text-lg font-bold text-green-700 block">User</span>
-              <span id="userProgram" class="text-sm text-gray-300 block">Program</span>
+              <span id="userName" class="text-lg font-bold text-blue-700 block">User</span>
+              <span id="userProgram" class="text-sm text-gray-600 block">Program</span>
             </div>
         </div>
-        <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm" title="Logout">
+        <button onclick="confirmLogout()" class="btn-red py-2 px-4 shadow-sm" title="Logout">
           <i class="fas fa-sign-out-alt mr-2"></i>Logout
         </button>
       </div>
        <div class="lg:hidden flex items-center space-x-4">
-        <span class="text-md font-semibold text-green-700">Welcome, <span id="userNameMobile" class="font-bold">User</span>!</span>
-        <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg text-sm transition duration-300 ease-in-out shadow-sm" title="Logout">
+        <span class="text-md font-semibold text-blue-700">Welcome, <span id="userNameMobile" class="font-bold">User</span>!</span>
+        <button onclick="confirmLogout()" class="btn-red py-1 px-2 text-sm shadow-sm" title="Logout">
           <i class="fas fa-sign-out-alt"></i>
         </button>
       </div>
     </header>
 
     <div class="flex flex-grow">
-      <nav id="sidebar" class="glass-panel w-64 p-6 flex flex-col space-y-2 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-20 fixed inset-y-0 left-0 lg:relative lg:flex-shrink-0 lg:h-auto overflow-y-auto rounded-none border-r border-b-0 border-t-0 border-l-0">
-        <h3 class="text-2xl font-bold mb-6 pb-3 border-b border-green-700">Quick Menu</h3>
-        <a onclick="showDashboardSection('home')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-home mr-3"></i> Dashboard</a>
-        <a onclick="showDashboardSection('profile')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-user mr-3"></i> Personal Profile</a>
-        <a onclick="showDashboardSection('settings')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-cog mr-3"></i> Settings</a>
+      <nav id="sidebar" class="w-64 p-6 flex flex-col space-y-2 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-20 fixed inset-y-0 left-0 lg:relative lg:flex-shrink-0 lg:h-auto overflow-y-auto rounded-none border-r border-gray-200">
+        <h3 class="text-2xl font-bold mb-6 pb-3 border-b border-gray-300 text-blue-800">Quick Menu</h3>
+        <a onclick="showDashboardSection('home', this)" class="flex items-center p-3 text-lg"><i class="fas fa-home mr-3"></i> Dashboard</a>
+        <a onclick="showDashboardSection('profile', this)" class="flex items-center p-3 text-lg"><i class="fas fa-user mr-3"></i> Personal Profile</a>
+        <a onclick="showDashboardSection('settings', this)" class="flex items-center p-3 text-lg"><i class="fas fa-cog mr-3"></i> Settings</a>
 
-        <a onclick="toggleSubmenu('academics-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-book mr-3"></i> Academics <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
+        <a onclick="toggleSubmenu('academics-submenu', this)" class="flex items-center p-3 text-lg cursor-pointer"><i class="fas fa-book mr-3"></i> Academics <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="academics-submenu" class="ml-6 py-2 hidden">
-          <a onclick="showDashboardSection('courseReg')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
-          <a onclick="showDashboardSection('timetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-calendar-alt mr-3"></i> Academic Timetable</a>
-          <a onclick="showDashboardSection('grades')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clipboard-list mr-3"></i> Grades & Transcripts</a>
-          <a onclick="showDashboardSection('examCard')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-id-card mr-3"></i> Exam Card</a>
-          <a onclick="showDashboardSection('graduation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-graduation-cap mr-3"></i> Graduation Request</a>
-          <a onclick="showDashboardSection('clearance')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-check-circle mr-3"></i> Clearance Request</a>
+          <a onclick="showDashboardSection('courseReg', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
+          <a onclick="showDashboardSection('timetable', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-calendar-alt mr-3"></i> Academic Timetable</a>
+          <a onclick="showDashboardSection('grades', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-clipboard-list mr-3"></i> Grades & Transcripts</a>
+          <a onclick="showDashboardSection('examCard', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-id-card mr-3"></i> Exam Card</a>
+          <a onclick="showDashboardSection('graduation', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-graduation-cap mr-3"></i> Graduation Request</a>
+          <a onclick="showDashboardSection('clearance', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-check-circle mr-3"></i> Clearance Request</a>
         </div>
 
-        <a onclick="toggleSubmenu('finance-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-money-bill-wave mr-3"></i> Finance <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
+        <a onclick="toggleSubmenu('finance-submenu', this)" class="flex items-center p-3 text-lg cursor-pointer"><i class="fas fa-money-bill-wave mr-3"></i> Finance <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
         <div id="finance-submenu" class="ml-6 py-2 hidden">
-          <a onclick="showDashboardSection('fees')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-credit-card mr-3"></i> Fees Statement</a>
+          <a onclick="showDashboardSection('fees', this)" class="flex items-center p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200 text-base"><i class="fas fa-credit-card mr-3"></i> Fees Statement</a>
         </div>
-        <a onclick="showDashboardSection('hostels')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-hotel mr-3"></i> Hostel Accommodation</a>
-        <a onclick="showDashboardSection('announcements')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-bullhorn mr-3"></i> Announcements</a>
+        <a onclick="showDashboardSection('hostels', this)" class="flex items-center p-3 text-lg"><i class="fas fa-hotel mr-3"></i> Hostel Accommodation</a>
+        <a onclick="showDashboardSection('announcements', this)" class="flex items-center p-3 text-lg"><i class="fas fa-bullhorn mr-3"></i> Announcements</a>
       </nav>
 
       <main id="dashboardContent" class="flex-grow p-6 overflow-y-auto lg:ml-64 w-full">
         </main>
     </div>
 
-    <footer class="glass-panel text-gray-600 text-center p-4 text-sm shadow-inner mt-auto rounded-none border-b-0 border-l-0 border-r-0">
+    <footer class="text-gray-600 text-center p-4 text-sm shadow-inner mt-auto rounded-none border-t border-gray-200">
       2025 © Prince Alex Design University. All rights reserved.
     </footer>
   </div>
@@ -697,8 +531,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword, signInWithCustomToken, signInAnonymously, updateEmail, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where, orderBy, limit, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
     // Firebase Config: Replace with your actual Firebase project details
     const hardcodedFirebaseConfig = {
@@ -793,11 +627,11 @@
     function validateInput(inputElement, validationFn, errorMessageElement) {
         if (validationFn(inputElement.value)) {
             inputElement.classList.remove('border-red-500');
-            inputElement.classList.add('border-gray-300', 'focus:ring-green-500');
+            inputElement.classList.add('border-gray-300', 'focus:ring-blue-500'); /* Changed to blue */
             errorMessageElement.classList.add('hidden');
             return true;
         } else {
-            inputElement.classList.remove('border-gray-300', 'focus:ring-green-500');
+            inputElement.classList.remove('border-gray-300', 'focus:ring-blue-500'); /* Changed to blue */
             inputElement.classList.add('border-red-500');
             errorMessageElement.innerText = `❌ ${errorMessageElement.dataset.errorMessage || 'Invalid input.'}`;
             errorMessageElement.classList.remove('hidden');
@@ -1157,10 +991,10 @@
       }
     };
 
-    window.toggleSubmenu = function(id) {
+    window.toggleSubmenu = function(id, clickedElement) {
       const submenu = document.getElementById(id);
       if (submenu) submenu.classList.toggle('hidden');
-      const chevron = submenu.previousElementSibling.querySelector('.fa-chevron-down');
+      const chevron = clickedElement.querySelector('.fa-chevron-down');
       if (chevron) {
         chevron.classList.toggle('rotate-180');
       }
@@ -1173,10 +1007,10 @@
 
     function generateBreadcrumb(currentSectionTitle) {
       return `
-        <div class="text-sm text-gray-300 mb-6">
-          <a onclick="showDashboardSection('home')" class="text-green-500 hover:underline cursor-pointer">Dashboard</a>
+        <div class="text-sm text-gray-600 mb-6">
+          <a onclick="showDashboardSection('home', this)" class="text-blue-500 hover:underline cursor-pointer">Dashboard</a>
           <span class="mx-2">/</span>
-          <span class="font-semibold text-green-300">${currentSectionTitle}</span>
+          <span class="font-semibold text-blue-700">${currentSectionTitle}</span>
         </div>
       `;
     }
@@ -1212,13 +1046,10 @@
       let totalPoints = 0;
       let totalUnits = 0;
       const gradeMap = {
-        'A': 4.0,
-        'B+': 3.5,
-        'B': 3.0,
-        'C+': 2.5,
-        'C': 2.0,
-        'D+': 1.5,
-        'D': 1.0,
+        'A': 4.0, 'A-': 3.7,
+        'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+        'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+        'D+': 1.3, 'D': 1.0, 'D-': 0.7,
         'F': 0.0
       };
       grades.forEach(g => {
@@ -1244,37 +1075,37 @@
       const initialStudentName = currentUserData?.name || "Student";
       const initialStudentProgramme = currentUserData?.programme && currentUserData.programme !== 'N/A' ? currentUserData.programme : "Programme Not Set";
       const initialStudentRegNo = currentUserData?.regNo && currentUserData.regNo !== 'N/A' ? currentUserData.regNo : "Registration Number Not Set";
-      const initialProfilePhotoURL = currentUserData?.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
+      const initialProfilePhotoURL = currentUserData?.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=AV';
       const homeContentHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
-          <img id="dashboardProfilePhoto" src="${initialProfilePhotoURL}" alt="Profile Photo" class="w-20 h-20 rounded-full border-4 border-green-500 shadow-md">
+        <div class="card p-6 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
+          <img id="dashboardProfilePhoto" src="${initialProfilePhotoURL}" alt="Profile Photo" class="w-20 h-20 rounded-full object-cover border-4 border-blue-500 shadow-md">
           <div class="text-center md:text-left">
-            <h2 class="text-2xl font-bold text-green-800">Welcome back, <span id="dashboardStudentName">${initialStudentName}</span>!</h2>
-            <p class="text-gray-300"><span id="dashboardStudentProgramme">${initialStudentProgramme}</span> | <span id="dashboardStudentRegNo">${initialStudentRegNo}</span></p>
-            <p class="text-gray-300 mt-2">Ready to embark on a productive day? Your academic journey awaits! 🚀</p>
+            <h2 class="text-2xl font-bold text-blue-800">Welcome back, <span id="dashboardStudentName">${initialStudentName}</span>!</h2>
+            <p class="text-gray-700"><span id="dashboardStudentProgramme">${initialStudentProgramme}</span> | <span id="dashboardStudentRegNo">${initialStudentRegNo}</span></p>
+            <p class="text-gray-600 mt-2">Ready to embark on a productive day? Your academic journey awaits! 🚀</p>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div id="registeredUnitsCard" class="dashboard-stat-card">
+          <div id="registeredUnitsCard" class="card dashboard-stat-card">
             <h3 class="text-lg font-bold mb-2">Registered Units</h3>
-            <p class="text-4xl font-extrabold text-green-500 mt-4">--</p>
-            <p class="text-gray-400">Total courses registered</p>
+            <p class="text-4xl font-extrabold text-blue-500 mt-4">--</p>
+            <p class="text-gray-600">Total courses registered</p>
           </div>
-          <div id="feesBalanceCard" class="dashboard-stat-card">
+          <div id="feesBalanceCard" class="card dashboard-stat-card">
             <h3 class="text-lg font-bold mb-2">Fees Balance</h3>
-            <p class="text-4xl font-extrabold text-gray-400 mt-4">GHS 0.00</p>
-            <p id="feesBalanceStatus" class="text-gray-400">Outstanding balance: <span class="font-semibold text-gray-400">Loading...</span></p>
+            <p class="text-4xl font-extrabold text-gray-700 mt-4">GHS 0.00</p>
+            <p id="feesBalanceStatus" class="text-gray-600">Outstanding balance: <span class="font-semibold text-gray-600">Loading...</span></p>
           </div>
-          <div id="semesterProgressCard" class="dashboard-stat-card">
+          <div id="semesterProgressCard" class="card dashboard-stat-card">
             <h3 class="text-lg font-bold mb-2">Semester Progress</h3>
             <p class="text-4xl font-extrabold text-blue-500 mt-4">--</p>
-            <p class="text-gray-400">Next exam date or semester info</p>
+            <p class="text-gray-600">Next exam date or semester info</p>
           </div>
         </div>
-        <div class="glass-panel p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-8">
-          <h3 class="text-xl font-bold text-green-800 mb-4">Latest Announcements</h3>
+        <div class="card p-6 border-t-4 border-blue-600 mb-8">
+          <h3 class="text-xl font-bold text-blue-800 mb-4">Latest Announcements</h3>
           <div id="announcementsList" class="space-y-4 no-scrollbar max-h-96 overflow-y-auto">
-            <p class="text-gray-400">Loading announcements...</p>
+            <p class="text-gray-600">Loading announcements...</p>
           </div>
         </div>
       `;
@@ -1318,12 +1149,12 @@
             feesBalanceCard.classList.remove('red-border', 'green-border'); // Reset borders
             if (balance > 0) {
               feesBalanceCard.classList.add('red-border');
-              feesBalanceCard.querySelector('p:first-of-type').classList.remove('text-gray-400');
+              feesBalanceCard.querySelector('p:first-of-type').classList.remove('text-gray-700');
               feesBalanceCard.querySelector('p:first-of-type').classList.add('text-red-500');
               if (feesBalanceStatusEl) feesBalanceStatusEl.innerHTML = `Outstanding balance: <span class="font-semibold text-red-500">Outstanding</span>`;
             } else {
               feesBalanceCard.classList.add('green-border');
-              feesBalanceCard.querySelector('p:first-of-type').classList.remove('text-gray-400');
+              feesBalanceCard.querySelector('p:first-of-type').classList.remove('text-gray-700');
               feesBalanceCard.querySelector('p:first-of-type').classList.add('text-green-500');
               if (feesBalanceStatusEl) feesBalanceStatusEl.innerHTML = `Outstanding balance: <span class="font-semibold text-green-500">Cleared</span>`;
             }
@@ -1339,7 +1170,7 @@
           if (studentSemester && studentYear) {
               semesterProgressCard.querySelector('p:first-of-type').innerText = `Year ${studentYear}, Sem ${studentSemester}`;
               semesterProgressCard.querySelector('p:last-of-type').innerText = "Current Semester";
-              semesterProgressCard.classList.add('blue-border'); /* You can define a blue-border if needed */
+              semesterProgressCard.classList.add('border-blue-600'); /* You can define a blue-border if needed */
               semesterProgressCard.querySelector('p:first-of-type').classList.add('text-blue-500');
           } else {
               semesterProgressCard.querySelector('p:first-of-type').innerText = "N/A";
@@ -1355,16 +1186,16 @@
         const announcementsList = document.getElementById('announcementsList');
         announcementsList.innerHTML = '';
         if (querySnapshot.empty) {
-          announcementsList.innerHTML = `<p class="text-gray-400">No recent announcements.</p>`;
+          announcementsList.innerHTML = `<p class="text-gray-600">No recent announcements.</p>`;
         } else {
           querySnapshot.forEach(doc => {
             const announcement = doc.data();
             const date = announcement.date ? new Date(announcement.date.toDate()).toLocaleDateString() : 'N/A';
             const itemHtml = `
-              <div class="glass-panel border-b pb-3 p-4 mb-2">
-                <p class="text-sm text-gray-400">${date}</p>
-                <h4 class="font-semibold text-md text-green-500">${announcement.title}</h4>
-                <p class="text-sm text-gray-300">${announcement.content}</p>
+              <div class="card border-b pb-3 p-4 mb-2">
+                <p class="text-sm text-gray-600">${date}</p>
+                <h4 class="font-semibold text-md text-blue-500">${announcement.title}</h4>
+                <p class="text-sm text-gray-700">${announcement.content}</p>
               </div>
             `;
             announcementsList.innerHTML += itemHtml;
@@ -1377,18 +1208,18 @@
     async function loadCourseReg() {
       const content = document.getElementById("dashboardContent");
       const courseRegHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Course Registration</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Course Registration</h2>
           <form id="course-reg-form">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
-                <label for="reg-department" class="block text-gray-200 font-medium mb-2">Department</label>
+                <label for="reg-department" class="block text-gray-700 font-medium mb-2">Department</label>
                 <select id="reg-department" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
                   <option value="">Select Department</option>
                 </select>
               </div>
               <div>
-                <label for="reg-year" class="block text-gray-200 font-medium mb-2">Year of Study</label>
+                <label for="reg-year" class="block text-gray-700 font-medium mb-2">Year of Study</label>
                 <select id="reg-year" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
                   <option value="">Select Year</option>
                   <option value="1">Year 1</option>
@@ -1398,7 +1229,7 @@
                 </select>
               </div>
               <div>
-                <label for="reg-semester" class="block text-gray-200 font-medium mb-2">Semester</label>
+                <label for="reg-semester" class="block text-gray-700 font-medium mb-2">Semester</label>
                 <select id="reg-semester" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
                   <option value="">Select Semester</option>
                   <option value="1">Semester 1</option>
@@ -1406,13 +1237,13 @@
                 </select>
               </div>
               <div>
-                <label for="reg-course" class="block text-gray-200 font-medium mb-2">Course</label>
+                <label for="reg-course" class="block text-gray-700 font-medium mb-2">Course</label>
                 <select id="reg-course" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
                   <option value="">Select Course</option>
                 </select>
               </div>
             </div>
-            <button type="submit" id="registerCourseBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+            <button type="submit" id="registerCourseBtn" class="btn-primary">
               Register Course
             </button>
           </form>
@@ -1540,17 +1371,17 @@
     async function loadTimetable() {
       const content = document.getElementById("dashboardContent");
       const timetableHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Academic Timetable</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Academic Timetable</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             <div>
-              <label for="tt-department" class="block text-gray-200 font-medium mb-2">Department</label>
+              <label for="tt-department" class="block text-gray-700 font-medium mb-2">Department</label>
               <select id="tt-department" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200">
                 <option value="">Select Department</option>
               </select>
             </div>
             <div>
-              <label for="tt-year" class="block text-gray-200 font-medium mb-2">Year of Study</label>
+              <label for="tt-year" class="block text-gray-700 font-medium mb-2">Year of Study</label>
               <select id="tt-year" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200">
                 <option value="">Select Year</option>
                 <option value="1">Year 1</option>
@@ -1560,16 +1391,16 @@
               </select>
             </div>
             <div>
-              <label for="tt-semester" class="block text-gray-200 font-medium mb-2">Semester</label>
+              <label for="tt-semester" class="block text-gray-700 font-medium mb-2">Semester</label>
               <select id="tt-semester" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200">
                 <option value="">Select Semester</option>
                 <option value="1">Semester 1</option>
                 <option value="2">Semester 2</option>
-              </select>
+                </select>
             </div>
           </div>
           <div id="timetableDisplay" class="overflow-x-auto">
-            <p class="text-center text-gray-400 mt-8">Please select a Department, Year, and Semester to view the timetable.</p>
+            <p class="text-center text-gray-600 mt-8">Please select a Department, Year, and Semester to view the timetable.</p>
           </div>
         </div>
       `;
@@ -1610,7 +1441,7 @@
         const selectedSem = parseInt(semesterSelect.value);
 
         if (!selectedDept || !selectedYear || !selectedSem) {
-          timetableDisplay.innerHTML = `<p class="text-center text-gray-400 mt-8">Please select a Department, Year, and Semester to view the timetable.</p>`;
+          timetableDisplay.innerHTML = `<p class="text-center text-gray-600 mt-8">Please select a Department, Year, and Semester to view the timetable.</p>`;
           return;
         }
 
@@ -1643,16 +1474,16 @@
         const mobileTimetableHtml = `
           <div class="lg:hidden">
             ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => `
-              <div class="timetable-day-card glass-panel">
-                <h3 class="timetable-day-title">${day}</h3>
+              <div class="card mb-4 p-4">
+                <h3 class="text-lg font-bold text-blue-700 mb-3">${day}</h3>
                 ${classesByDay[day].length > 0 ? classesByDay[day].map(cls => `
-                  <div class="timetable-class-item">
-                    <p class="font-bold text-gray-100">${cls.startTime} - ${cls.endTime}</p>
-                    <p class="text-gray-200">${cls.courseCode} - ${cls.courseName}</p>
-                    <p class="text-sm text-gray-400">Lecturer: ${cls.lecturer}</p>
-                    <p class="text-sm text-gray-400">Venue: ${cls.venue}</p>
+                  <div class="border-t border-gray-200 pt-3 mt-3 first:border-t-0 first:pt-0 first:mt-0">
+                    <p class="font-semibold text-gray-800">${cls.startTime} - ${cls.endTime}</p>
+                    <p class="text-gray-700">${cls.courseCode} - ${cls.courseName}</p>
+                    <p class="text-sm text-gray-600">Lecturer: ${cls.lecturer}</p>
+                    <p class="text-sm text-gray-600">Venue: ${cls.venue}</p>
                   </div>
-                `).join('') : '<p class="text-gray-400">No classes</p>'}
+                `).join('') : '<p class="text-gray-600">No classes</p>'}
               </div>
             `).join('')}
           </div>
@@ -1660,31 +1491,41 @@
 
         // Desktop View (Grid)
         const desktopTimetableHtml = `
-          <div class="hidden lg:block timetable-grid">
-            <div class="timetable-header">Time</div>
-            <div class="timetable-header">Monday</div>
-            <div class="timetable-header">Tuesday</div>
-            <div class="timetable-header">Wednesday</div>
-            <div class="timetable-header">Thursday</div>
-            <div class="timetable-header">Friday</div>
-            ${sortedTimes.map(time => `
-              <div class="timetable-header">${time}</div>
-              ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
-                const classAtTime = classesByDay[day].find(c => c.startTime === time);
-                if (classAtTime) {
-                  return `
-                    <div class="timetable-cell">
-                      <p class="font-bold">${classAtTime.courseCode}</p>
-                      <p>${classAtTime.courseName}</p>
-                      <p class="text-sm text-gray-600">${classAtTime.lecturer}</p>
-                      <p class="text-sm text-gray-600">${classAtTime.venue}</p>
-                    </div>
-                  `;
-                } else {
-                  return `<div class="timetable-cell"></div>`;
-                }
-              }).join('')}
-            `).join('')}
+          <div class="hidden lg:block overflow-x-auto">
+            <table class="min-w-full border-collapse card">
+              <thead class="bg-gray-200">
+                <tr>
+                  <th class="py-3 px-4 text-left font-bold border-b border-r border-gray-300 text-blue-800">Time</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-r border-gray-300 text-blue-800">Monday</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-r border-gray-300 text-blue-800">Tuesday</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-r border-gray-300 text-blue-800">Wednesday</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-r border-gray-300 text-blue-800">Thursday</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 text-blue-800">Friday</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sortedTimes.map(time => `
+                  <tr>
+                    <td class="py-3 px-4 border-b border-r border-gray-200 font-semibold">${time}</td>
+                    ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
+                      const classAtTime = classesByDay[day].find(c => c.startTime === time);
+                      if (classAtTime) {
+                        return `
+                          <td class="py-3 px-4 border-b border-r border-gray-200 text-center">
+                            <p class="font-bold">${classAtTime.courseCode}</p>
+                            <p>${classAtTime.courseName}</p>
+                            <p class="text-sm text-gray-600">${classAtTime.lecturer}</p>
+                            <p class="text-sm text-gray-600">${classAtTime.venue}</p>
+                          </td>
+                        `;
+                      } else {
+                        return `<td class="py-3 px-4 border-b border-r border-gray-200"></td>`;
+                      }
+                    }).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
         `;
 
@@ -1700,17 +1541,17 @@
     async function loadGrades() {
       const content = document.getElementById("dashboardContent");
       const gradesHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Grades & Transcripts</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Grades & Transcripts</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label for="grades-year" class="block text-gray-200 font-medium mb-2">Year of Study</label>
+              <label for="grades-year" class="block text-gray-700 font-medium mb-2">Year of Study</label>
               <select id="grades-year" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200">
                 <option value="all">All Years</option>
               </select>
             </div>
             <div>
-              <label for="grades-semester" class="block text-gray-200 font-medium mb-2">Semester</label>
+              <label for="grades-semester" class="block text-gray-700 font-medium mb-2">Semester</label>
               <select id="grades-semester" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200">
                 <option value="all">All Semesters</option>
                 <option value="1">Semester 1</option>
@@ -1719,27 +1560,27 @@
             </div>
           </div>
           <div class="overflow-x-auto mb-6">
-            <table class="min-w-full glass-panel border-collapse">
-              <thead class="bg-gray-200 text-gray-200">
+            <table class="min-w-full card border-collapse">
+              <thead class="bg-gray-200 text-gray-700">
                 <tr>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Course Code</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Course Name</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Grade</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Semester</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700">Year</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Course Code</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Course Name</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Grade</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Semester</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300">Year</th>
                 </tr>
               </thead>
               <tbody id="gradesTableBody">
-                <tr><td colspan="5" class="text-center py-4 text-gray-400">Loading grades...</td></tr>
+                <tr><td colspan="5" class="text-center py-4 text-gray-600">Loading grades...</td></tr>
               </tbody>
             </table>
           </div>
-          <div class="glass-panel p-4 rounded-md flex flex-col md:flex-row justify-between items-center mb-6">
-            <h3 class="text-lg font-bold text-green-800">Cumulative GPA (CGPA): <span id="cgpaValue" class="text-xl font-extrabold text-green-500">0.00</span></h3>
-            <h3 class="text-lg font-bold text-green-800">Current GPA: <span id="gpaValue" class="text-xl font-extrabold text-green-500">0.00</span></h3>
+          <div class="card p-4 flex flex-col md:flex-row justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-blue-800">Cumulative GPA (CGPA): <span id="cgpaValue" class="text-xl font-extrabold text-blue-500">0.00</span></h3>
+            <h3 class="text-lg font-bold text-blue-800">Current GPA: <span id="gpaValue" class="text-xl font-extrabold text-blue-500">0.00</span></h3>
           </div>
           <div class="flex justify-start space-x-4">
-            <button onclick="generateTranscript()" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">
+            <button onclick="generateTranscript()" class="btn-primary">
               <i class="fas fa-file-pdf mr-2"></i>Generate Transcript (PDF)
             </button>
           </div>
@@ -1769,17 +1610,17 @@
 
         gradesTableBody.innerHTML = '';
         if (filteredGrades.length === 0) {
-          gradesTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">No grades found for the selected filter.</td></tr>`;
+          gradesTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-600">No grades found for the selected filter.</td></tr>`;
           gpaValue.innerText = "0.00";
         } else {
           filteredGrades.forEach(grade => {
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td class="py-3 px-4 border-b border-gray-700 border-r">${grade.courseCode}</td>
-              <td class="py-3 px-4 border-b border-gray-700 border-r">${grade.courseName}</td>
-              <td class="py-3 px-4 border-b border-gray-700 border-r font-bold">${grade.grade}</td>
-              <td class="py-3 px-4 border-b border-gray-700 border-r">${grade.semester}</td>
-              <td class="py-3 px-4 border-b border-gray-700">${grade.yearOfStudy}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r">${grade.courseCode}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r">${grade.courseName}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r font-bold">${grade.grade}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r">${grade.semester}</td>
+              <td class="py-3 px-4 border-b border-gray-200">${grade.yearOfStudy}</td>
             `;
             gradesTableBody.appendChild(row);
           });
@@ -1898,39 +1739,39 @@
     async function loadGraduation() {
       const content = document.getElementById("dashboardContent");
       const graduationHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Graduation Request</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Graduation Request</h2>
           <form id="graduation-form">
             <div class="space-y-4 mb-6">
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Student Name:</p>
-                <p id="grad-name" class="font-semibold text-gray-200">${currentUserData.name || 'N/A'}</p>
+              <div class="card p-4">
+                <p class="text-sm text-gray-600">Student Name:</p>
+                <p id="grad-name" class="font-semibold text-gray-800">${currentUserData.name || 'N/A'}</p>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Student ID:</p>
-                <p id="grad-regno" class="font-semibold text-gray-200">${currentUserData.regNo || 'N/A'}</p>
+              <div class="card p-4">
+                <p class="text-sm text-gray-600">Student ID:</p>
+                <p id="grad-regno" class="font-semibold text-gray-800">${currentUserData.regNo || 'N/A'}</p>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Program:</p>
-                <p id="grad-program" class="font-semibold text-gray-200">${currentUserData.programme || 'N/A'}</p>
+              <div class="card p-4">
+                <p class="text-sm text-gray-600">Program:</p>
+                <p id="grad-program" class="font-semibold text-gray-800">${currentUserData.programme || 'N/A'}</p>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="expected-grad-date" class="block text-gray-200 font-medium mb-2">Expected Graduation Date</label>
+              <div class="card p-4">
+                <label for="expected-grad-date" class="block text-gray-700 font-medium mb-2">Expected Graduation Date</label>
                 <input type="date" id="expected-grad-date" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="grad-special-notes" class="block text-gray-200 font-medium mb-2">Special Notes (Optional)</label>
+              <div class="card p-4">
+                <label for="grad-special-notes" class="block text-gray-700 font-medium mb-2">Special Notes (Optional)</label>
                 <textarea id="grad-special-notes" rows="3" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" placeholder="e.g., specific ceremony requests, diploma delivery address if different"></textarea>
               </div>
             </div>
             <div id="gradEligibilityStatus" class="p-4 rounded-md mb-6 hidden"></div>
-            <button type="submit" id="submitGradRequestBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+            <button type="submit" id="submitGradRequestBtn" class="btn-primary">
               Submit Graduation Request
             </button>
           </form>
           <div class="mt-8">
-            <h3 class="text-xl font-bold text-green-800 mb-4">Your Graduation Request Status</h3>
-            <div id="gradRequestStatusDisplay" class="glass-panel p-4 rounded-md text-gray-300">
+            <h3 class="text-xl font-bold text-blue-800 mb-4">Your Graduation Request Status</h3>
+            <div id="gradRequestStatusDisplay" class="card p-4 text-gray-700">
               <p>No pending graduation request.</p>
             </div>
           </div>
@@ -1955,18 +1796,19 @@
             currentGradRequest = gradRequestSnap.data();
             gradRequestStatusDisplay.innerHTML = `
               <p><strong>Status:</strong> <span class="font-bold text-blue-500">${currentGradRequest.status}</span></p>
-              <p><strong>Requested Date:</strong> ${new Date(currentGradRequest.expectedGradDate.toDate()).toLocaleDateString()}</p>
-              <p><strong>Submitted On:</strong> ${new Date(currentGradRequest.submittedAt.toDate()).toLocaleDateString()}</p>
+              <p><strong>Requested Date:</strong> ${currentGradRequest.expectedGradDate ? new Date(currentGradRequest.expectedGradDate.toDate()).toLocaleDateString() : 'N/A'}</p>
+              <p><strong>Submitted On:</strong> ${currentGradRequest.submittedAt ? new Date(currentGradRequest.submittedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
               ${currentGradRequest.notes ? `<p><strong>Notes:</strong> ${currentGradRequest.notes}</p>` : ''}
               ${currentGradRequest.adminComments ? `<p><strong>Admin Comments:</strong> <span class="text-yellow-500">${currentGradRequest.adminComments}</span></p>` : ''}
-              <button id="cancelGradRequestBtn" class="mt-4 bg-red-600 hover:bg-red-700 text-white py-1 px-4 rounded-md">Cancel Request</button>
+              <button id="cancelGradRequestBtn" class="mt-4 btn-red py-1 px-4">Cancel Request</button>
             `;
             if (currentGradRequest.status === 'Approved' || currentGradRequest.status === 'Denied') {
               submitGradRequestBtn.disabled = true;
               gradForm.querySelector('input, textarea').forEach(el => el.disabled = true);
               if (document.getElementById('cancelGradRequestBtn')) document.getElementById('cancelGradRequestBtn').disabled = true;
             } else {
-              submitGradRequestBtn.disabled = false;
+              submitGradRequestBtn.disabled = true; // Disable if a request is already pending
+              gradForm.querySelector('input, textarea').forEach(el => el.disabled = true);
               if (document.getElementById('cancelGradRequestBtn')) {
                 document.getElementById('cancelGradRequestBtn').addEventListener('click', async () => {
                   const confirm = await showCustomModal('Confirm Cancellation', 'Are you sure you want to cancel your graduation request?', true);
@@ -2001,7 +1843,7 @@
             gradEligibilityStatus.classList.remove('bg-red-100', 'border-red-600');
             submitGradRequestBtn.disabled = currentGradRequest !== null;
           } else {
-            let message = `<p class="text-red-500"><i class="fas fa-times-circle"></i> You are currently not eligible for graduation. Reasons:</p><ul class="list-disc ml-5 text-sm text-gray-300">`;
+            let message = `<p class="text-red-500"><i class="fas fa-times-circle"></i> You are currently not eligible for graduation. Reasons:</p><ul class="list-disc ml-5 text-sm text-gray-700">`;
             if (parseFloat(cgpa) < 2.0) message += `<li>CGPA too low (${cgpa}). Minimum 2.0 required.</li>`;
             if (totalGrades < 40) message += `<li>Insufficient registered courses (${totalGrades}). At least 40 required.</li>`;
             if (hasOutstandingFees) message += `<li>Outstanding fees balance.</li>`;
@@ -2034,10 +1876,11 @@
       }
 
       async function checkClearanceStatus() {
-          const clearanceSnapshot = await getDoc(doc(db, `students/${currentUserId}/clearance`, 'status'));
+          const clearanceSnapshot = await getDoc(doc(db, `students/${currentUserId}/clearance`, 'status')); // Assuming a single status doc
           if (clearanceSnapshot.exists()) {
               const data = clearanceSnapshot.data();
-              return data.status !== 'Cleared'; // Return true if not cleared
+              // Assuming 'Pending' or 'Incomplete' means not cleared. Adjust as per your data model.
+              return data.status !== 'Cleared';
           }
           return true; // Assume not cleared if no document exists
       }
@@ -2085,24 +1928,24 @@
     async function loadClearance() {
       const content = document.getElementById("dashboardContent");
       const clearanceHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Clearance Request</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Clearance Request</h2>
           <form id="clearance-form">
             <div class="space-y-4 mb-6">
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Student Name:</p>
-                <p id="clearance-name" class="font-semibold text-gray-200">${currentUserData.name || 'N/A'}</p>
+              <div class="card p-4">
+                <p class="text-sm text-gray-600">Student Name:</p>
+                <p id="clearance-name" class="font-semibold text-gray-800">${currentUserData.name || 'N/A'}</p>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Student ID:</p>
-                <p id="clearance-regno" class="font-semibold text-gray-200">${currentUserData.regNo || 'N/A'}</p>
+              <div class="card p-4">
+                <p class="text-sm text-gray-600">Student ID:</p>
+                <p id="clearance-regno" class="font-semibold text-gray-800">${currentUserData.regNo || 'N/A'}</p>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Program:</p>
-                <p id="clearance-program" class="font-semibold text-gray-200">${currentUserData.programme || 'N/A'}</p>
+              <div class="card p-4">
+                <p class="text-sm text-gray-600">Program:</p>
+                <p id="clearance-program" class="font-semibold text-gray-800">${currentUserData.programme || 'N/A'}</p>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="clearance-type" class="block text-gray-200 font-medium mb-2">Clearance Type</label>
+              <div class="card p-4">
+                <label for="clearance-type" class="block text-gray-700 font-medium mb-2">Clearance Type</label>
                 <select id="clearance-type" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
                   <option value="">Select Type</option>
                   <option value="graduation">Graduation Clearance</option>
@@ -2110,19 +1953,19 @@
                   <option value="transfer">Transfer Clearance</option>
                 </select>
               </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="clearance-reason" class="block text-gray-200 font-medium mb-2">Reason for Clearance</label>
+              <div class="card p-4">
+                <label for="clearance-reason" class="block text-gray-700 font-medium mb-2">Reason for Clearance</label>
                 <textarea id="clearance-reason" rows="3" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" placeholder="Briefly state your reason"></textarea>
               </div>
             </div>
             <div id="clearanceStatusMessage" class="p-4 rounded-md mb-6 hidden"></div>
-            <button type="submit" id="submitClearanceRequestBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+            <button type="submit" id="submitClearanceRequestBtn" class="btn-primary">
               Submit Clearance Request
             </button>
           </form>
           <div class="mt-8">
-            <h3 class="text-xl font-bold text-green-800 mb-4">Your Current Clearance Status</h3>
-            <div id="clearanceRequestDisplay" class="glass-panel p-4 rounded-md text-gray-300">
+            <h3 class="text-xl font-bold text-blue-800 mb-4">Your Current Clearance Status</h3>
+            <div id="clearanceRequestDisplay" class="card p-4 text-gray-700">
               <p>No pending clearance request.</p>
             </div>
           </div>
@@ -2146,12 +1989,12 @@
           if (clearanceSnap.exists()) {
             currentClearanceRequest = clearanceSnap.data();
             clearanceRequestDisplay.innerHTML = `
-              <p><strong>Type:</strong> <span class="font-semibold text-gray-200">${currentClearanceRequest.type}</span></p>
-              <p><strong>Reason:</strong> <span class="text-gray-300">${currentClearanceRequest.reason}</span></p>
+              <p><strong>Type:</strong> <span class="font-semibold text-gray-800">${currentClearanceRequest.type}</span></p>
+              <p><strong>Reason:</strong> <span class="text-gray-700">${currentClearanceRequest.reason}</span></p>
               <p><strong>Status:</strong> <span class="font-bold text-blue-500">${currentClearanceRequest.status}</span></p>
-              <p><strong>Requested On:</strong> ${new Date(currentClearanceRequest.requestedAt.toDate()).toLocaleDateString()}</p>
+              <p><strong>Requested On:</strong> ${currentClearanceRequest.requestedAt ? new Date(currentClearanceRequest.requestedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
               ${currentClearanceRequest.adminComments ? `<p><strong>Admin Comments:</strong> <span class="text-yellow-500">${currentClearanceRequest.adminComments}</span></p>` : ''}
-              <button id="cancelClearanceRequestBtn" class="mt-4 bg-red-600 hover:bg-red-700 text-white py-1 px-4 rounded-md">Cancel Request</button>
+              <button id="cancelClearanceRequestBtn" class="mt-4 btn-red py-1 px-4">Cancel Request</button>
             `;
             if (currentClearanceRequest.status === 'Approved' || currentClearanceRequest.status === 'Denied') {
               submitClearanceRequestBtn.disabled = true;
@@ -2230,40 +2073,40 @@
     async function loadFees() {
       const content = document.getElementById("dashboardContent");
       const feesHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Fees Statement</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Fees Statement</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            <div class="glass-panel p-4 rounded-md">
-              <p class="text-sm text-gray-400">Total Charged:</p>
-              <p id="totalCharged" class="font-semibold text-gray-200 text-lg">GHS 0.00</p>
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Total Charged:</p>
+              <p id="totalCharged" class="font-semibold text-gray-800 text-lg">GHS 0.00</p>
             </div>
-            <div class="glass-panel p-4 rounded-md">
-              <p class="text-sm text-gray-400">Total Payments:</p>
-              <p id="totalPayments" class="font-semibold text-gray-200 text-lg">GHS 0.00</p>
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Total Payments:</p>
+              <p id="totalPayments" class="font-semibold text-gray-800 text-lg">GHS 0.00</p>
             </div>
-            <div class="glass-panel p-4 rounded-md">
-              <p class="text-sm text-gray-400">Current Balance:</p>
-              <p id="currentBalance" class="font-semibold text-gray-200 text-lg"></p>
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Current Balance:</p>
+              <p id="currentBalance" class="font-semibold text-gray-800 text-lg"></p>
             </div>
           </div>
 
           <div class="overflow-x-auto mb-6">
-            <table class="min-w-full glass-panel border-collapse">
-              <thead class="bg-gray-200 text-gray-200">
+            <table class="min-w-full card border-collapse">
+              <thead class="bg-gray-200 text-gray-700">
                 <tr>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Date</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Description</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Debit (GHS)</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700">Credit (GHS)</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Date</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Description</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Debit (GHS)</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300">Credit (GHS)</th>
                 </tr>
               </thead>
               <tbody id="feesTableBody">
-                <tr><td colspan="4" class="text-center py-4 text-gray-400">Loading fees statement...</td></tr>
+                <tr><td colspan="4" class="text-center py-4 text-gray-600">Loading fees statement...</td></tr>
               </tbody>
             </table>
           </div>
           <div class="flex justify-start space-x-4">
-            <button onclick="generateFeesStatement()" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">
+            <button onclick="generateFeesStatement()" class="btn-primary">
               <i class="fas fa-file-pdf mr-2"></i>Generate Statement (PDF)
             </button>
           </div>
@@ -2283,7 +2126,7 @@
         feesTableBody.innerHTML = '';
 
         if (querySnapshot.empty) {
-          feesTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-400">No fees transactions found.</td></tr>`;
+          feesTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-600">No fees transactions found.</td></tr>`;
         } else {
           querySnapshot.forEach(doc => {
             const transaction = doc.data();
@@ -2296,10 +2139,10 @@
 
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td class="py-3 px-4 border-b border-gray-700 border-r">${date}</td>
-              <td class="py-3 px-4 border-b border-gray-700 border-r">${transaction.description}</td>
-              <td class="py-3 px-4 border-b border-gray-700 border-r text-red-400">${debit > 0 ? debit.toFixed(2) : '-'}</td>
-              <td class="py-3 px-4 border-b border-gray-700 text-green-400">${credit > 0 ? credit.toFixed(2) : '-'}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r">${date}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r">${transaction.description}</td>
+              <td class="py-3 px-4 border-b border-gray-200 border-r text-red-500">${debit > 0 ? debit.toFixed(2) : '-'}</td>
+              <td class="py-3 px-4 border-b border-gray-200 text-green-500">${credit > 0 ? credit.toFixed(2) : '-'}</td>
             `;
             feesTableBody.appendChild(row);
           });
@@ -2410,36 +2253,36 @@
     async function loadExamCard() {
       const content = document.getElementById("dashboardContent");
       const examCardHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Exam Card</h2>
-          <div class="glass-panel p-4 rounded-md mb-6">
-            <p class="text-sm text-gray-400">Student Name:</p>
-            <p id="examcard-name" class="font-semibold text-gray-200">${currentUserData.name || 'N/A'}</p>
-            <p class="text-sm text-gray-400 mt-2">Student ID:</p>
-            <p id="examcard-regno" class="font-semibold text-gray-200">${currentUserData.regNo || 'N/A'}</p>
-            <p class="text-sm text-gray-400 mt-2">Program:</p>
-            <p id="examcard-program" class="font-semibold text-gray-200">${currentUserData.programme || 'N/A'}</p>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Exam Card</h2>
+          <div class="card p-4 mb-6">
+            <p class="text-sm text-gray-600">Student Name:</p>
+            <p id="examcard-name" class="font-semibold text-gray-800">${currentUserData.name || 'N/A'}</p>
+            <p class="text-sm text-gray-600 mt-2">Student ID:</p>
+            <p id="examcard-regno" class="font-semibold text-gray-800">${currentUserData.regNo || 'N/A'}</p>
+            <p class="text-sm text-gray-600 mt-2">Program:</p>
+            <p id="examcard-program" class="font-semibold text-gray-800">${currentUserData.programme || 'N/A'}</p>
           </div>
 
           <div class="overflow-x-auto mb-6">
-            <table class="min-w-full glass-panel border-collapse">
-              <thead class="bg-gray-200 text-gray-200">
+            <table class="min-w-full card border-collapse">
+              <thead class="bg-gray-200 text-gray-700">
                 <tr>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Course Code</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Course Name</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Date</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700 border-r">Time</th>
-                  <th class="py-3 px-4 text-left font-bold border-b border-gray-700">Venue</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Course Code</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Course Name</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Date</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300 border-r">Time</th>
+                  <th class="py-3 px-4 text-left font-bold border-b border-gray-300">Venue</th>
                 </tr>
               </thead>
               <tbody id="examCardTableBody">
-                <tr><td colspan="5" class="text-center py-4 text-gray-400">Loading exam schedule...</td></tr>
+                <tr><td colspan="5" class="text-center py-4 text-gray-600">Loading exam schedule...</td></tr>
               </tbody>
             </table>
           </div>
           <div id="examCardStatus" class="p-4 rounded-md mb-6 hidden"></div>
           <div class="flex justify-start space-x-4">
-            <button onclick="downloadExamCard()" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">
+            <button onclick="downloadExamCard()" class="btn-primary">
               <i class="fas fa-download mr-2"></i>Download Exam Card
             </button>
           </div>
@@ -2457,7 +2300,7 @@
           const registeredCourseCodes = registrationsSnapshot.docs.map(doc => doc.data().courseCode);
 
           if (registeredCourseCodes.length === 0) {
-            examCardTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">You are not registered for any courses.</td></tr>`;
+            examCardTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-600">You are not registered for any courses.</td></tr>`;
             examCardStatus.innerHTML = `<p class="text-red-500"><i class="fas fa-exclamation-triangle"></i> You have no registered courses, cannot generate exam card.</p>`;
             examCardStatus.classList.add('bg-red-100');
             examCardStatus.classList.remove('hidden');
@@ -2469,7 +2312,7 @@
 
           examCardTableBody.innerHTML = '';
           if (examScheduleSnapshot.empty) {
-            examCardTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">No exam schedule available for your registered courses.</td></tr>`;
+            examCardTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-600">No exam schedule available for your registered courses.</td></tr>`;
             examCardStatus.innerHTML = `<p class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Exam schedule not yet released or no exams for your courses.</p>`;
             examCardStatus.classList.add('bg-red-100');
             examCardStatus.classList.remove('hidden');
@@ -2479,11 +2322,11 @@
               const examDate = exam.date ? new Date(exam.date.toDate()).toLocaleDateString() : 'N/A';
               const row = document.createElement('tr');
               row.innerHTML = `
-                <td class="py-3 px-4 border-b border-gray-700 border-r">${exam.courseCode}</td>
-                <td class="py-3 px-4 border-b border-gray-700 border-r">${exam.courseName}</td>
-                <td class="py-3 px-4 border-b border-gray-700 border-r">${examDate}</td>
-                <td class="py-3 px-4 border-b border-gray-700 border-r">${exam.time}</td>
-                <td class="py-3 px-4 border-b border-gray-700">${exam.venue}</td>
+                <td class="py-3 px-4 border-b border-gray-200 border-r">${exam.courseCode}</td>
+                <td class="py-3 px-4 border-b border-gray-200 border-r">${exam.courseName}</td>
+                <td class="py-3 px-4 border-b border-gray-200 border-r">${examDate}</td>
+                <td class="py-3 px-4 border-b border-gray-200 border-r">${exam.time}</td>
+                <td class="py-3 px-4 border-b border-gray-200">${exam.venue}</td>
               `;
               examCardTableBody.appendChild(row);
             });
@@ -2607,169 +2450,305 @@
     async function loadHostels() {
       const content = document.getElementById("dashboardContent");
       const hostelsHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Hostel Accommodation Booking</h2>
-          <form id="hostel-booking-form">
-            <div class="space-y-4 mb-6">
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Student Name:</p>
-                <p id="hostel-name" class="font-semibold text-gray-200">${currentUserData.name || 'N/A'}</p>
-              </div>
-              <div class="glass-panel p-4 rounded-md">
-                <p class="text-sm text-gray-400">Student ID:</p>
-                <p id="hostel-regno" class="font-semibold text-gray-200">${currentUserData.regNo || 'N/A'}</p>
-              </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="hostel-type" class="block text-gray-200 font-medium mb-2">Hostel Type</label>
-                <select id="hostel-type" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
-                  <option value="">Select Hostel Type</option>
-                  <option value="male">Male Hostel</option>
-                  <option value="female">Female Hostel</option>
-                </select>
-              </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="room-preference" class="block text-gray-200 font-medium mb-2">Room Preference (Optional)</label>
-                <input type="text" id="room-preference" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" placeholder="e.g., Single, Double, specific room number if known">
-              </div>
-              <div class="glass-panel p-4 rounded-md">
-                <label for="booking-period" class="block text-gray-200 font-medium mb-2">Booking Period</label>
-                <select id="booking-period" class="w-full p-2 border rounded-md focus:ring-2 focus:border-transparent transition-colors duration-200" required>
-                  <option value="">Select Period</option>
-                  <option value="semester">One Semester</option>
-                  <option value="academic-year">Full Academic Year</option>
-                </select>
-              </div>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Hostel Accommodation Booking</h2>
+
+          <div id="hostelBookingStatusBanner" class="p-4 rounded-md mb-6 bg-blue-100 border border-blue-600 text-blue-800 font-semibold">
+            Loading booking status...
+          </div>
+
+          <div class="space-y-4 mb-6">
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Student Name:</p>
+              <p id="hostel-student-name" class="font-semibold text-gray-800">${currentUserData.name || 'N/A'}</p>
             </div>
-            <div id="hostelBookingStatusMessage" class="p-4 rounded-md mb-6 hidden"></div>
-            <button type="submit" id="submitHostelBookingBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
-              Submit Booking Request
-            </button>
-          </form>
-          <div class="mt-8">
-            <h3 class="text-xl font-bold text-green-800 mb-4">Your Current Hostel Booking</h3>
-            <div id="hostelBookingDisplay" class="glass-panel p-4 rounded-md text-gray-300">
-              <p>No active hostel booking.</p>
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Student ID:</p>
+              <p id="hostel-student-id" class="font-semibold text-gray-800">${currentUserData.regNo || 'N/A'}</p>
+            </div>
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Program:</p>
+              <p id="hostel-student-program" class="font-semibold text-gray-800">${currentUserData.programme || 'N/A'}</p>
+            </div>
+            <div class="card p-4">
+              <p class="text-sm text-gray-600">Year of Study:</p>
+              <p id="hostel-student-year" class="font-semibold text-gray-800">${currentUserData.yearOfStudy || 'N/A'}</p>
+            </div>
+          </div>
+
+          <div class="card p-6 mb-6">
+            <h3 class="text-xl font-bold text-blue-800 mb-4">Available Hostels</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="hostel-filter-type" class="block text-gray-700 font-medium mb-2">Filter by Type</label>
+                    <select id="hostel-filter-type" class="w-full p-2 border rounded-md">
+                        <option value="all">All Types</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="mixed">Mixed</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="hostel-filter-availability" class="block text-gray-700 font-medium mb-2">Filter by Availability</label>
+                    <select id="hostel-filter-availability" class="w-full p-2 border rounded-md">
+                        <option value="all">Show All</option>
+                        <option value="available">Only Available</option>
+                    </select>
+                </div>
+            </div>
+            <div id="hostels-list-container">
+              <p class="text-center text-gray-600">Loading available hostels...</p>
             </div>
           </div>
         </div>
       `;
       content.innerHTML = generateBreadcrumb("Hostel Accommodation") + hostelsHtml;
 
-      const hostelBookingForm = document.getElementById('hostel-booking-form');
-      const hostelBookingStatusMessage = document.getElementById('hostelBookingStatusMessage');
-      const hostelBookingDisplay = document.getElementById('hostelBookingDisplay');
-      const submitHostelBookingBtn = document.getElementById('submitHostelBookingBtn');
+      const hostelBookingStatusBanner = document.getElementById('hostelBookingStatusBanner');
+      const hostelFilterType = document.getElementById('hostel-filter-type');
+      const hostelFilterAvailability = document.getElementById('hostel-filter-availability');
+      const hostelsListContainer = document.getElementById('hostels-list-container');
 
-      let currentHostelBooking = null;
+      let allHostels = [];
+      let currentStudentBooking = null; // To store active booking
 
-      const checkHostelBooking = async () => {
-        showLoading("Checking hostel booking status...");
+      // --- Helper function to render hostels ---
+      const renderHostels = (filteredHostels) => {
+        hostelsListContainer.innerHTML = ''; // Clear previous listings
+
+        if (filteredHostels.length === 0) {
+            hostelsListContainer.innerHTML = `<p class="text-center text-gray-600 py-4">No hostels found matching your criteria.</p>`;
+            return;
+        }
+
+        filteredHostels.forEach(hostel => {
+            const isAvailable = hostel.currentOccupancy < hostel.capacity;
+            const statusText = isAvailable ? 'Open' : 'Closed';
+            const statusColor = isAvailable ? 'text-green-500' : 'text-red-500';
+
+            const hostelItem = document.createElement('div');
+            hostelItem.dataset.hostelId = hostel.id; // Store Firestore ID
+            hostelItem.dataset.hostelName = hostel.name;
+            hostelItem.dataset.capacity = hostel.capacity;
+            hostelItem.dataset.currentOccupancy = hostel.currentOccupancy;
+
+            // Apply different classes based on screen size for glassmorphism vs card
+            hostelItem.classList.add('p-4', 'rounded-lg', 'shadow-md', 'flex-shrink-0');
+            hostelItem.classList.add('lg:hostel-item-glass', 'hostel-item-card');
+
+
+            hostelItem.innerHTML = `
+                <h4 class="font-bold text-lg mb-2">${hostel.name}</h4>
+                <p class="text-gray-700 lg:text-gray-300 text-sm">Type: ${hostel.type.charAt(0).toUpperCase() + hostel.type.slice(1)}</p>
+                <p class="text-gray-700 lg:text-gray-300 text-sm">Occupancy: ${hostel.currentOccupancy} / ${hostel.capacity}</p>
+                <p class="font-semibold ${statusColor} text-sm mb-4">Status: ${statusText}</p>
+                <div class="hostel-booking-controls ${currentStudentBooking ? 'hidden' : ''}">
+                    ${isAvailable ? `
+                        <label for="room-select-${hostel.id}" class="block text-gray-700 lg:text-gray-300 text-sm font-medium mb-2">Select Room:</label>
+                        <select id="room-select-${hostel.id}" class="w-full p-2 border rounded-md mb-3 focus:ring-2 focus:border-transparent">
+                            <option value="">Auto-Assign</option>
+                            ${(hostel.availableRooms || []).map(room => `<option value="${room}">${room}</option>`).join('')}
+                        </select>
+                        <button class="btn-primary w-full book-hostel-btn" data-hostel-id="${hostel.id}">Book Now</button>
+                    ` : `
+                        <button class="btn-outline w-full cursor-not-allowed opacity-70" disabled>Fully Booked</button>
+                    `}
+                </div>
+            `;
+            hostelsListContainer.appendChild(hostelItem);
+        });
+
+        // Attach event listeners for book buttons
+        document.querySelectorAll('.book-hostel-btn').forEach(button => {
+            button.removeEventListener('click', handleHostelBooking); // Prevent duplicate listeners
+            button.addEventListener('click', handleHostelBooking);
+        });
+      };
+
+      // --- Main fetch and display function for hostels ---
+      const fetchAndDisplayHostels = async () => {
+        showLoading("Fetching hostels...");
         try {
+          // Fetch student's current booking first
           const bookingDocRef = doc(db, `students/${currentUserId}/hostel`, 'booking');
           const bookingSnap = await getDoc(bookingDocRef);
+          currentStudentBooking = bookingSnap.exists() ? bookingSnap.data() : null;
 
-          if (bookingSnap.exists()) {
-            currentHostelBooking = bookingSnap.data();
-            hostelBookingDisplay.innerHTML = `
-              <p><strong>Type:</strong> <span class="font-semibold text-gray-200">${currentHostelBooking.type}</span></p>
-              <p><strong>Room Preference:</strong> <span class="text-gray-300">${currentHostelBooking.roomPreference || 'N/A'}</span></p>
-              <p><strong>Period:</strong> <span class="font-semibold text-gray-200">${currentHostelBooking.bookingPeriod}</span></p>
-              <p><strong>Status:</strong> <span class="font-bold text-blue-500">${currentHostelBooking.status}</span></p>
-              <p><strong>Booked On:</strong> ${new Date(currentHostelBooking.bookedAt.toDate()).toLocaleDateString()}</p>
-              ${currentHostelBooking.allocatedRoom ? `<p><strong>Allocated Room:</strong> <span class="text-green-500 font-bold">${currentHostelBooking.allocatedRoom}</span></p>` : ''}
-              ${currentHostelBooking.adminComments ? `<p><strong>Admin Comments:</strong> <span class="text-yellow-500">${currentHostelBooking.adminComments}</span></p>` : ''}
-              <button id="cancelHostelBookingBtn" class="mt-4 bg-red-600 hover:bg-red-700 text-white py-1 px-4 rounded-md">Cancel Booking</button>
+          if (currentStudentBooking) {
+            hostelBookingStatusBanner.innerHTML = `
+              <p>You have booked: <span class="font-bold">${currentStudentBooking.hostelName || 'N/A'}</span>, Room: <span class="font-bold">${currentStudentBooking.allocatedRoom || 'Pending'}</span></p>
+              <p class="text-sm mt-1">Status: <span class="font-bold text-blue-500">${currentStudentBooking.status}</span>. Booked on: ${new Date(currentStudentBooking.bookedAt.toDate()).toLocaleDateString()}.</p>
+              ${currentStudentBooking.status === 'Pending' ? `<button id="cancelHostelBookingBtn" class="btn-red py-1 px-3 text-sm mt-3">Cancel Booking</button>` : ''}
             `;
-            if (currentHostelBooking.status === 'Approved' || currentHostelBooking.status === 'Denied') {
-              submitHostelBookingBtn.disabled = true;
-              hostelBookingForm.querySelector('input, select').forEach(el => el.disabled = true);
-              if (document.getElementById('cancelHostelBookingBtn')) document.getElementById('cancelHostelBookingBtn').disabled = true;
-            } else {
-              submitHostelBookingBtn.disabled = true; // Disable if a request is already pending
-              hostelBookingForm.querySelector('input, select').forEach(el => el.disabled = true);
-              if (document.getElementById('cancelHostelBookingBtn')) {
-                document.getElementById('cancelHostelBookingBtn').addEventListener('click', async () => {
-                  const confirm = await showCustomModal('Confirm Cancellation', 'Are you sure you want to cancel your hostel booking request?', true);
-                  if (confirm) {
-                    showLoading("Cancelling request...");
-                    await deleteDoc(bookingDocRef);
-                    currentHostelBooking = null;
-                    await showCustomModal("Cancelled", "Hostel booking request cancelled.");
-                    checkHostelBooking(); // Re-render status
-                  }
-                  hideLoading();
-                });
-              }
+            // Disable booking controls if an active booking exists
+            document.querySelectorAll('.hostel-booking-controls').forEach(control => control.classList.add('hidden'));
+            if (document.getElementById('cancelHostelBookingBtn')) {
+                document.getElementById('cancelHostelBookingBtn').addEventListener('click', handleCancelBooking);
             }
           } else {
-            hostelBookingDisplay.innerHTML = `<p>No active hostel booking.</p>`;
-            submitHostelBookingBtn.disabled = false;
-            hostelBookingForm.querySelector('input, select').forEach(el => el.disabled = false);
+            hostelBookingStatusBanner.innerHTML = `<p>No active hostel booking yet.</p>`;
           }
+
+          // Fetch all hostels
+          const hostelsQuery = query(collection(db, 'hostels'));
+          const querySnapshot = await getDocs(hostelsQuery);
+          allHostels = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          // Apply filters initially
+          filterAndRenderHostels();
+
         } catch (error) {
-          console.error("Error fetching hostel booking:", error);
-          hostelBookingStatusMessage.innerHTML = `<p class="text-red-500">Error loading hostel booking status. Please try again.</p>`;
-          hostelBookingStatusMessage.classList.remove('hidden');
+          console.error("Error loading hostels:", error);
+          hostelsListContainer.innerHTML = `<p class="text-red-500 text-center py-4">Failed to load hostels. Please try again.</p>`;
+          hostelBookingStatusBanner.innerHTML = `<p class="text-red-500">Error loading booking status.</p>`;
         } finally {
           hideLoading();
         }
       };
 
-      hostelBookingForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        setButtonLoading(submitHostelBookingBtn, true);
+      // --- Filter function ---
+      const filterAndRenderHostels = () => {
+          const selectedType = hostelFilterType.value;
+          const selectedAvailability = hostelFilterAvailability.value;
 
-        const hostelType = document.getElementById('hostel-type').value;
-        const roomPreference = document.getElementById('room-preference').value.trim();
-        const bookingPeriod = document.getElementById('booking-period').value;
+          let filtered = allHostels.filter(hostel => {
+              const matchesType = selectedType === 'all' || hostel.type === selectedType;
+              const isAvailable = hostel.currentOccupancy < hostel.capacity;
+              const matchesAvailability = selectedAvailability === 'all' || (selectedAvailability === 'available' && isAvailable);
+              return matchesType && matchesAvailability;
+          });
+          renderHostels(filtered);
+      };
 
-        if (!hostelType || !bookingPeriod) {
-          await showCustomModal("Validation Error", "Please select hostel type and booking period.");
-          setButtonLoading(submitHostelBookingBtn, false);
-          return;
+      // --- Booking Handler ---
+      async function handleHostelBooking(event) {
+        if (currentStudentBooking) {
+            await showCustomModal("Booking Error", "You already have an active hostel booking. Please cancel your current booking to make a new one.");
+            return;
         }
+
+        const button = event.target;
+        const hostelId = button.dataset.hostelId;
+        const hostelName = button.dataset.hostelName;
+        const roomSelect = document.getElementById(`room-select-${hostelId}`);
+        const selectedRoom = roomSelect ? roomSelect.value : 'Auto-Assigned'; // Default to auto-assigned
+
+        setButtonLoading(button, true);
 
         try {
-          const bookingDocRef = doc(db, `students/${currentUserId}/hostel`, 'booking');
-          await setDoc(bookingDocRef, {
-            type: hostelType,
-            roomPreference: roomPreference || 'Any',
-            bookingPeriod: bookingPeriod,
-            status: "Pending",
-            bookedAt: new Date(),
-            studentId: currentUserId,
-            studentName: currentUserData.name,
-            studentRegNo: currentUserData.regNo,
-            studentProgram: currentUserData.programme
-          });
-          await showCustomModal("Success", "Hostel booking request submitted successfully! We will notify you of your room allocation.");
-          checkHostelBooking(); // Re-render status
-        } catch (error) {
-          console.error("Error submitting hostel booking:", error);
-          await showCustomModal("Error", "Failed to submit hostel booking. Please try again.");
-        } finally {
-          setButtonLoading(submitHostelBookingBtn, false);
-        }
-      });
+            await runTransaction(db, async (transaction) => {
+                const hostelDocRef = doc(db, `hostels`, hostelId);
+                const hostelDoc = await transaction.get(hostelDocRef);
 
-      checkHostelBooking(); // Initial load
+                if (!hostelDoc.exists()) {
+                    throw new Error("Hostel not found!");
+                }
+
+                const hostelData = hostelDoc.data();
+                if (hostelData.currentOccupancy >= hostelData.capacity) {
+                    throw new Error("Hostel is fully booked. Please select another.");
+                }
+
+                // Update hostel occupancy
+                transaction.update(hostelDocRef, {
+                    currentOccupancy: hostelData.currentOccupancy + 1
+                });
+
+                // Create student booking record
+                const bookingDocRef = doc(db, `students/${currentUserId}/hostel`, 'booking');
+                transaction.set(bookingDocRef, {
+                    hostelId: hostelId,
+                    hostelName: hostelName,
+                    allocatedRoom: selectedRoom,
+                    bookingPeriod: 'academic-year', // Assuming default or could be from a form field
+                    status: "Pending", // Or 'Approved' if auto-approved
+                    bookedAt: new Date(),
+                    studentId: currentUserId,
+                    studentName: currentUserData.name,
+                    studentRegNo: currentUserData.regNo,
+                    studentProgram: currentUserData.programme
+                });
+            });
+
+            await showCustomModal("Booking Successful", `✅ Your booking for ${hostelName}, Room ${selectedRoom} is pending approval!`);
+            fetchAndDisplayHostels(); // Re-fetch to update UI
+        } catch (error) {
+            console.error("Hostel booking error:", error);
+            await showCustomModal("Booking Failed", `❌ ${error.message || 'An unexpected error occurred. Please try again.'}`);
+        } finally {
+            setButtonLoading(button, false);
+        }
+      }
+
+      // --- Cancel Booking Handler ---
+      async function handleCancelBooking() {
+        const confirm = await showCustomModal('Confirm Cancellation', 'Are you sure you want to cancel your active hostel booking?', true);
+        if (!confirm) {
+            return;
+        }
+
+        showLoading("Cancelling booking...");
+        try {
+            await runTransaction(db, async (transaction) => {
+                const bookingDocRef = doc(db, `students/${currentUserId}/hostel`, 'booking');
+                const bookingSnap = await transaction.get(bookingDocRef);
+
+                if (!bookingSnap.exists()) {
+                    throw new Error("No active booking found to cancel.");
+                }
+
+                const bookingData = bookingSnap.data();
+                const bookedHostelId = bookingData.hostelId;
+
+                const hostelDocRef = doc(db, `hostels`, bookedHostelId);
+                const hostelDoc = await transaction.get(hostelDocRef);
+
+                if (hostelDoc.exists()) {
+                    const hostelData = hostelDoc.data();
+                    // Decrement occupancy if it's greater than 0
+                    if (hostelData.currentOccupancy > 0) {
+                        transaction.update(hostelDocRef, {
+                            currentOccupancy: hostelData.currentOccupancy - 1
+                        });
+                    }
+                }
+
+                // Delete the student's booking record
+                transaction.delete(bookingDocRef);
+            });
+
+            await showCustomModal("Booking Cancelled", "✅ Your hostel booking has been successfully cancelled.");
+            fetchAndDisplayHostels(); // Re-fetch to update UI
+        } catch (error) {
+            console.error("Error cancelling booking:", error);
+            await showCustomModal("Cancellation Failed", `❌ ${error.message || 'An error occurred during cancellation. Please try again.'}`);
+        } finally {
+            hideLoading();
+        }
+      }
+
+      // Event listeners for filters
+      hostelFilterType.addEventListener('change', filterAndRenderHostels);
+      hostelFilterAvailability.addEventListener('change', filterAndRenderHostels);
+
+      fetchAndDisplayHostels(); // Initial load
     }
 
     // 10. Announcements
     async function loadAnnouncements() {
       const content = document.getElementById("dashboardContent");
       const announcementsHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Announcements</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Announcements</h2>
           <div id="announcementsFilter" class="flex flex-wrap gap-4 mb-6">
-            <button class="filter-btn bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-md transition duration-200" data-filter="all">All</button>
-            <button class="filter-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-200" data-filter="general">General</button>
-            <button class="filter-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-200" data-filter="academic">Academic</button>
-            <button class="filter-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-200" data-filter="financial">Financial</button>
-            <button class="filter-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-200" data-filter="campuslife">Campus Life</button>
+            <button class="filter-btn btn-primary px-4 py-2" data-filter="all">All</button>
+            <button class="filter-btn btn-outline px-4 py-2" data-filter="general">General</button>
+            <button class="filter-btn btn-outline px-4 py-2" data-filter="academic">Academic</button>
+            <button class="filter-btn btn-outline px-4 py-2" data-filter="financial">Financial</button>
+            <button class="filter-btn btn-outline px-4 py-2" data-filter="campuslife">Campus Life</button>
           </div>
           <div id="announcementsListFull" class="space-y-4">
-            <p class="text-gray-400">Loading announcements...</p>
+            <p class="text-gray-600">Loading announcements...</p>
           </div>
         </div>
       `;
@@ -2809,13 +2788,13 @@
         }
 
         if (filteredAnnouncements.length === 0) {
-          announcementsListFull.innerHTML = `<p class="text-gray-400">No announcements found for this category.</p>`;
+          announcementsListFull.innerHTML = `<p class="text-gray-600">No announcements found for this category.</p>`;
         } else {
           filteredAnnouncements.forEach(announcement => {
             const date = announcement.date ? new Date(announcement.date.toDate()).toLocaleDateString() : 'N/A';
             const itemHtml = `
-              <div class="glass-panel p-4 rounded-md shadow-sm">
-                <div class="flex items-center justify-between text-sm text-gray-400 mb-2">
+              <div class="card p-4 shadow-sm">
+                <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
                   <span>${date}</span>
                   <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${
                     announcement.category === 'General' ? 'bg-blue-100 text-blue-800' :
@@ -2824,8 +2803,8 @@
                     announcement.category === 'Campus Life' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
                   }">${announcement.category}</span>
                 </div>
-                <h3 class="font-bold text-lg text-green-500 mb-2">${announcement.title}</h3>
-                <p class="text-gray-300 text-sm">${announcement.content}</p>
+                <h3 class="font-bold text-lg text-blue-500 mb-2">${announcement.title}</h3>
+                <p class="text-gray-700 text-sm">${announcement.content}</p>
               </div>
             `;
             announcementsListFull.innerHTML += itemHtml;
@@ -2849,11 +2828,11 @@
       filterButtons.forEach(button => {
         button.addEventListener('click', () => {
           filterButtons.forEach(btn => {
-            btn.classList.remove('bg-green-700', 'hover:bg-green-800');
-            btn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline');
           });
-          button.classList.remove('bg-gray-600', 'hover:bg-gray-700');
-          button.classList.add('bg-green-700', 'hover:bg-green-800');
+          button.classList.remove('btn-outline');
+          button.classList.add('btn-primary');
           renderAnnouncements(button.dataset.filter);
         });
       });
@@ -2863,44 +2842,44 @@
     async function loadProfile() {
         const content = document.getElementById("dashboardContent");
         const profileHtml = `
-            <div class="glass-panel p-6 rounded-xl shadow-md">
-                <h2 class="text-2xl font-bold text-green-800 mb-6">Personal Profile</h2>
+            <div class="card">
+                <h2 class="text-2xl font-bold text-blue-800 mb-6">Personal Profile</h2>
                 <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8 mb-8">
                     <div class="flex-shrink-0 text-center">
-                        <img id="profilePhoto" src="${currentUserData.profilePhotoURL || 'https://placehold.co/150x150/eeeeee/333333?text=Avatar'}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-green-500 shadow-lg mx-auto mb-4">
+                        <img id="profilePhoto" src="${currentUserData.profilePhotoURL || 'https://placehold.co/150x150/eeeeee/333333?text=Avatar'}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg mx-auto mb-4">
                         <input type="file" id="profilePhotoUpload" accept="image/*" class="hidden">
-                        <button onclick="document.getElementById('profilePhotoUpload').click()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                        <button onclick="document.getElementById('profilePhotoUpload').click()" class="btn-primary text-sm py-2 px-4">
                             <i class="fas fa-upload mr-2"></i>Change Photo
                         </button>
                     </div>
                     <form id="profile-form" class="flex-grow w-full space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="name" class="block text-gray-200 font-medium mb-1">Full Name</label>
+                                <label for="name" class="block text-gray-700 font-medium mb-1">Full Name</label>
                                 <input type="text" id="name" class="w-full p-2 border rounded-md" value="${currentUserData.name || ''}" required>
                             </div>
                             <div>
-                                <label for="email" class="block text-gray-200 font-medium mb-1">Email</label>
+                                <label for="email" class="block text-gray-700 font-medium mb-1">Email</label>
                                 <input type="email" id="email" class="w-full p-2 border rounded-md" value="${currentUserData.email || ''}" disabled>
                             </div>
                             <div>
-                                <label for="regNo" class="block text-gray-200 font-medium mb-1">Registration Number</label>
+                                <label for="regNo" class="block text-gray-700 font-medium mb-1">Registration Number</label>
                                 <input type="text" id="regNo" class="w-full p-2 border rounded-md" value="${currentUserData.regNo || ''}">
                             </div>
                             <div>
-                                <label for="programme" class="block text-gray-200 font-medium mb-1">Programme</label>
+                                <label for="programme" class="block text-gray-700 font-medium mb-1">Programme</label>
                                 <input type="text" id="programme" class="w-full p-2 border rounded-md" value="${currentUserData.programme || ''}">
                             </div>
                             <div>
-                                <label for="campus" class="block text-gray-200 font-medium mb-1">Campus</label>
+                                <label for="campus" class="block text-gray-700 font-medium mb-1">Campus</label>
                                 <input type="text" id="campus" class="w-full p-2 border rounded-md" value="${currentUserData.campus || ''}">
                             </div>
                             <div>
-                                <label for="dob" class="block text-gray-200 font-medium mb-1">Date of Birth</label>
+                                <label for="dob" class="block text-gray-700 font-medium mb-1">Date of Birth</label>
                                 <input type="date" id="dob" class="w-full p-2 border rounded-md" value="${currentUserData.dob || ''}">
                             </div>
                             <div>
-                                <label for="gender" class="block text-gray-200 font-medium mb-1">Gender</label>
+                                <label for="gender" class="block text-gray-700 font-medium mb-1">Gender</label>
                                 <select id="gender" class="w-full p-2 border rounded-md">
                                     <option value="">Select Gender</option>
                                     <option value="Male" ${currentUserData.gender === 'Male' ? 'selected' : ''}>Male</option>
@@ -2909,11 +2888,11 @@
                                 </select>
                             </div>
                             <div>
-                                <label for="address" class="block text-gray-200 font-medium mb-1">Address</label>
+                                <label for="address" class="block text-gray-700 font-medium mb-1">Address</label>
                                 <input type="text" id="address" class="w-full p-2 border rounded-md" value="${currentUserData.address || ''}">
                             </div>
                             <div>
-                                <label for="yearOfStudy" class="block text-gray-200 font-medium mb-1">Year of Study</label>
+                                <label for="yearOfStudy" class="block text-gray-700 font-medium mb-1">Year of Study</label>
                                 <select id="yearOfStudy" class="w-full p-2 border rounded-md">
                                   <option value="">Select Year</option>
                                   <option value="1" ${currentUserData.yearOfStudy === 1 ? 'selected' : ''}>Year 1</option>
@@ -2923,7 +2902,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label for="semester" class="block text-gray-200 font-medium mb-1">Current Semester</label>
+                                <label for="semester" class="block text-gray-700 font-medium mb-1">Current Semester</label>
                                 <select id="semester" class="w-full p-2 border rounded-md">
                                   <option value="">Select Semester</option>
                                   <option value="1" ${currentUserData.semester === 1 ? 'selected' : ''}>Semester 1</option>
@@ -2932,7 +2911,7 @@
                             </div>
                         </div>
                         <div id="profileUpdateStatus" class="mt-4 text-center hidden"></div>
-                        <button type="submit" id="updateProfileBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+                        <button type="submit" id="updateProfileBtn" class="btn-primary">
                             <i class="fas fa-save mr-2"></i>Save Profile
                         </button>
                     </form>
@@ -3029,72 +3008,72 @@
     async function loadSettings() {
       const content = document.getElementById("dashboardContent");
       const settingsHtml = `
-        <div class="glass-panel p-6 rounded-xl shadow-md">
-          <h2 class="text-2xl font-bold text-green-800 mb-6">Settings</h2>
+        <div class="card">
+          <h2 class="text-2xl font-bold text-blue-800 mb-6">Settings</h2>
 
           <!-- Change Password Section -->
-          <div class="collapsible-header glass-panel p-4 rounded-md mb-4 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-green-800">Change Password</h3>
-            <i class="fas fa-chevron-down text-gray-300"></i>
+          <div class="collapsible-header card p-4 mb-4 flex items-center justify-between">
+            <h3 class="text-xl font-bold">Change Password</h3>
+            <i class="fas fa-chevron-down text-gray-600"></i>
           </div>
-          <div class="collapsible-content glass-panel p-4 rounded-b-md mb-6">
+          <div class="collapsible-content card p-4 rounded-b-md mb-6">
             <form id="change-password-form" class="space-y-4">
               <div>
-                <label for="current-password" class="block text-gray-200 font-medium mb-1">Current Password</label>
+                <label for="current-password" class="block text-gray-700 font-medium mb-1">Current Password</label>
                 <input type="password" id="current-password" class="w-full p-2 border rounded-md" required>
                 <p id="current-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
               </div>
               <div>
-                <label for="new-password" class="block text-gray-200 font-medium mb-1">New Password</label>
+                <label for="new-password" class="block text-gray-700 font-medium mb-1">New Password</label>
                 <input type="password" id="new-password" class="w-full p-2 border rounded-md" required>
                 <p id="new-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
               </div>
               <div>
-                <label for="confirm-new-password" class="block text-gray-200 font-medium mb-1">Confirm New Password</label>
+                <label for="confirm-new-password" class="block text-gray-700 font-medium mb-1">Confirm New Password</label>
                 <input type="password" id="confirm-new-password" class="w-full p-2 border rounded-md" required>
                 <p id="confirm-new-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
               </div>
               <div id="password-change-status" class="mt-4 text-center hidden"></div>
-              <button type="submit" id="changePasswordBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+              <button type="submit" id="changePasswordBtn" class="btn-primary">
                 <i class="fas fa-key mr-2"></i>Change Password
               </button>
             </form>
           </div>
 
           <!-- Change Email Section -->
-          <div class="collapsible-header glass-panel p-4 rounded-md mb-4 flex items-center justify-between">
-            <h3 class="text-xl font-bold text-green-800">Change Email</h3>
-            <i class="fas fa-chevron-down text-gray-300"></i>
+          <div class="collapsible-header card p-4 mb-4 flex items-center justify-between">
+            <h3 class="text-xl font-bold">Change Email</h3>
+            <i class="fas fa-chevron-down text-gray-600"></i>
           </div>
-          <div class="collapsible-content glass-panel p-4 rounded-b-md mb-6">
+          <div class="collapsible-content card p-4 rounded-b-md mb-6">
             <form id="change-email-form" class="space-y-4">
               <div>
-                <label for="current-email" class="block text-gray-200 font-medium mb-1">Current Email</label>
+                <label for="current-email" class="block text-gray-700 font-medium mb-1">Current Email</label>
                 <input type="email" id="current-email" class="w-full p-2 border rounded-md" value="${currentUserData.email || ''}" disabled>
               </div>
               <div>
-                <label for="new-email" class="block text-gray-200 font-medium mb-1">New Email</label>
+                <label for="new-email" class="block text-gray-700 font-medium mb-1">New Email</label>
                 <input type="email" id="new-email" class="w-full p-2 border rounded-md" required>
                 <p id="new-email-error" class="text-red-500 text-sm mt-1 hidden"></p>
               </div>
               <div>
-                <label for="email-reauth-password" class="block text-gray-200 font-medium mb-1">Confirm Current Password</label>
+                <label for="email-reauth-password" class="block text-gray-700 font-medium mb-1">Confirm Current Password</label>
                 <input type="password" id="email-reauth-password" class="w-full p-2 border rounded-md" required>
                 <p id="email-reauth-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
               </div>
               <div id="email-change-status" class="mt-4 text-center hidden"></div>
-              <button type="submit" id="changeEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+              <button type="submit" id="changeEmailBtn" class="btn-primary">
                 <i class="fas fa-envelope mr-2"></i>Change Email
               </button>
             </form>
           </div>
 
           <!-- Delete Account Section -->
-          <div class="collapsible-header glass-panel p-4 rounded-md mb-4 flex items-center justify-between bg-red-100 hover:bg-red-200">
+          <div class="collapsible-header card p-4 mb-4 flex items-center justify-between bg-red-100 border-red-600 hover:bg-red-200">
             <h3 class="text-xl font-bold text-red-700">Delete Account</h3>
-            <i class="fas fa-chevron-down text-gray-300"></i>
+            <i class="fas fa-chevron-down text-gray-600"></i>
           </div>
-          <div class="collapsible-content glass-panel p-4 rounded-b-md mb-6 bg-red-50 border border-red-300">
+          <div class="collapsible-content card p-4 rounded-b-md mb-6 bg-red-50 border border-red-300">
             <p class="text-red-700 mb-4">Deleting your account is permanent and cannot be undone. All your data will be removed.</p>
             <form id="delete-account-form" class="space-y-4">
               <div>
@@ -3103,7 +3082,7 @@
                 <p id="delete-password-error" class="text-red-500 text-sm mt-1 hidden"></p>
               </div>
               <div id="delete-account-status" class="mt-4 text-center hidden"></div>
-              <button type="submit" id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg">
+              <button type="submit" id="deleteAccountBtn" class="btn-red">
                 <i class="fas fa-trash-alt mr-2"></i>Delete My Account
               </button>
             </form>
@@ -3393,10 +3372,27 @@
     }
 
     // Main navigation handler
-    window.showDashboardSection = function(section) {
+    window.showDashboardSection = function(section, clickedElement = null) {
       const content = document.getElementById("dashboardContent");
       content.innerHTML = '';
       sidebar.classList.add('-translate-x-full'); // Hide sidebar on mobile
+
+      // Remove active-link from all sidebar links
+      document.querySelectorAll('#sidebar a').forEach(link => link.classList.remove('active-link'));
+      // Add active-link to the clicked element, if available
+      if (clickedElement) {
+          clickedElement.classList.add('active-link');
+          // If it's a submenu item, also activate its parent
+          let parentSubmenu = clickedElement.closest('.ml-6.py-2');
+          if (parentSubmenu) {
+              let parentLink = parentSubmenu.previousElementSibling;
+              if (parentLink) {
+                  parentLink.classList.add('active-link');
+              }
+          }
+      }
+
+
       switch (section) {
         case 'home':
           loadHome();
