@@ -556,6 +556,8 @@
           errorMessage = "❌ Invalid email or password.";
         } else if (error.code === 'auth/invalid-email') {
           errorMessage = "❌ Please enter a valid email address.";
+        } else if (error.code === 'auth/weak-password') {
+          errorMessage = "❌ Password is too weak. Please choose a stronger password.";
         } else if (error.code === 'auth/network-request-failed') {
           errorMessage = "❌ Network error. Please check your internet connection.";
         } else {
@@ -657,8 +659,11 @@
         await showCustomModal("Validation Error", "Please enter a valid email address.");
         return;
       }
+
       setButtonLoading(recoverBtn, true);
+
       const email = emailInput.value.trim().toLowerCase();
+
       try {
         await sendPasswordResetEmail(auth, email);
         await showCustomModal("Password Recovery", "✅ Password reset email sent! Check your inbox.");
@@ -679,6 +684,7 @@
     }
 
     // --- Dashboard Specific Functions ---
+
     // Logout function
     window.confirmLogout = async function() {
       const response = await confirm("Are you sure you want to log out?");
@@ -694,6 +700,7 @@
         }
       }
     };
+
     window.toggleSubmenu = function(id) {
       const submenu = document.getElementById(id);
       if (submenu) submenu.classList.toggle('hidden');
@@ -702,6 +709,7 @@
         chevron.classList.toggle('rotate-180');
       }
     };
+
     document.getElementById('menuToggle').addEventListener('click', function() {
       const sidebar = document.getElementById('sidebar');
       if (sidebar) sidebar.classList.toggle('-translate-x-full');
@@ -716,1134 +724,1540 @@
     }
 
     function showLoading(text) {
-        loadingText.innerText = text;
-        loadingOverlay.classList.remove('hidden');
+      loadingText.innerText = text;
+      loadingOverlay.classList.remove('hidden');
     }
 
     function hideLoading() {
-        loadingOverlay.classList.add('hidden');
+      loadingOverlay.classList.add('hidden');
     }
 
     // --- GPA Calculation Utility ---
     function calculateGPA(grades) {
-        let totalPoints = 0;
-        let totalUnits = 0;
-        const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
-        grades.forEach(g => {
-            const courseUnit = g.courseUnit || 3;
-            const gradePoint = gradeMap[g.grade] || 0;
-            totalPoints += gradePoint * courseUnit;
-            totalUnits += courseUnit;
-        });
-        return totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : "0.00";
+      let totalPoints = 0;
+      let totalUnits = 0;
+      const gradeMap = {
+        'A': 4.0,
+        'B': 3.0,
+        'C': 2.0,
+        'D': 1.0,
+        'F': 0.0
+      };
+      grades.forEach(g => {
+        const courseUnit = g.courseUnit || 3;
+        const gradePoint = gradeMap[g.grade] || 0;
+        totalPoints += gradePoint * courseUnit;
+        totalUnits += courseUnit;
+      });
+      return totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : "0.00";
     }
 
     // --- Section-Specific Loaders ---
 
     // 1. Home Dashboard
     async function loadHome() {
-        showLoading("Loading dashboard summary...");
-        const announcementsRef = collection(db, `announcements`);
-        const gradesRef = collection(db, `grades`);
-        const feesRef = collection(db, `fees`);
-        const registrationsRef = doc(db, `registrations`, currentUserId);
-        const content = document.getElementById("dashboardContent");
+      showLoading("Loading dashboard summary...");
+      const announcementsRef = collection(db, `announcements`);
+      const gradesRef = collection(db, `grades`);
+      const feesRef = collection(db, `fees`);
+      const registrationsRef = doc(db, `registrations`, currentUserId);
+      const content = document.getElementById("dashboardContent");
 
-        try {
-            // Fetch student profile
-            const profileDocRef = doc(db, `students`, currentUserId);
-            const profileSnap = await getDoc(profileDocRef);
-            const studentData = profileSnap.exists() ? profileSnap.data() : {};
-            const studentName = studentData.name || "Student";
-            const studentProgramme = studentData.programme && studentData.programme !== 'N/A' ? studentData.programme : "Programme Not Set";
-            const studentRegNo = studentData.regNo && studentData.regNo !== 'N/A' ? studentData.regNo : "Registration Number Not Set";
-            const profilePhotoURL = studentData.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
+      // Default values for dashboard data
+      let studentName = "Student";
+      let studentProgramme = "Programme Not Set";
+      let studentRegNo = "Registration Number Not Set";
+      let profilePhotoURL = 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
+      let gpa = "0.00";
+      let latestGradeHtml = '';
+      let balance = 0;
+      let totalFees = 0;
+      let totalPayments = 0;
+      let upcomingDeadline = "No upcoming deadlines.";
+      let registrationLink = `<button onclick="showDashboardSection('courseReg')" class="text-green-700 hover:underline">Register for Courses</button>`;
+      let announcementsHtml = `<p class="text-gray-600 text-center py-4">No new announcements at this time.</p>`;
 
-            // Fetch latest 3 announcements
-            const announcementsQuery = query(announcementsRef, orderBy("date", "desc"), limit(3));
-            const announcementsSnapshot = await getDocs(announcementsQuery);
+      try {
+        // Fetch student profile
+        const profileDocRef = doc(db, `students`, currentUserId);
+        const profileSnap = await getDoc(profileDocRef);
+        if (profileSnap.exists()) {
+          const studentData = profileSnap.data();
+          studentName = studentData.name || "Student";
+          studentProgramme = studentData.programme && studentData.programme !== 'N/A' ? studentData.programme : "Programme Not Set";
+          studentRegNo = studentData.regNo && studentData.regNo !== 'N/A' ? studentData.regNo : "Registration Number Not Set";
+          profilePhotoURL = studentData.profilePhotoURL || profilePhotoURL;
+        }
+
+        // Fetch latest 3 announcements
+        const announcementsQuery = query(announcementsRef, orderBy("date", "desc"), limit(3));
+        const announcementsSnapshot = await getDocs(announcementsQuery);
+        if (!announcementsSnapshot.empty) {
             const announcements = announcementsSnapshot.docs.map(doc => doc.data());
+            announcementsHtml = `<ul class="space-y-3">${announcements.map(ann => `
+              <li class="pb-2 border-b border-green-100 last:border-b-0">
+                <p class="text-sm text-gray-500">${new Date(ann.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p class="font-medium text-green-800">${ann.title}</p>
+                <p class="text-gray-700">${ann.message}</p>
+              </li>
+            `).join('')}</ul>`;
+        }
 
-            // Fetch fees data
-            const feesDocRef = doc(db, feesRef, currentUserId);
-            const feesSnapshot = await getDoc(feesDocRef);
-            const feesData = feesSnapshot.exists() ? feesSnapshot.data() : { totalFees: 0, payments: [] };
-            const totalPayments = feesData.payments.reduce((sum, p) => sum + p.amount, 0);
-            const balance = feesData.totalFees - totalPayments;
-            const balanceColorClass = balance > 0 ? 'text-red-600' : 'text-green-600';
-            const balanceText = balance !== 0 ? `GHS ${balance.toFixed(2)}` : `GHS 0.00 (Paid in Full)`;
+        // Fetch fees data
+        const feesDocRef = doc(db, feesRef, currentUserId);
+        const feesSnapshot = await getDoc(feesDocRef);
+        if (feesSnapshot.exists()) {
+            const feesData = feesSnapshot.data();
+            totalFees = feesData.totalFees || 0;
+            totalPayments = (feesData.payments || []).reduce((sum, p) => sum + p.amount, 0);
+            balance = totalFees - totalPayments;
+        }
 
-            // Fetch grades
-            const gradesQuery = query(gradesRef, where("studentId", "==", currentUserId));
-            const gradesSnapshot = await getDocs(gradesQuery);
+        // Fetch grades
+        const gradesQuery = query(gradesRef, where("studentId", "==", currentUserId));
+        const gradesSnapshot = await getDocs(gradesQuery);
+        if (!gradesSnapshot.empty) {
             const grades = gradesSnapshot.docs.map(doc => doc.data());
-            const gpa = calculateGPA(grades);
+            gpa = calculateGPA(grades);
             const latestGrade = grades.length > 0 ? grades.sort((a,b) => new Date(b.date) - new Date(a.date))[0] : null;
+            latestGradeHtml = latestGrade ? `Your latest grade is a **${latestGrade.grade}** in **${latestGrade.courseCode}**. ` : '';
+        }
 
-            // Fetch registrations to find upcoming deadlines
-            const registrationsSnap = await getDoc(registrationsRef);
-            const registrationsData = registrationsSnap.exists() ? registrationsSnap.data().courses : [];
-            let upcomingDeadline = "No upcoming deadlines.";
-            let registrationLink = `<button onclick="showDashboardSection('courseReg')" class="text-green-700 hover:underline">Register for Courses</button>`;
+        // Fetch registrations to find upcoming deadlines
+        const registrationsSnap = await getDoc(registrationsRef);
+        if (registrationsSnap.exists()) {
+            const registrationsData = registrationsSnap.data().courses || [];
             const now = new Date();
             const futureDeadlines = registrationsData.filter(reg => new Date(reg.registrationDeadline) > now);
+
             if (futureDeadlines.length > 0) {
-                futureDeadlines.sort((a,b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
-                const nextDeadline = futureDeadlines[0];
-                upcomingDeadline = `${nextDeadline.courseName} Registration Deadline: ${new Date(nextDeadline.registrationDeadline).toLocaleDateString()}`;
-                registrationLink = `<a href="#" onclick="showDashboardSection('courseReg')" class="text-blue-500 hover:underline">View Registrations</a>`;
+              futureDeadlines.sort((a,b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
+              const nextDeadline = futureDeadlines[0];
+              upcomingDeadline = `${nextDeadline.courseName} Registration Deadline: ${new Date(nextDeadline.registrationDeadline).toLocaleDateString()}`;
+              registrationLink = `<a href="#" onclick="showDashboardSection('courseReg')" class="text-blue-500 hover:underline">View Registrations</a>`;
             }
-
-            let announcementsHtml = `<p class="text-gray-600 text-center py-4">No new announcements at this time.</p>`;
-            if (announcements.length > 0) {
-                announcementsHtml = `<ul class="space-y-3">${announcements.map(ann => `
-                    <li class="pb-2 border-b border-green-100 last:border-b-0">
-                        <p class="text-sm text-gray-500">${new Date(ann.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        <p class="font-medium text-green-800">${ann.title}</p>
-                        <p class="text-gray-700">${ann.message}</p>
-                    </li>
-                `).join('')}</ul>`;
-            }
-
-            const latestGradeHtml = latestGrade ? `Your latest grade is a **${latestGrade.grade}** in **${latestGrade.courseCode}**. ` : '';
-            const gpaColor = gpa > 0 ? '#006400' : '#888888';
-            const gpaProgress = gpa > 0 ? (gpa / 4 * 314) : 0;
-
-            const homeContentHtml = `
-                <div class="bg-green-100 p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
-                    <img src="${profilePhotoURL}" alt="Profile Photo" class="w-20 h-20 rounded-full border-4 border-white shadow-md">
-                    <div class="text-center md:text-left">
-                        <h2 class="text-2xl font-bold text-green-800">Welcome back, ${studentName}!</h2>
-                        <p class="text-green-700 text-lg">${studentProgramme} - ${studentRegNo}</p>
-                    </div>
-                </div>
-
-                <div class="cards-container mb-8">
-                    <div class="card text-center">
-                        <h3 class="card-title text-green-800">Current GPA</h3>
-                        <div class="gpa-circle-container">
-                            <svg class="gpa-circle-svg" width="120" height="120">
-                                <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${gpaProgress}; stroke: ${gpaColor};"></circle>
-                            </svg>
-                            <span class="gpa-text" style="color: ${gpaColor};">${gpa}</span>
-                        </div>
-                        <p class="text-gray-600 text-sm mt-2">${latestGradeHtml}</p>
-                    </div>
-
-                    <div class="card text-center">
-                        <h3 class="card-title text-green-800">Outstanding Fees</h3>
-                        <div class="my-6">
-                            <i class="fas fa-money-bill-wave text-5xl ${balanceColorClass}"></i>
-                        </div>
-                        <p class="text-2xl font-bold ${balanceColorClass}">${balanceText}</p>
-                        <p class="text-gray-600 text-sm mt-2">Check your fees statement for a full breakdown.</p>
-                    </div>
-
-                    <div class="card text-center">
-                        <h3 class="card-title text-green-800">Next Deadline</h3>
-                        <div class="my-6">
-                            <i class="fas fa-calendar-alt text-5xl text-blue-600"></i>
-                        </div>
-                        <p class="text-xl font-bold text-gray-800">${upcomingDeadline}</p>
-                        <p class="text-gray-600 text-sm mt-2">${registrationLink}</p>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-xl shadow-lg">
-                    <h4 class="text-2xl font-semibold text-green-700 mb-4 flex items-center"><i class="fas fa-bullhorn mr-3"></i> Latest Announcements</h4>
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 h-48 overflow-y-auto no-scrollbar">
-                        ${announcementsHtml}
-                    </div>
-                </div>
-            `;
-
-            content.innerHTML = generateBreadcrumb('Dashboard Overview') + homeContentHtml;
-        } catch (error) {
-            console.error("Error loading home dashboard data:", error);
-            await showCustomModal("Error", "Failed to load dashboard data. Please try again later.");
-            content.innerHTML = generateBreadcrumb('Dashboard Overview') + `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert"><strong class="font-bold">Error!</strong><span class="block sm:inline"> Could not load dashboard data.</span></div>`;
-        } finally {
-            hideLoading();
         }
+
+        const balanceColorClass = balance > 0 ? 'text-red-600' : 'text-green-600';
+        const balanceText = `GHS ${balance.toFixed(2)}`;
+        const gpaColor = gpa !== "0.00" ? '#006400' : '#888888';
+        const gpaProgress = parseFloat(gpa) > 0 ? (parseFloat(gpa) / 4 * 314) : 0;
+
+        const homeContentHtml = `
+          <div class="bg-green-100 p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
+            <img src="${profilePhotoURL}" alt="Profile Photo" class="w-20 h-20 rounded-full border-4 border-white shadow-md">
+            <div class="text-center md:text-left">
+              <h2 class="text-2xl font-bold text-green-800">Welcome back, ${studentName}!</h2>
+              <p class="text-gray-600">${studentProgramme} | ${studentRegNo}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+              <h3 class="text-lg font-bold text-green-800 mb-2">My GPA</h3>
+              <div class="gpa-circle-container">
+                <svg viewBox="0 0 120 120" class="gpa-circle-svg w-full h-full">
+                  <circle cx="60" cy="60" r="50" class="gpa-circle-bg"></circle>
+                  <circle cx="60" cy="60" r="50" class="gpa-circle-progress" style="stroke-dasharray: ${gpaProgress}, 314.159; stroke: ${gpaColor};"></circle>
+                </svg>
+                <div class="gpa-text">${gpa}</div>
+              </div>
+              <p class="text-center text-gray-700">${latestGradeHtml} <a onclick="showDashboardSection('grades')" class="text-blue-500 hover:underline">View All Grades</a></p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+              <h3 class="text-lg font-bold text-green-800 mb-2">Fees Balance</h3>
+              <p class="text-4xl font-extrabold ${balanceColorClass} mt-4">${balanceText}</p>
+              <p class="text-gray-700 mt-4">Outstanding balance: <span class="font-semibold">${balanceText}</span></p>
+              <div class="mt-4">
+                <button onclick="showDashboardSection('fees')" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">View Statement</button>
+              </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+              <h3 class="text-lg font-bold text-green-800 mb-2">Upcoming Deadlines</h3>
+              <div class="space-y-4 mt-4">
+                <p class="text-gray-700"><strong>${upcomingDeadline}</strong></p>
+                <div class="flex flex-col space-y-2">
+                  <p class="text-gray-700">Academic Calendar: ${new Date().getFullYear()}/${new Date().getFullYear() + 1}</p>
+                  <a href="#" onclick="showDashboardSection('timetable')" class="text-blue-500 hover:underline">View Exam Timetable</a>
+                  ${registrationLink}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+            <h3 class="text-lg font-bold text-green-800 mb-4">Latest Announcements</h3>
+            <div class="no-scrollbar overflow-y-auto max-h-64">
+              ${announcementsHtml}
+            </div>
+          </div>
+        `;
+        content.innerHTML = generateBreadcrumb("Dashboard") + homeContentHtml;
+      } catch (error) {
+        // Log the error but don't stop rendering the basic structure
+        console.error("Error fetching some dashboard data:", error);
+        // The HTML structure with default/placeholder values will still be rendered
+      }
+      hideLoading();
     }
 
-    // 2. Personal Profile
+    // 2. Profile
     async function loadProfile() {
-        showLoading("Loading personal profile...");
-        const content = document.getElementById("dashboardContent");
-        const profileDocRef = doc(db, `students`, currentUserId);
-        try {
-            const profileSnap = await getDoc(profileDocRef);
-            const studentData = profileSnap.exists() ? profileSnap.data() : {};
-            let profilePhotoURL = studentData.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
-            
-            const profileHtml = `
-                <div class="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 class="text-3xl font-bold text-green-800 mb-6">Personal Profile</h2>
-                    <form id="profile-form">
-                        <div class="flex flex-col md:flex-row items-center mb-6 space-y-4 md:space-y-0 md:space-x-8">
-                            <div class="flex-shrink-0">
-                                <img id="profile-photo" src="${profilePhotoURL}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border-4 border-green-200">
-                                <input type="file" id="profile-photo-input" class="hidden" accept="image/*">
-                                <button type="button" id="change-photo-btn" class="mt-2 text-sm text-green-700 hover:underline">Change Photo</button>
-                            </div>
-                            <div class="flex-grow w-full">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div><label class="block text-gray-700 font-semibold">Name:</label><p class="mt-1 p-2 bg-gray-100 rounded-md">${studentData.name || 'Not Set Yet'}</p></div>
-                                    <div><label class="block text-gray-700 font-semibold">Email:</label><p class="mt-1 p-2 bg-gray-100 rounded-md">${studentData.email || 'Not Set Yet'}</p></div>
-                                    <div><label class="block text-gray-700 font-semibold">Student ID:</label><p class="mt-1 p-2 bg-gray-100 rounded-md">${studentData.regNo || 'N/A'}</p></div>
-                                    <div><label class="block text-gray-700 font-semibold">Programme:</label><p class="mt-1 p-2 bg-gray-100 rounded-md">${studentData.programme || 'Not Set Yet'}</p></div>
-                                    <div><label class="block text-gray-700 font-semibold">Year of Study:</label><p class="mt-1 p-2 bg-gray-100 rounded-md">${studentData.yearOfStudy || 'Not Set Yet'}</p></div>
-                                    <div><label class="block text-gray-700 font-semibold">Campus:</label><p class="mt-1 p-2 bg-gray-100 rounded-md">${studentData.campus || 'Main Campus'}</p></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h3 class="text-2xl font-semibold text-green-700 mb-4 mt-8">Contact Information (Editable)</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="dob" class="block text-gray-700">Date of Birth</label>
-                                <input type="date" id="dob" value="${studentData.dob !== 'N/A' ? studentData.dob : ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div>
-                                <label for="gender" class="block text-gray-700">Gender</label>
-                                <select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                                    <option value="">Select Gender</option>
-                                    <option value="Male" ${studentData.gender === 'Male' ? 'selected' : ''}>Male</option>
-                                    <option value="Female" ${studentData.gender === 'Female' ? 'selected' : ''}>Female</option>
-                                    <option value="Other" ${studentData.gender === 'Other' ? 'selected' : ''}>Other</option>
-                                </select>
-                            </div>
-                            <div class="sm:col-span-2">
-                                <label for="address" class="block text-gray-700">Address</label>
-                                <input type="text" id="address" value="${studentData.address !== 'N/A' ? studentData.address : ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                            </div>
-                        </div>
-                        <div class="mt-6 text-right">
-                            <button type="submit" id="update-profile-btn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Update Profile</button>
-                        </div>
-                    </form>
+      showLoading("Loading personal profile...");
+      const content = document.getElementById("dashboardContent");
+      const profileDocRef = doc(db, `students`, currentUserId);
+      try {
+        const docSnap = await getDoc(profileDocRef);
+        const data = docSnap.exists() ? docSnap.data() : {};
+        const profileContentHtml = `
+          <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+            <h3 class="text-2xl font-bold text-green-800 mb-4">Personal Profile</h3>
+            <div class="flex flex-col md:flex-row items-center md:space-x-6 space-y-4 md:space-y-0 pb-6 border-b border-gray-200 mb-6">
+                <div class="relative w-28 h-28 group">
+                    <img id="profilePhoto" src="${data.profilePhotoURL || 'https://placehold.co/120x120/eeeeee/333333?text=Avatar'}" alt="Profile Photo" class="rounded-full w-full h-full object-cover border-4 border-white shadow-lg transition-transform duration-300 ease-in-out group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-40 rounded-full flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                        <i class="fas fa-camera text-white text-2xl"></i>
+                    </div>
+                    <input type="file" id="photoUpload" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
                 </div>
-            `;
-            content.innerHTML = generateBreadcrumb('Personal Profile') + profileHtml;
+                <div class="text-center md:text-left flex-grow">
+                    <h4 class="text-2xl font-bold text-gray-800" id="profileName">${data.name || 'N/A'}</h4>
+                    <p class="text-gray-600" id="profileRegNo">${data.regNo || 'N/A'}</p>
+                    <p class="text-gray-600" id="profileProgramme">${data.programme || 'N/A'}</p>
+                </div>
+            </div>
+            <form id="profile-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex flex-col">
+                        <label for="name" class="text-gray-600 font-medium mb-1">Full Name</label>
+                        <input type="text" id="name" name="name" value="${data.name || ''}" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="email" class="text-gray-600 font-medium mb-1">Email</label>
+                        <input type="email" id="email" name="email" value="${data.email || ''}" disabled class="p-3 border rounded-lg bg-gray-100 cursor-not-allowed">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="regNo" class="text-gray-600 font-medium mb-1">Registration Number</label>
+                        <input type="text" id="regNo" name="regNo" value="${data.regNo || ''}" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="programme" class="text-gray-600 font-medium mb-1">Programme</label>
+                        <input type="text" id="programme" name="programme" value="${data.programme || ''}" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="campus" class="text-gray-600 font-medium mb-1">Campus</label>
+                        <input type="text" id="campus" name="campus" value="${data.campus || 'Main Campus'}" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="dob" class="text-gray-600 font-medium mb-1">Date of Birth</label>
+                        <input type="date" id="dob" name="dob" value="${data.dob || ''}" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="gender" class="text-gray-600 font-medium mb-1">Gender</label>
+                        <select id="gender" name="gender" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                            <option value="">Select Gender</option>
+                            <option value="Male" ${data.gender === 'Male' ? 'selected' : ''}>Male</option>
+                            <option value="Female" ${data.gender === 'Female' ? 'selected' : ''}>Female</option>
+                            <option value="Other" ${data.gender === 'Other' ? 'selected' : ''}>Other</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="address" class="text-gray-600 font-medium mb-1">Address</label>
+                        <textarea id="address" name="address" rows="3" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">${data.address || ''}</textarea>
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-end">
+                    <button type="submit" id="updateProfileBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Update Profile</button>
+                </div>
+            </form>
+          </div>
+        `;
+        content.innerHTML = generateBreadcrumb("Personal Profile") + profileContentHtml;
+        document.getElementById('profile-form').addEventListener('submit', updateProfile);
+        document.getElementById('photoUpload').addEventListener('change', uploadProfilePhoto);
 
-            // Add event listeners for profile updates
-            document.getElementById('profile-form').addEventListener('submit', handleProfileUpdate);
-            document.getElementById('change-photo-btn').addEventListener('click', () => {
-                document.getElementById('profile-photo-input').click();
-            });
-            document.getElementById('profile-photo-input').addEventListener('change', handleProfilePhotoUpload);
-
-        } catch(e) {
-            console.error("Error loading profile data:", e);
-            content.innerHTML = generateBreadcrumb('Personal Profile') + `<p class="text-center text-gray-500 py-8">Error loading profile data.</p>`;
-            await showCustomModal("Error", "Failed to load personal profile. Please try again.");
-        } finally {
-            hideLoading();
-        }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+        content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load profile. Please try again later.</div>`;
+      }
+      hideLoading();
     }
 
-    async function handleProfileUpdate(event) {
+    // Update Profile function
+    async function updateProfile(event) {
         event.preventDefault();
-        const updateBtn = document.getElementById('update-profile-btn');
+        const updateBtn = document.getElementById('updateProfileBtn');
         setButtonLoading(updateBtn, true);
 
-        const dob = document.getElementById('dob').value;
-        const gender = document.getElementById('gender').value;
-        const address = document.getElementById('address').value;
-
+        const form = event.target;
+        const formData = new FormData(form);
+        const profileData = Object.fromEntries(formData.entries());
         const profileDocRef = doc(db, `students`, currentUserId);
+
         try {
-            await updateDoc(profileDocRef, {
-                dob: dob || "N/A",
-                gender: gender || "N/A",
-                address: address || "N/A"
-            });
-            await showCustomModal("Success", "Profile updated successfully!");
+            await updateDoc(profileDocRef, profileData);
+            currentUserData = profileData; // Update local state
+            // Update UI
+            document.getElementById('profileName').innerText = profileData.name || 'N/A';
+            document.getElementById('profileRegNo').innerText = profileData.regNo || 'N/A';
+            document.getElementById('profileProgramme').innerText = profileData.programme || 'N/A';
+            document.getElementById("userName").innerText = profileData.name ? profileData.name.split(" ")[0] : "User";
+            const userNameMobile = document.getElementById("userNameMobile");
+            if (userNameMobile) userNameMobile.innerText = profileData.name ? profileData.name.split(" ")[0] : "User";
+
+            await showCustomModal("Profile Updated", "Your profile has been successfully updated.");
+            console.log("Profile updated successfully.");
         } catch (error) {
             console.error("Error updating profile:", error);
-            await showCustomModal("Error", "Failed to update profile. Please try again.");
+            await showCustomModal("Update Failed", "Failed to update profile. Please try again.");
         } finally {
             setButtonLoading(updateBtn, false);
         }
     }
 
-    async function handleProfilePhotoUpload(event) {
+    // Upload Profile Photo function
+    async function uploadProfilePhoto(event) {
         const file = event.target.files[0];
         if (!file) return;
+        const photoUploadBtn = event.target;
 
-        showLoading("Uploading photo...");
-        const photoRef = ref(storage, `profile_photos/${currentUserId}`);
+        const confirmUpload = await confirm("Are you sure you want to upload this photo?");
+        if (!confirmUpload) {
+          event.target.value = null; // Clear the file input
+          return;
+        }
 
+        const profilePhoto = document.getElementById('profilePhoto');
+        const loadingText = "Uploading photo...";
+        showLoading(loadingText);
+
+        const storageRef = ref(storage, `profilePhotos/${currentUserId}/${file.name}`);
         try {
-            const snapshot = await uploadBytes(photoRef, file);
-            const photoURL = await getDownloadURL(snapshot.ref);
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
 
             const profileDocRef = doc(db, `students`, currentUserId);
             await updateDoc(profileDocRef, {
-                profilePhotoURL: photoURL
+                profilePhotoURL: downloadURL
             });
-            document.getElementById('profile-photo').src = photoURL;
-            await showCustomModal("Success", "Profile photo updated successfully!");
+            currentUserData.profilePhotoURL = downloadURL; // Update local state
+            profilePhoto.src = downloadURL;
+            await showCustomModal("Photo Uploaded", "Profile photo uploaded successfully!");
+            console.log("Photo uploaded and profile updated with new URL.");
         } catch (error) {
             console.error("Error uploading photo:", error);
-            await showCustomModal("Error", "Failed to upload photo. Please try again.");
-        } finally {
-            hideLoading();
-        }
-    }
-    
-    // 3. Available Courses
-    async function loadCourses() {
-        showLoading("Loading available courses...");
-        const content = document.getElementById("dashboardContent");
-        const coursesRef = collection(db, `courses`);
-
-        try {
-            const coursesSnapshot = await getDocs(coursesRef);
-            const allCourses = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            let courseTableHtml = `<p class="text-center text-gray-500 py-8">No courses available at this time.</p>`;
-            if (allCourses.length > 0) {
-                courseTableHtml = `
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white rounded-lg shadow-md">
-                            <thead class="bg-gray-200 text-gray-700">
-                                <tr>
-                                    <th class="py-3 px-6 text-left">Course Code</th>
-                                    <th class="py-3 px-6 text-left">Course Name</th>
-                                    <th class="py-3 px-6 text-left">Credits</th>
-                                    <th class="py-3 px-6 text-left">Lecturer</th>
-                                    <th class="py-3 px-6 text-left">Schedule</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-600">
-                                ${allCourses.map(course => `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td class="py-3 px-6">${course.courseCode}</td>
-                                    <td class="py-3 px-6">${course.courseName}</td>
-                                    <td class="py-3 px-6">${course.credits}</td>
-                                    <td class="py-3 px-6">${course.lecturer}</td>
-                                    <td class="py-3 px-6">${course.schedule}</td>
-                                </tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-            content.innerHTML = generateBreadcrumb('Available Courses') + `<div class="bg-white p-8 rounded-xl shadow-lg"><h2 class="text-3xl font-bold text-green-800 mb-6">Available Courses</h2>${courseTableHtml}</div>`;
-        } catch (e) {
-            console.error("Error loading available courses:", e);
-            content.innerHTML = generateBreadcrumb('Available Courses') + `<p class="text-center text-gray-500 py-8">Error loading courses.</p गेला`;
-            await showCustomModal("Error", "Failed to load available courses. Please try again.");
+            await showCustomModal("Upload Failed", "Failed to upload photo. Please try again.");
         } finally {
             hideLoading();
         }
     }
 
-    // 4. Course Registration
-    async function loadRegistrations() {
-        showLoading("Loading course registration...");
-        const content = document.getElementById("dashboardContent");
-        const registrationsDocRef = doc(db, `registrations`, currentUserId);
-        const coursesRef = collection(db, `courses`);
+    // 3. Course Registration
+    async function loadCourseReg() {
+      showLoading("Loading course registration...");
+      const content = document.getElementById("dashboardContent");
+      const registrationsDocRef = doc(db, `registrations`, currentUserId);
+      const coursesCollectionRef = collection(db, `courses`);
+      const registeredCoursesCollectionRef = collection(db, `students`, currentUserId, `registeredCourses`);
 
-        try {
-            const registrationsSnap = await getDoc(registrationsDocRef);
-            const registeredCourses = registrationsSnap.exists() ? registrationsSnap.data().courses : [];
-            const coursesSnapshot = await getDocs(coursesRef);
-            const allCourses = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      try {
+        const registrationsSnap = await getDoc(registrationsDocRef);
+        const registeredCourseIds = registrationsSnap.exists() ? registrationsSnap.data().courseIds : [];
+        const availableCoursesSnapshot = await getDocs(coursesCollectionRef);
+        const availableCourses = availableCoursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            let registrationTableHtml = `
-                <p class="text-center text-gray-500 py-8">You have not registered for any courses yet.</p>
-                <div class="flex justify-center mt-4">
-                    <button onclick="showDashboardSection('courseReg')" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Register for Courses</button>
-                </div>
-            `;
-            if (registeredCourses.length > 0) {
-                registrationTableHtml = `
-                    <h3 class="text-2xl font-semibold text-green-700 mb-4">Your Registered Courses</h3>
-                    <div class="overflow-x-auto mb-6">
-                        <table class="min-w-full bg-white rounded-lg shadow-md">
-                            <thead class="bg-gray-200 text-gray-700">
-                                <tr>
-                                    <th class="py-3 px-6 text-left">Course Code</th>
-                                    <th class="py-3 px-6 text-left">Course Name</th>
-                                    <th class="py-3 px-6 text-center">Status</th>
-                                    <th class="py-3 px-6 text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-600">
-                                ${registeredCourses.map(course => `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td class="py-3 px-6">${course.courseCode}</td>
-                                    <td class="py-3 px-6">${course.courseName}</td>
-                                    <td class="py-3 px-6 text-center">
-                                        <span class="px-2 py-1 font-semibold leading-tight rounded-full bg-green-100 text-green-800">Registered</span>
-                                    </td>
-                                    <td class="py-3 px-6 text-center">
-                                        <button class="text-red-500 hover:text-red-700" onclick="dropCourse('${course.courseCode}')">Drop</button>
-                                    </td>
-                                </tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
+        const semesterOptions = [...new Set(availableCourses.map(c => c.semester))].sort();
 
-            let courseSelectionHtml = `
-                <h3 class="text-2xl font-semibold text-green-700 mb-4 mt-8">Register New Courses</h3>
-                <p class="text-center text-gray-500 py-4">Course registration is currently closed.</p>
-            `;
-            // This is a placeholder, a real implementation would check a setting like `/settings/registrationOpen`
-            const isRegistrationOpen = true; 
-            if (isRegistrationOpen && allCourses.length > 0) {
-                const availableCourses = allCourses.filter(course => !registeredCourses.some(reg => reg.courseCode === course.courseCode));
-                if (availableCourses.length > 0) {
-                    courseSelectionHtml = `
-                        <h3 class="text-2xl font-semibold text-green-700 mb-4 mt-8">Register for Courses</h3>
-                        <div class="mb-4">
-                            <label for="new-course-select" class="block text-gray-700 mb-2">Select a course to register:</label>
-                            <select id="new-course-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                                ${availableCourses.map(course => `<option value="${course.id}">${course.courseCode} - ${course.courseName}</option>`).join('')}
-                            </select>
-                        </div>
-                        <button onclick="registerCourse()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Register</button>
-                    `;
-                } else {
-                    courseSelectionHtml = `<h3 class="text-2xl font-semibold text-green-700 mb-4 mt-8">Register for Courses</h3><p class="text-center text-gray-500 py-4">You have registered for all available courses.</p>`;
-                }
-            }
+        let semestersHtml = '';
+        if (semesterOptions.length > 0) {
+            for (const semester of semesterOptions) {
+                const coursesInSemester = availableCourses.filter(c => c.semester === semester);
+                const registeredInSemester = coursesInSemester.filter(c => registeredCourseIds.includes(c.id));
+                const notRegisteredInSemester = coursesInSemester.filter(c => !registeredCourseIds.includes(c.id));
+                const totalUnits = registeredInSemester.reduce((sum, course) => sum + (course.courseUnit || 3), 0);
 
-
-            content.innerHTML = generateBreadcrumb('Course Registration') + `<div class="bg-white p-8 rounded-xl shadow-lg">${registrationTableHtml}${courseSelectionHtml}</div>`;
-
-            window.registerCourse = async function() {
-                const courseId = document.getElementById('new-course-select').value;
-                if (!courseId) return;
-                showLoading("Registering course...");
-
-                try {
-                    const courseDoc = await getDoc(doc(db, `courses`, courseId));
-                    if (!courseDoc.exists()) {
-                        await showCustomModal("Error", "Selected course not found.");
-                        return;
-                    }
-                    const courseData = courseDoc.data();
-                    const newCourseEntry = {
-                        id: courseId,
-                        courseCode: courseData.courseCode,
-                        courseName: courseData.courseName,
-                        registrationDate: new Date().toISOString(),
-                        status: 'Registered'
-                    };
-
-                    await updateDoc(registrationsDocRef, {
-                        courses: arrayUnion(newCourseEntry)
-                    });
-                    await showCustomModal("Success", `${courseData.courseCode} registered successfully!`);
-                    await loadRegistrations(); // Reload section to show new course
-                } catch (error) {
-                    console.error("Error registering course:", error);
-                    await showCustomModal("Error", "Failed to register course. Please try again.");
-                } finally {
-                    hideLoading();
-                }
-            }
-
-            window.dropCourse = async function(courseCode) {
-                const confirmation = await confirm(`Are you sure you want to drop course ${courseCode}?`);
-                if (!confirmation) return;
-                showLoading("Dropping course...");
-                try {
-                    const registrationsSnap = await getDoc(registrationsDocRef);
-                    const registeredCourses = registrationsSnap.exists() ? registrationsSnap.data().courses : [];
-                    const courseToDrop = registeredCourses.find(c => c.courseCode === courseCode);
-                    if (courseToDrop) {
-                        await updateDoc(registrationsDocRef, {
-                            courses: arrayRemove(courseToDrop)
-                        });
-                        await showCustomModal("Success", `${courseCode} dropped successfully!`);
-                        await loadRegistrations();
-                    }
-                } catch (error) {
-                    console.error("Error dropping course:", error);
-                    await showCustomModal("Error", "Failed to drop course. Please try again.");
-                } finally {
-                    hideLoading();
-                }
-            }
-
-        } catch (e) {
-            console.error("Error loading registration data:", e);
-            content.innerHTML = generateBreadcrumb('Course Registration') + `<p class="text-center text-gray-500 py-8">Error loading registration data.</p>`;
-            await showCustomModal("Error", "Failed to load course registration. Please try again.");
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // 5. Fees Statement
-    async function loadFees() {
-        showLoading("Loading fees statement...");
-        const content = document.getElementById("dashboardContent");
-        const feesDocRef = doc(db, `fees`, currentUserId);
-        try {
-            const feesSnap = await getDoc(feesDocRef);
-            if (!feesSnap.exists() || !feesSnap.data().payments || feesSnap.data().payments.length === 0) {
-                content.innerHTML = generateBreadcrumb('Fees Statement') + `
-                    <div class="bg-white p-8 rounded-xl shadow-lg">
-                        <h2 class="text-3xl font-bold text-green-800 mb-6">Fees Statement</h2>
-                        <div class="cards-container mb-8">
-                            <div class="card text-center bg-blue-50 shadow-inner">
-                                <h4 class="card-title text-blue-700">Total Fees</h4>
-                                <p class="text-3xl font-bold text-blue-900 mt-2">GHS 0.00</p>
-                            </div>
-                            <div class="card text-center bg-green-50 shadow-inner">
-                                <h4 class="card-title text-green-700">Total Payments</h4>
-                                <p class="text-3xl font-bold text-green-900 mt-2">GHS 0.00</p>
-                            </div>
-                            <div class="card text-center bg-gray-50 shadow-inner">
-                                <h4 class="card-title text-gray-700">Balance</h4>
-                                <p class="text-3xl font-bold text-gray-900 mt-2">GHS 0.00</p>
-                            </div>
-                        </div>
-                        <p class="text-center text-gray-500 py-8">No fee records found.</p>
-                    </div>`;
-                return;
-            }
-
-            const feesData = feesSnap.data();
-            const totalPayments = feesData.payments.reduce((sum, p) => sum + p.amount, 0);
-            const balance = feesData.totalFees - totalPayments;
-            const balanceColorClass = balance > 0 ? 'text-red-600' : 'text-green-600';
-            const balanceText = balance !== 0 ? `GHS ${balance.toFixed(2)}` : `GHS 0.00`;
-
-            const paymentHistoryHtml = feesData.payments.map(p => `
-                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                    <td class="py-3 px-6">${new Date(p.date).toLocaleDateString()}</td>
-                    <td class="py-3 px-6">${p.description}</td>
-                    <td class="py-3 px-6 text-right">${p.amount.toFixed(2)}</td>
-                </tr>`).join('');
-
-            const feesHtml = `
-                <div class="bg-white p-8 rounded-xl shadow-lg">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-bold text-green-800">Fees Statement</h2>
-                        <button onclick="downloadFeesStatement()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"><i class="fas fa-download mr-2"></i>Download PDF</button>
-                    </div>
-                    <div class="cards-container mb-8">
-                        <div class="card text-center bg-blue-50 shadow-inner">
-                            <h4 class="card-title text-blue-700">Total Fees</h4>
-                            <p class="text-3xl font-bold text-blue-900 mt-2">GHS ${feesData.totalFees.toFixed(2)}</p>
-                        </div>
-                        <div class="card text-center bg-green-50 shadow-inner">
-                            <h4 class="card-title text-green-700">Total Payments</h4>
-                            <p class="text-3xl font-bold text-green-900 mt-2">GHS ${totalPayments.toFixed(2)}</p>
-                        </div>
-                        <div class="card text-center bg-gray-50 shadow-inner">
-                            <h4 class="card-title text-gray-700">Balance</h4>
-                            <p class="text-3xl font-bold ${balanceColorClass} mt-2">GHS ${balanceText}</p>
-                        </div>
-                    </div>
-                    <div class="mt-8">
-                        <h3 class="text-2xl font-semibold text-green-700 mb-4">Payment History</h3>
+                let registeredTableHtml = '';
+                if (registeredInSemester.length > 0) {
+                    registeredTableHtml = `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-bold text-green-700 mb-2">Registered Courses</h4>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white rounded-lg shadow-md">
-                                <thead class="bg-gray-200 text-gray-700">
+                            <table class="min-w-full bg-white rounded-lg shadow-sm">
+                                <thead class="bg-green-100 text-green-800">
                                     <tr>
-                                        <th class="py-3 px-6 text-left">Date</th>
-                                        <th class="py-3 px-6 text-left">Description</th>
-                                        <th class="py-3 px-6 text-right">Amount (GHS)</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Course Code</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Course Name</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Units</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody class="text-gray-600">
-                                    ${paymentHistoryHtml}
+                                <tbody>
+                                    ${registeredInSemester.map(course => `
+                                        <tr>
+                                            <td class="py-3 px-4 border-b border-gray-200">${course.courseCode}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${course.courseName}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${course.courseUnit || 3}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">
+                                                <button onclick="deregisterCourse('${course.id}')" class="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-md text-sm transition-colors duration-200">Deregister</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-right text-gray-700 mt-2 font-medium">Total Units: ${totalUnits}</p>
+                    </div>`;
+                }
+
+                let availableTableHtml = '';
+                if (notRegisteredInSemester.length > 0) {
+                    availableTableHtml = `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-bold text-green-700 mb-2">Available Courses to Register</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white rounded-lg shadow-sm">
+                                <thead class="bg-green-100 text-green-800">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">Course Code</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Course Name</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Units</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${notRegisteredInSemester.map(course => `
+                                        <tr>
+                                            <td class="py-3 px-4 border-b border-gray-200">${course.courseCode}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${course.courseName}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${course.courseUnit || 3}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">
+                                                <button onclick="registerCourse('${course.id}')" class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-md text-sm transition-colors duration-200">Register</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+                }
+
+                semestersHtml += `
+                <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">${semester}</h3>
+                    ${registeredTableHtml}
+                    ${availableTableHtml}
+                </div>`;
+            }
+        } else {
+            semestersHtml = `<p class="text-gray-600 text-center py-4">No courses available for registration at this time.</p>`;
+        }
+
+
+        const courseRegContentHtml = `
+          <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+            <h3 class="text-2xl font-bold text-green-800 mb-4">Course Registration</h3>
+            <p class="text-gray-700 mb-6">Register for your courses here. You can also view and deregister from your currently registered courses.</p>
+          </div>
+          <div class="mt-6">
+            ${semestersHtml}
+          </div>
+        `;
+        content.innerHTML = generateBreadcrumb("Course Registration") + courseRegContentHtml;
+      } catch (error) {
+        console.error("Error loading course registration:", error);
+        content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load course registration. Please try again later.</div>`;
+      }
+      hideLoading();
+    }
+
+    window.registerCourse = async function(courseId) {
+        const confirmReg = await confirm("Are you sure you want to register for this course?");
+        if (!confirmReg) return;
+
+        showLoading("Registering for course...");
+        const registrationsDocRef = doc(db, `registrations`, currentUserId);
+        const registeredCoursesCollectionRef = collection(db, `students`, currentUserId, `registeredCourses`);
+
+        try {
+            const courseDocRef = doc(db, `courses`, courseId);
+            const courseDocSnap = await getDoc(courseDocRef);
+            if (!courseDocSnap.exists()) {
+                throw new Error("Course not found.");
+            }
+            const courseData = courseDocSnap.data();
+
+            // Add the course ID to the main registrations document
+            await updateDoc(registrationsDocRef, {
+                courseIds: arrayUnion(courseId)
+            }, { merge: true });
+
+            // Also add the full course details to the student's subcollection
+            await setDoc(doc(registeredCoursesCollectionRef, courseId), {
+                ...courseData,
+                registrationDate: new Date().toISOString()
+            });
+
+            await showCustomModal("Registration Success", "✅ Course registered successfully!");
+            loadCourseReg(); // Reload the section to update UI
+        } catch (error) {
+            console.error("Error registering for course:", error);
+            await showCustomModal("Registration Failed", "Failed to register for course. Please try again.");
+            hideLoading();
+        }
+    };
+
+    window.deregisterCourse = async function(courseId) {
+        const confirmDereg = await confirm("Are you sure you want to deregister from this course?");
+        if (!confirmDereg) return;
+
+        showLoading("Deregistering from course...");
+        const registrationsDocRef = doc(db, `registrations`, currentUserId);
+        const registeredCoursesCollectionRef = collection(db, `students`, currentUserId, `registeredCourses`);
+
+        try {
+            // Remove the course ID from the main registrations document
+            await updateDoc(registrationsDocRef, {
+                courseIds: arrayRemove(courseId)
+            });
+
+            // Delete the course document from the student's subcollection
+            await deleteDoc(doc(registeredCoursesCollectionRef, courseId));
+
+            await showCustomModal("Deregistration Success", "✅ Course deregistered successfully!");
+            loadCourseReg(); // Reload the section to update UI
+        } catch (error) {
+            console.error("Error deregistering from course:", error);
+            await showCustomModal("Deregistration Failed", "Failed to deregister from course. Please try again.");
+            hideLoading();
+        }
+    };
+
+    // 4. Available Courses
+    async function loadCourses() {
+      showLoading("Loading available courses...");
+      const content = document.getElementById("dashboardContent");
+      const coursesCollectionRef = collection(db, `courses`);
+      try {
+        const coursesSnapshot = await getDocs(coursesCollectionRef);
+        const courses = coursesSnapshot.docs.map(doc => doc.data());
+
+        const coursesByProgramme = courses.reduce((acc, course) => {
+            if (!acc[course.programme]) {
+                acc[course.programme] = [];
+            }
+            acc[course.programme].push(course);
+            return acc;
+        }, {});
+
+        let coursesHtml = Object.entries(coursesByProgramme).map(([programme, courseList]) => `
+          <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+            <h3 class="text-2xl font-bold text-green-800 mb-4">${programme}</h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-full bg-white">
+                <thead class="bg-green-100 text-green-800">
+                  <tr>
+                    <th class="py-3 px-4 text-left font-semibold">Course Code</th>
+                    <th class="py-3 px-4 text-left font-semibold">Course Name</th>
+                    <th class="py-3 px-4 text-left font-semibold">Units</th>
+                    <th class="py-3 px-4 text-left font-semibold">Semester</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${courseList.map(course => `
+                    <tr>
+                      <td class="py-3 px-4 border-b border-gray-200">${course.courseCode}</td>
+                      <td class="py-3 px-4 border-b border-gray-200">${course.courseName}</td>
+                      <td class="py-3 px-4 border-b border-gray-200">${course.courseUnit || 3}</td>
+                      <td class="py-3 px-4 border-b border-gray-200">${course.semester}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('');
+
+        const coursesContentHtml = `
+          <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+            <h3 class="text-2xl font-bold text-green-800 mb-4">Available Courses</h3>
+            <p class="text-gray-700">Browse the list of all available courses across different academic programmes.</p>
+          </div>
+          ${coursesHtml}
+        `;
+        content.innerHTML = generateBreadcrumb("Available Courses") + coursesContentHtml;
+      } catch (error) {
+        console.error("Error loading courses:", error);
+        content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load courses. Please try again later.</div>`;
+      }
+      hideLoading();
+    }
+
+    // 5. Timetable
+    async function loadTimetable() {
+      showLoading("Loading timetable...");
+      const content = document.getElementById("dashboardContent");
+      const timetablesCollectionRef = collection(db, `timetables`);
+      try {
+        const timetablesSnapshot = await getDocs(timetablesCollectionRef);
+        const timetables = timetablesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        let timetableHtml = `<p class="text-gray-600 text-center py-4">No timetables available at this time.</p>`;
+        if (timetables.length > 0) {
+            timetableHtml = timetables.map(tt => `
+                <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">${tt.name}</h3>
+                    <div class="flex items-center space-x-2 text-gray-700 mb-4">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${tt.dateCreated ? new Date(tt.dateCreated).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    ${tt.fileURL ? `<a href="${tt.fileURL}" target="_blank" class="inline-block bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out shadow-lg"><i class="fas fa-download mr-2"></i> Download Timetable</a>` : ''}
+                </div>
+            `).join('');
+        }
+        const timetableContentHtml = `
+          <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+            <h3 class="text-2xl font-bold text-green-800 mb-4">Academic Timetable</h3>
+            <p class="text-gray-700">Find and download academic and exam timetables here.</p>
+          </div>
+          <div class="mt-6">
+            ${timetableHtml}
+          </div>
+        `;
+        content.innerHTML = generateBreadcrumb("Timetable") + timetableContentHtml;
+      } catch (error) {
+        console.error("Error loading timetable:", error);
+        content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load timetable. Please try again later.</div>`;
+      }
+      hideLoading();
+    }
+
+    // 6. Grades and Transcripts
+    async function loadGrades() {
+        showLoading("Loading grades and transcripts...");
+        const content = document.getElementById("dashboardContent");
+        const gradesCollectionRef = collection(db, `grades`);
+        const transcriptsCollectionRef = collection(db, `transcripts`);
+
+        try {
+            // Fetch grades for the current user
+            const gradesQuery = query(gradesCollectionRef, where("studentId", "==", currentUserId));
+            const gradesSnapshot = await getDocs(gradesQuery);
+            const grades = gradesSnapshot.docs.map(doc => doc.data());
+            const gpa = calculateGPA(grades);
+
+            const gradesBySemester = grades.reduce((acc, grade) => {
+                if (!acc[grade.semester]) {
+                    acc[grade.semester] = [];
+                }
+                acc[grade.semester].push(grade);
+                return acc;
+            }, {});
+
+            let gradesHtml = '';
+            if (Object.keys(gradesBySemester).length > 0) {
+                gradesHtml = Object.entries(gradesBySemester).map(([semester, gradeList]) => `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">${semester}</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-green-100 text-green-800">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">Course Code</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Course Name</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Grade</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Units</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${gradeList.map(grade => `
+                                        <tr>
+                                            <td class="py-3 px-4 border-b border-gray-200">${grade.courseCode}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${grade.courseName}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200 font-bold">${grade.grade}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${grade.courseUnit || 3}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${new Date(grade.date).toLocaleDateString()}</td>
+                                        </tr>
+                                    `).join('')}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
-            `;
-            content.innerHTML = generateBreadcrumb('Fees Statement') + feesHtml;
-
-            window.downloadFeesStatement = async function() {
-                showLoading("Generating PDF...");
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-
-                doc.setFontSize(22);
-                doc.setTextColor(30, 94, 30); // University green
-                doc.text("Prince Alex Design University", 14, 20);
-                doc.setFontSize(16);
-                doc.text("Fees Statement", 14, 30);
-                doc.line(14, 32, 196, 32);
-
-                doc.setFontSize(12);
-                doc.setTextColor(51, 51, 51);
-                doc.text(`Student Name: ${currentUserData.name}`, 14, 45);
-                doc.text(`Student ID: ${currentUserData.regNo}`, 14, 52);
-                doc.text(`Statement Date: ${new Date().toLocaleDateString()}`, 14, 59);
-
-                const paymentsTableData = feesData.payments.map(p => [
-                    new Date(p.date).toLocaleDateString(),
-                    p.description,
-                    `GHS ${p.amount.toFixed(2)}`
-                ]);
-
-                doc.autoTable({
-                    startY: 70,
-                    head: [['Date', 'Description', 'Amount (GHS)']],
-                    body: paymentsTableData,
-                    theme: 'striped',
-                    headStyles: { fillColor: [46, 114, 46], textColor: 255 },
-                    margin: { top: 60 }
-                });
-
-                const finalY = doc.autoTable.previous.finalY + 10;
-                doc.setFontSize(14);
-                doc.setTextColor(0, 0, 0);
-                doc.text(`Total Fees: GHS ${feesData.totalFees.toFixed(2)}`, 14, finalY);
-                doc.text(`Total Payments: GHS ${totalPayments.toFixed(2)}`, 14, finalY + 7);
-                doc.setTextColor(balance > 0 ? 220 : 22, 38, balance > 0 ? 38 : 163);
-                doc.setFontSize(16);
-                doc.text(`Balance: GHS ${balance.toFixed(2)}`, 14, finalY + 18);
-                
-                doc.save(`fees-statement-${currentUserData.regNo}.pdf`);
-                hideLoading();
-                await showCustomModal("Success", "PDF download initiated.");
-            };
-
-        } catch(e) {
-            console.error("Error loading fees data:", e);
-            content.innerHTML = generateBreadcrumb('Fees Statement') + `<p class="text-center text-gray-500 py-8">Error loading fees data.</p>`;
-            await showCustomModal("Error", "Failed to load fees statement. Please try again.");
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // 6. Grades & Transcripts
-    async function loadGrades() {
-        showLoading("Loading grades and transcripts...");
-        const content = document.getElementById("dashboardContent");
-        const gradesRef = collection(db, `grades`);
-        try {
-            const gradesQuery = query(gradesRef, where("studentId", "==", currentUserId), orderBy("courseCode"));
-            const gradesSnapshot = await getDocs(gradesQuery);
-            const grades = gradesSnapshot.docs.map(doc => doc.data());
-
-            let gradesContent = `
-                <div class="cards-container my-6 justify-center">
-                    <div class="card text-center w-64">
-                        <h3 class="card-title text-green-800 mb-2">Overall GPA</h3>
-                        <div class="gpa-circle-container">
-                            <svg class="gpa-circle-svg" width="120" height="120">
-                                <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: 0; stroke: #888;"></circle>
-                            </svg>
-                            <span class="gpa-text" style="color: #888;">0.00</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-center text-gray-500 py-8">No grades recorded yet.</p>
-            `;
-            if (grades.length > 0) {
-                const gpa = calculateGPA(grades);
-                const gpaProgress = gpa / 4 * 314;
-                const gpaColor = gpa > 0 ? '#006400' : '#888888';
-
-                gradesContent = `
-                    <div class="cards-container my-6 justify-center">
-                        <div class="card text-center w-64">
-                            <h3 class="card-title text-green-800 mb-2">Overall GPA</h3>
-                            <div class="gpa-circle-container">
-                                <svg class="gpa-circle-svg" width="120" height="120">
-                                    <circle class="gpa-circle-bg" r="50" cx="60" cy="60"></circle>
-                                    <circle class="gpa-circle-progress" r="50" cx="60" cy="60" style="stroke-dasharray: ${gpaProgress}; stroke: ${gpaColor};"></circle>
-                                </svg>
-                                <span class="gpa-text" style="color: ${gpaColor};">${gpa}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto mt-8">
-                        <table class="min-w-full bg-white rounded-lg shadow-md">
-                            <thead class="bg-gray-200 text-gray-700">
-                                <tr>
-                                    <th class="py-3 px-6 text-left">Course Code</th>
-                                    <th class="py-3 px-6 text-left">Course Name</th>
-                                    <th class="py-3 px-6 text-center">Grade</th>
-                                    <th class="py-3 px-6 text-center">Credit Hours</th>
-                                    <th class="py-3 px-6 text-left">Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-600">
-                                ${grades.map(grade => `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td class="py-3 px-6">${grade.courseCode}</td>
-                                    <td class="py-3 px-6">${grade.courseName}</td>
-                                    <td class="py-3 px-6 text-center">${grade.grade}</td>
-                                    <td class="py-3 px-6 text-center">${grade.courseUnit}</td>
-                                    <td class="py-3 px-6">${grade.remarks || 'N/A'}</td>
-                                </tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-            content.innerHTML = generateBreadcrumb('Grades & Transcripts') + `<div class="bg-white p-8 rounded-xl shadow-lg"><h2 class="text-3xl font-bold text-green-800 mb-6">Academic Transcripts</h2>${gradesContent}</div>`;
-        } catch(e) {
-            console.error("Error loading grades:", e);
-            content.innerHTML = generateBreadcrumb('Grades & Transcripts') + `<p class="text-center text-gray-500 py-8">Error loading grades.</p>`;
-            await showCustomModal("Error", "Failed to load grades. Please try again.");
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // 7. Accommodation (Hostels)
-    async function loadHostels() {
-        showLoading("Loading hostel data...");
-        const content = document.getElementById("dashboardContent");
-        const hostelsRef = collection(db, `hostels`);
-        const settingsRef = doc(db, `settings`, 'hostelApplications');
-
-        try {
-            const hostelsSnapshot = await getDocs(hostelsRef);
-            const allHostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const settingsSnap = await getDoc(settingsRef);
-            const isApplicationsOpen = settingsSnap.exists() && settingsSnap.data().open;
-            
-            let hostelsCardsHtml = '';
-            if (allHostels.length > 0) {
-                hostelsCardsHtml = allHostels.map(hostel => `
-                    <div class="card bg-gray-100 border-t-4 border-green-500">
-                        <h3 class="card-title text-green-800">${hostel.name}</h3>
-                        <p class="text-gray-600">Price: <span class="font-semibold">GHS ${hostel.price.toFixed(2)} / semester</span></p>
-                        <p class="text-gray-600">Spaces Available: <span class="font-semibold text-blue-600">${hostel.spacesAvailable}</span></p>
-                        <p class="text-gray-600 mt-2">${hostel.description}</p>
-                        <div class="mt-4">
-                            ${isApplicationsOpen ? `
-                                <button onclick="applyForHostel('${hostel.id}', '${hostel.name}')" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300 w-full">Apply Now</button>
-                            ` : `
-                                <p class="text-red-500 text-sm">Applications are currently closed.</p>
-                            `}
-                        </div>
-                    </div>
                 `).join('');
             } else {
-                hostelsCardsHtml = `
-                    <div class="card bg-white text-center">
-                        <p class="text-gray-500 py-8">No hostel availability data at this time.</p>
+                gradesHtml = `<p class="text-gray-600 text-center py-4">No grades found for you at this time.</p>`;
+            }
+
+            // Fetch transcripts
+            const transcriptsQuery = query(transcriptsCollectionRef, where("studentId", "==", currentUserId), orderBy("date", "desc"));
+            const transcriptsSnapshot = await getDocs(transcriptsQuery);
+            const transcripts = transcriptsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            let transcriptsHtml = `<p class="text-gray-600 text-center py-4">No transcripts available for download.</p>`;
+            if (transcripts.length > 0) {
+                transcriptsHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-6 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Official Transcripts</h4>
+                        <div class="flex flex-col space-y-4">
+                            ${transcripts.map(t => `
+                                <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">Transcript on ${new Date(t.date).toLocaleDateString()}</p>
+                                        <p class="text-sm text-gray-600">Issued: ${new Date(t.dateIssued).toLocaleDateString()}</p>
+                                    </div>
+                                    <a href="${t.fileURL}" target="_blank" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                                        <i class="fas fa-download mr-2"></i> Download
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 `;
             }
 
-            let hostelsContent = `
-                <div class="cards-container">
-                    ${hostelsCardsHtml}
+            const gradesContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Grades & Transcripts</h3>
+                    <p class="text-gray-700">View your grades per semester and download your official transcripts.</p>
                 </div>
-            `;
-            
-            if (isApplicationsOpen) {
-                 const appliedDocRef = doc(db, `hostelApplications`, currentUserId);
-                 const appliedSnap = await getDoc(appliedDocRef);
-                 if (appliedSnap.exists()) {
-                     hostelsContent = `
-                        <div class="bg-white p-8 rounded-xl shadow-lg mb-8 text-center">
-                            <h3 class="text-2xl font-bold text-green-700 mb-2">Hostel Application Status</h3>
-                            <p class="text-xl text-green-600">You have already applied for a hostel.</p>
-                            <p class="text-gray-600">Your application for <span class="font-semibold">${appliedSnap.data().hostelName}</span> is currently <span class="font-bold text-yellow-600">${appliedSnap.data().status}</span>.</p>
-                        </div>
-                     ` + hostelsContent;
-                } else {
-                    hostelsContent = `
-                        <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
-                            <h3 class="text-2xl font-bold text-green-700 mb-2">Apply for a Hostel</h3>
-                            <p class="text-gray-600 mb-4">Please select a hostel from the list below to submit your application.</p>
-                        </div>
-                    ` + hostelsContent;
-                }
-            } else {
-                hostelsContent = `
-                    <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
-                        <h3 class="text-2xl font-bold text-green-700 mb-2">Accommodation</h3>
-                        <p class="text-red-500 font-semibold">Hostel applications are currently closed.</p>
-                        <p class="text-gray-600 mt-2">Please check back later for the next application period.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+                        <h4 class="text-lg font-bold text-green-800 mb-2">Current GPA</h4>
+                        <p class="text-4xl font-extrabold text-green-700">${gpa}</p>
                     </div>
-                ` + hostelsContent;
+                </div>
+                ${gradesHtml}
+                ${transcriptsHtml}
+            `;
+            content.innerHTML = generateBreadcrumb("Grades & Transcripts") + gradesContentHtml;
+        } catch (error) {
+            console.error("Error loading grades:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load grades. Please try again later.</div>`;
+        }
+        hideLoading();
+    }
+
+    // 7. Graduation Request
+    async function loadGraduation() {
+        showLoading("Loading graduation request form...");
+        const content = document.getElementById("dashboardContent");
+        const graduationRequestDocRef = doc(db, `graduationRequests`, currentUserId);
+        try {
+            const docSnap = await getDoc(graduationRequestDocRef);
+            let graduationStatusHtml = '';
+            let formHtml = '';
+
+            if (docSnap.exists()) {
+                const status = docSnap.data().status;
+                const date = new Date(docSnap.data().dateRequested).toLocaleDateString();
+                const statusColor = {
+                    'Pending': 'bg-yellow-100 text-yellow-800',
+                    'Approved': 'bg-green-100 text-green-800',
+                    'Rejected': 'bg-red-100 text-red-800'
+                }[status] || 'bg-gray-100 text-gray-800';
+
+                graduationStatusHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Your Graduation Request Status</h4>
+                        <div class="flex items-center justify-between p-4 rounded-lg ${statusColor}">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-info-circle text-2xl"></i>
+                                <div>
+                                    <p class="font-semibold">Status: ${status}</p>
+                                    <p class="text-sm">Requested on: ${date}</p>
+                                </div>
+                            </div>
+                            <button onclick="deleteGraduationRequest()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200">Cancel Request</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                formHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Request for Graduation</h4>
+                        <form id="graduation-request-form">
+                            <p class="text-gray-700 mb-4">Click the button below to submit your official request for graduation. Ensure all your academic and financial obligations are met before submitting.</p>
+                            <button type="submit" id="submitGraduationBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Submit Graduation Request</button>
+                        </form>
+                    </div>
+                `;
             }
 
-            content.innerHTML = generateBreadcrumb('Accommodation') + hostelsContent;
-
-            window.applyForHostel = async function(hostelId, hostelName) {
-                const confirmation = await confirm(`Are you sure you want to apply for ${hostelName}?`);
-                if (!confirmation) return;
-                showLoading("Submitting application...");
-
-                try {
-                    const applicationDocRef = doc(db, `hostelApplications`, currentUserId);
-                    await setDoc(applicationDocRef, {
-                        studentId: currentUserId,
-                        studentName: currentUserData.name,
-                        hostelId: hostelId,
-                        hostelName: hostelName,
-                        applicationDate: new Date().toISOString(),
-                        status: 'Pending'
-                    });
-                    await showCustomModal("Success", "Your application has been submitted successfully!");
-                    await loadHostels();
-                } catch(e) {
-                    console.error("Error submitting hostel application:", e);
-                    await showCustomModal("Error", "Failed to submit application. Please try again.");
-                } finally {
-                    hideLoading();
-                }
+            const graduationContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Graduation Request</h3>
+                    <p class="text-gray-700">Submit your request to graduate and check the status of your application.</p>
+                </div>
+                ${graduationStatusHtml}
+                ${formHtml}
+            `;
+            content.innerHTML = generateBreadcrumb("Graduation Request") + graduationContentHtml;
+            if (!docSnap.exists()) {
+                document.getElementById('graduation-request-form').addEventListener('submit', submitGraduationRequest);
             }
+        } catch (error) {
+            console.error("Error loading graduation request:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load graduation request. Please try again later.</div>`;
+        }
+        hideLoading();
+    }
 
-        } catch (e) {
-            console.error("Error loading hostel data:", e);
-            content.innerHTML = generateBreadcrumb('Accommodation') + `<p class="text-center text-gray-500 py-8">Error loading hostel data.</p>`;
-            await showCustomModal("Error", "Failed to load accommodation data. Please try again.");
-        } finally {
+    async function submitGraduationRequest(event) {
+        event.preventDefault();
+        const confirmRequest = await confirm("Are you sure you want to submit your graduation request?");
+        if (!confirmRequest) return;
+
+        const submitBtn = document.getElementById('submitGraduationBtn');
+        setButtonLoading(submitBtn, true);
+        const graduationRequestDocRef = doc(db, `graduationRequests`, currentUserId);
+        try {
+            await setDoc(graduationRequestDocRef, {
+                studentId: currentUserId,
+                dateRequested: new Date().toISOString(),
+                status: 'Pending'
+            });
+            await showCustomModal("Request Submitted", "✅ Your graduation request has been successfully submitted!");
+            loadGraduation();
+        } catch (error) {
+            console.error("Error submitting graduation request:", error);
+            await showCustomModal("Submission Failed", "Failed to submit request. Please try again.");
             hideLoading();
         }
     }
-    
-    // 8. Announcements
+
+    async function deleteGraduationRequest() {
+        const confirmDelete = await confirm("Are you sure you want to cancel your graduation request?");
+        if (!confirmDelete) return;
+
+        showLoading("Cancelling request...");
+        const graduationRequestDocRef = doc(db, `graduationRequests`, currentUserId);
+        try {
+            await deleteDoc(graduationRequestDocRef);
+            await showCustomModal("Request Cancelled", "✅ Your graduation request has been successfully cancelled.");
+            loadGraduation();
+        } catch (error) {
+            console.error("Error deleting graduation request:", error);
+            await showCustomModal("Cancellation Failed", "Failed to cancel request. Please try again.");
+            hideLoading();
+        }
+    }
+
+    // 8. Clearance Request
+    async function loadClearance() {
+        showLoading("Loading clearance request...");
+        const content = document.getElementById("dashboardContent");
+        const clearanceRequestDocRef = doc(db, `clearanceRequests`, currentUserId);
+        try {
+            const docSnap = await getDoc(clearanceDocRef);
+            let clearanceStatusHtml = '';
+            let formHtml = '';
+
+            if (docSnap.exists()) {
+                const status = docSnap.data().status;
+                const date = new Date(docSnap.data().dateRequested).toLocaleDateString();
+                const statusColor = {
+                    'Pending': 'bg-yellow-100 text-yellow-800',
+                    'Cleared': 'bg-green-100 text-green-800',
+                    'Declined': 'bg-red-100 text-red-800'
+                }[status] || 'bg-gray-100 text-gray-800';
+
+                clearanceStatusHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Your Clearance Status</h4>
+                        <div class="flex items-center justify-between p-4 rounded-lg ${statusColor}">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-info-circle text-2xl"></i>
+                                <div>
+                                    <p class="font-semibold">Status: ${status}</p>
+                                    <p class="text-sm">Requested on: ${date}</p>
+                                </div>
+                            </div>
+                            <button onclick="deleteClearanceRequest()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors duration-200">Cancel Request</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                formHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Request for Clearance</h4>
+                        <form id="clearance-request-form">
+                            <p class="text-gray-700 mb-4">To get officially cleared, please submit a request below. Your request will be reviewed by the finance and academic departments.</p>
+                            <button type="submit" id="submitClearanceBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Submit Clearance Request</button>
+                        </form>
+                    </div>
+                `;
+            }
+
+            const clearanceContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Clearance Request</h3>
+                    <p class="text-gray-700">Submit your request to be cleared and view the status of your clearance.</p>
+                </div>
+                ${clearanceStatusHtml}
+                ${formHtml}
+            `;
+            content.innerHTML = generateBreadcrumb("Clearance Request") + clearanceContentHtml;
+            if (!docSnap.exists()) {
+                document.getElementById('clearance-request-form').addEventListener('submit', submitClearanceRequest);
+            }
+        } catch (error) {
+            console.error("Error loading clearance request:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load clearance request. Please try again later.</div>`;
+        }
+        hideLoading();
+    }
+
+    async function submitClearanceRequest(event) {
+        event.preventDefault();
+        const confirmRequest = await confirm("Are you sure you want to submit your clearance request?");
+        if (!confirmRequest) return;
+
+        const submitBtn = document.getElementById('submitClearanceBtn');
+        setButtonLoading(submitBtn, true);
+        const clearanceRequestDocRef = doc(db, `clearanceRequests`, currentUserId);
+        try {
+            await setDoc(clearanceRequestDocRef, {
+                studentId: currentUserId,
+                dateRequested: new Date().toISOString(),
+                status: 'Pending'
+            });
+            await showCustomModal("Request Submitted", "✅ Your clearance request has been successfully submitted!");
+            loadClearance();
+        } catch (error) {
+            console.error("Error submitting clearance request:", error);
+            await showCustomModal("Submission Failed", "Failed to submit request. Please try again.");
+            hideLoading();
+        }
+    }
+
+    async function deleteClearanceRequest() {
+        const confirmDelete = await confirm("Are you sure you want to cancel your clearance request?");
+        if (!confirmDelete) return;
+
+        showLoading("Cancelling request...");
+        const clearanceRequestDocRef = doc(db, `clearanceRequests`, currentUserId);
+        try {
+            await deleteDoc(clearanceRequestDocRef);
+            await showCustomModal("Request Cancelled", "✅ Your clearance request has been successfully cancelled.");
+            loadClearance();
+        } catch (error) {
+            console.error("Error deleting clearance request:", error);
+            await showCustomModal("Cancellation Failed", "Failed to cancel request. Please try again.");
+            hideLoading();
+        }
+    }
+
+    // 9. Fees Statement
+    async function loadFees() {
+        showLoading("Loading fees statement...");
+        const content = document.getElementById("dashboardContent");
+        const feesDocRef = doc(db, `fees`, currentUserId);
+
+        let totalFees = 0;
+        let totalPayments = 0;
+        let balance = 0;
+        let payments = [];
+
+        try {
+            const feesSnapshot = await getDoc(feesDocRef);
+            if (feesSnapshot.exists()) {
+                const feesData = feesSnapshot.data();
+                totalFees = feesData.totalFees || 0;
+                payments = feesData.payments || [];
+                totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
+                balance = totalFees - totalPayments;
+            }
+        } catch (error) {
+            console.error("Error fetching fees data:", error);
+            // Continue rendering with default values even if there's an error
+        }
+
+        const balanceColor = balance > 0 ? 'text-red-600' : 'text-green-600';
+        const balanceText = `GHS ${balance.toFixed(2)}`;
+
+        const feesContentHtml = `
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                <h3 class="text-2xl font-bold text-green-800 mb-4">Fees Statement</h3>
+                <p class="text-gray-700">View your fees summary and payment history. For detailed inquiries, please contact the finance department.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+                    <h4 class="text-lg font-bold text-green-800 mb-2">Total Fees</h4>
+                    <p class="text-4xl font-extrabold text-green-700">GHS ${totalFees.toFixed(2)}</p>
+                    <p class="text-sm text-gray-500 mt-2">Total amount charged for your academic period.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+                    <h4 class="text-lg font-bold text-green-800 mb-2">Total Payments</h4>
+                    <p class="text-4xl font-extrabold text-green-700">GHS ${totalPayments.toFixed(2)}</p>
+                    <p class="text-sm text-gray-500 mt-2">Sum of all payments made to date.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+                    <h4 class="text-lg font-bold text-green-800 mb-2">Current Balance</h4>
+                    <p class="text-4xl font-extrabold ${balanceColor}">${balanceText}</p>
+                    <p class="text-sm text-gray-500 mt-2">${balance > 0 ? 'Amount still outstanding.' : 'Account fully settled!'}</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                <h4 class="text-xl font-bold text-green-800 mb-4">Payment History</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                        <thead class="bg-green-100 text-green-800">
+                            <tr>
+                                <th class="py-3 px-4 text-left font-semibold border-b border-gray-200">Date</th>
+                                <th class="py-3 px-4 text-left font-semibold border-b border-gray-200">Payment ID</th>
+                                <th class="py-3 px-4 text-left font-semibold border-b border-gray-200">Amount</th>
+                                <th class="py-3 px-4 text-left font-semibold border-b border-gray-200">Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${payments.length > 0 ? payments.map(p => `
+                                <tr>
+                                    <td class="py-3 px-4 border-b border-gray-200">${new Date(p.date).toLocaleDateString()}</td>
+                                    <td class="py-3 px-4 border-b border-gray-200">${p.paymentId || 'N/A'}</td>
+                                    <td class="py-3 px-4 border-b border-gray-200">GHS ${p.amount ? p.amount.toFixed(2) : '0.00'}</td>
+                                    <td class="py-3 px-4 border-b border-gray-200">${p.method || 'N/A'}</td>
+                                </tr>
+                            `).join('') : `
+                                <tr>
+                                    <td colspan="4" class="py-8 text-center text-gray-600 bg-gray-50">
+                                        <i class="fas fa-money-bill-wave-alt text-4xl text-gray-400 mb-2"></i>
+                                        <p>No payment history found yet. Payments will appear here once recorded.</p>
+                                    </td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+                <h4 class="text-xl font-bold text-green-800 mb-4">How to Make a Payment</h4>
+                <p class="text-gray-700 mb-4">To settle your outstanding balance, please use one of the following official university payment methods:</p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li><strong>Online Payment Portal:</strong> Visit the official university website and navigate to the student finance section to make secure online payments using your credit/debit card.</li>
+                    <li><strong>Bank Transfer:</strong> You can transfer funds directly to the university's bank account. Please ensure you include your student ID as the reference. Bank details are available from the finance office.</li>
+                    <li><strong>Finance Office:</strong> Payments can also be made in person at the university's finance office during working hours.</li>
+                </ul>
+                <p class="text-sm text-gray-600 mt-4">For any payment-related queries or to request specific bank details, kindly contact the Finance Department at finance@princeladesignuni.edu or call +233-XXX-XXXX.</p>
+            </div>
+        `;
+        content.innerHTML = generateBreadcrumb("Fees Statement") + feesContentHtml;
+        hideLoading();
+    }
+
+    // 10. Receipts
+    async function loadReceipts() {
+        showLoading("Loading receipts...");
+        const content = document.getElementById("dashboardContent");
+        const receiptsCollectionRef = collection(db, `receipts`);
+        try {
+            const receiptsQuery = query(receiptsCollectionRef, where("studentId", "==", currentUserId), orderBy("date", "desc"));
+            const receiptsSnapshot = await getDocs(receiptsQuery);
+            const receipts = receiptsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            let receiptsHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                    <p class="text-gray-600 text-center py-4">No receipts available at this time.</p>
+                </div>`;
+            if (receipts.length > 0) {
+                receiptsHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <div class="flex flex-col space-y-4">
+                            ${receipts.map(r => `
+                                <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">Payment of GHS ${r.amount.toFixed(2)}</p>
+                                        <p class="text-sm text-gray-600">Receipt No: ${r.receiptNo}</p>
+                                        <p class="text-sm text-gray-600">Date: ${new Date(r.date).toLocaleDateString()}</p>
+                                    </div>
+                                    <a href="${r.fileURL}" target="_blank" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                                        <i class="fas fa-download mr-2"></i> Download
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            const receiptsContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Payment Receipts</h3>
+                    <p class="text-gray-700">Download your payment receipts here.</p>
+                </div>
+                ${receiptsHtml}
+            `;
+            content.innerHTML = generateBreadcrumb("Receipts") + receiptsContentHtml;
+        } catch (error) {
+            console.error("Error loading receipts:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load receipts. Please try again later.</div>`;
+        }
+        hideLoading();
+    }
+
+    // 11. Exam Card
+    async function loadExamCard() {
+        showLoading("Loading exam card...");
+        const content = document.getElementById("dashboardContent");
+        const examCardsCollectionRef = collection(db, `examCards`);
+        try {
+            const examCardsQuery = query(examCardsCollectionRef, where("studentId", "==", currentUserId), orderBy("dateGenerated", "desc"));
+            const examCardsSnapshot = await getDocs(examCardsQuery);
+            const examCards = examCardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            let examCardHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                    <p class="text-gray-600 text-center py-4">No exam card available for this semester.</p>
+                </div>`;
+            if (examCards.length > 0) {
+                examCardHtml = `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <div class="flex flex-col space-y-4">
+                            ${examCards.map(ec => `
+                                <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg shadow-sm">
+                                    <div>
+                                        <p class="font-semibold text-gray-800">Exam Card for ${ec.semester}</p>
+                                        <p class="text-sm text-gray-600">Generated on: ${new Date(ec.dateGenerated).toLocaleDateString()}</p>
+                                    </div>
+                                    <a href="${ec.fileURL}" target="_blank" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                                        <i class="fas fa-download mr-2"></i> Download
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const examCardContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Exam Card</h3>
+                    <p class="text-gray-700">Download your official exam card for the current semester.</p>
+                </div>
+                ${examCardHtml}
+            `;
+            content.innerHTML = generateBreadcrumb("Exam Card") + examCardContentHtml;
+        } catch (error) {
+            console.error("Error loading exam card:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load exam card. Please try again later.</div>`;
+        }
+        hideLoading();
+    }
+
+    // 12. Hostels/Accommodation
+    async function loadHostels() {
+        showLoading("Loading accommodation options...");
+        const content = document.getElementById("dashboardContent");
+        const hostelSettingsDocRef = doc(db, `settings`, `hostelBooking`);
+        const hostelsCollectionRef = collection(db, `hostels`);
+        const accommodationRequestsCollectionRef = collection(db, `accommodationRequests`);
+
+        try {
+            const hostelSettingsSnap = await getDoc(hostelSettingsDocRef);
+            const isBookingActivated = hostelSettingsSnap.exists() ? hostelSettingsSnap.data().isActivated : false;
+
+            let hostelsContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Hostel Accommodation</h3>
+                    <p class="text-gray-700">Explore your on-campus accommodation options and manage your hostel bookings.</p>
+                </div>
+            `;
+
+            if (isBookingActivated) {
+                const hostelsSnapshot = await getDocs(hostelsCollectionRef);
+                const hostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const accommodationRequestsQuery = query(accommodationRequestsCollectionRef, where("studentId", "==", currentUserId), orderBy("dateRequested", "desc"));
+                const accommodationRequestsSnapshot = await getDocs(accommodationRequestsQuery);
+                const userBookings = accommodationRequestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                let hostelOptionsHtml = '';
+                if (hostels.length > 0) {
+                    hostelOptionsHtml = hostels.map(h => `
+                        <option value="${h.id}" data-price="${h.price}" data-occupants="${h.maxOccupants}" data-name="${h.name}" data-availablebeds="${h.availableBeds}">
+                            ${h.name} (Price: GHS ${h.price.toFixed(2)}, Occupancy: ${h.maxOccupants} beds) - Available Beds: ${h.availableBeds}
+                        </option>
+                    `).join('');
+                } else {
+                    hostelOptionsHtml = `<option value="">No hostels available</option>`;
+                }
+
+                let bookingHistoryHtml = `<p class="text-gray-600 text-center py-4">You have no previous hostel bookings.</p>`;
+                if (userBookings.length > 0) {
+                    bookingHistoryHtml = `
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-green-100 text-green-800">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left font-semibold">Hostel</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Date Requested</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Status</th>
+                                        <th class="py-3 px-4 text-left font-semibold">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${userBookings.map(booking => `
+                                        <tr>
+                                            <td class="py-3 px-4 border-b border-gray-200">${booking.hostelName || 'N/A'}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">${new Date(booking.dateRequested).toLocaleDateString()}</td>
+                                            <td class="py-3 px-4 border-b border-gray-200">
+                                                <span class="px-3 py-1 rounded-full text-xs font-semibold
+                                                    ${booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                      booking.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                                      'bg-red-100 text-red-800'}">
+                                                    ${booking.status}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 border-b border-gray-200">GHS ${booking.hostelPrice ? booking.hostelPrice.toFixed(2) : 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                hostelsContentHtml += `
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Book a Hostel Room</h4>
+                        <p class="text-gray-700 mb-6">Select an available hostel from the dropdown below and submit your booking request. Ensure you review the details carefully.</p>
+                        <form id="book-hostel-form">
+                            <div class="flex flex-col mb-4">
+                                <label for="hostel-select" class="text-gray-600 font-medium mb-1">Choose a Hostel</label>
+                                <select id="hostel-select" name="hostelId" class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200" required>
+                                    <option value="">-- Select a Hostel --</option>
+                                    ${hostelOptionsHtml}
+                                </select>
+                                <p id="hostel-details" class="text-sm text-gray-600 mt-2"></p>
+                            </div>
+                            <button type="submit" id="bookHostelBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg" ${hostels.length === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-bed mr-2"></i> Book Now
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-green-600">
+                        <h4 class="text-xl font-bold text-green-800 mb-4">Your Booking History</h4>
+                        ${bookingHistoryHtml}
+                    </div>
+                `;
+            } else {
+                hostelsContentHtml += `
+                    <div class="bg-red-100 p-6 rounded-xl shadow-md border border-red-300 text-red-800 text-center">
+                        <h4 class="text-xl font-bold mb-2">Hostel Booking Currently Deactivated 🚫</h4>
+                        <p class="text-lg">Hostel room booking is currently **deactivated** by the administration. Please check back later or contact the accommodation office for more information.</p>
+                        <i class="fas fa-exclamation-circle text-5xl mt-4"></i>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = generateBreadcrumb("Accommodation") + hostelsContentHtml;
+
+            if (isBookingActivated) {
+                const hostelSelect = document.getElementById('hostel-select');
+                if (hostelSelect) {
+                    hostelSelect.addEventListener('change', function() {
+                        const selectedOption = hostelSelect.options[hostelSelect.selectedIndex];
+                        const hostelDetailsDiv = document.getElementById('hostel-details');
+                        if (selectedOption && selectedOption.value) {
+                            const price = selectedOption.dataset.price;
+                            const occupants = selectedOption.dataset.occupants;
+                            const availableBeds = selectedOption.dataset.availablebeds;
+                            hostelDetailsDiv.innerHTML = `<strong>Price:</strong> GHS ${parseFloat(price).toFixed(2)} per academic year | <strong>Max Occupants:</strong> ${occupants} | <strong>Available:</strong> ${availableBeds} beds`;
+                        } else {
+                            hostelDetailsDiv.innerText = '';
+                        }
+                    });
+                }
+                const bookHostelForm = document.getElementById('book-hostel-form');
+                if (bookHostelForm) {
+                    bookHostelForm.addEventListener('submit', bookHostel);
+                }
+            }
+
+        } catch (error) {
+            console.error("Error loading hostels:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load accommodation options. Please try again later.</div>`;
+        }
+        hideLoading();
+    }
+
+    async function bookHostel(event) {
+        event.preventDefault();
+        const bookHostelBtn = document.getElementById('bookHostelBtn');
+        const hostelSelect = document.getElementById('hostel-select');
+        const selectedOption = hostelSelect.options[hostelSelect.selectedIndex];
+        const selectedHostelId = selectedOption.value;
+
+        if (!selectedHostelId) {
+            await showCustomModal("Error", "Please select a hostel to book.");
+            return;
+        }
+
+        const confirmBooking = await confirm("Are you sure you want to book this hostel room?");
+        if (!confirmBooking) return;
+
+        setButtonLoading(bookHostelBtn, true);
+        const accommodationRequestsCollectionRef = collection(db, `accommodationRequests`);
+        const hostelsCollectionRef = collection(db, `hostels`);
+        const hostelDocRef = doc(db, hostelsCollectionRef, selectedHostelId);
+
+        try {
+            // Fetch hostel details to save with the booking request
+            const hostelSnap = await getDoc(hostelDocRef);
+            if (!hostelSnap.exists()) {
+                throw new Error("Selected hostel not found.");
+            }
+            const hostelData = hostelSnap.data();
+
+            if (hostelData.availableBeds <= 0) {
+                 await showCustomModal("Booking Failed", "This hostel currently has no available beds.");
+                 return;
+            }
+
+            // Check if student already has an active booking
+            const existingBookingsQuery = query(accommodationRequestsCollectionRef, where("studentId", "==", currentUserId), where("status", "in", ["Pending", "Approved"]));
+            const existingBookingsSnapshot = await getDocs(existingBookingsQuery);
+
+            if (!existingBookingsSnapshot.empty) {
+                await showCustomModal("Booking Failed", "You already have an active or pending hostel booking.");
+                return;
+            }
+
+            await addDoc(accommodationRequestsCollectionRef, {
+                studentId: currentUserId,
+                hostelId: selectedHostelId,
+                hostelName: hostelData.name, // Store name for history display
+                hostelPrice: hostelData.price, // Store price for history display
+                dateRequested: new Date().toISOString(),
+                status: 'Pending' // Initial status
+            });
+
+            // Decrement available beds
+            await updateDoc(hostelDocRef, {
+                availableBeds: Math.max(0, hostelData.availableBeds - 1)
+            });
+
+            await showCustomModal("Booking Submitted", `✅ Your request for ${hostelData.name} has been submitted! You will be notified once it's processed.`);
+            loadHostels(); // Reload the section to update UI and history
+        } catch (error) {
+            console.error("Error submitting accommodation request:", error);
+            await showCustomModal("Submission Failed", `Failed to submit request: ${error.message}. Please try again.`);
+        } finally {
+            setButtonLoading(bookHostelBtn, false);
+        }
+    }
+
+
+    // 13. Announcements
     async function loadAnnouncements() {
         showLoading("Loading announcements...");
         const content = document.getElementById("dashboardContent");
-        const announcementsRef = collection(db, `announcements`);
+        const announcementsCollectionRef = collection(db, `announcements`);
         try {
-            const announcementsQuery = query(announcementsRef, orderBy("date", "desc"));
+            const announcementsQuery = query(announcementsCollectionRef, orderBy("date", "desc"));
             const announcementsSnapshot = await getDocs(announcementsQuery);
-            const announcements = announcementsSnapshot.docs.map(doc => doc.data());
+            const announcements = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            let announcementsHtml = `<p class="text-center text-gray-500 py-8">No announcements available at this time.</p>`;
+            let announcementsHtml = `<p class="text-gray-600 text-center py-4">No announcements at this time.</p>`;
             if (announcements.length > 0) {
-                announcementsHtml = `<ul class="space-y-4">${announcements.map(ann => `
-                    <li class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between mb-2">
-                            <h3 class="text-xl font-semibold text-green-800">${ann.title}</h3>
-                            <span class="text-sm text-gray-500">${new Date(ann.date).toLocaleDateString()}</span>
-                        </div>
+                announcementsHtml = `<div class="space-y-4">${announcements.map(ann => `
+                    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
+                        <p class="text-sm text-gray-500 mb-2">${new Date(ann.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        <h4 class="text-xl font-bold text-green-800 mb-2">${ann.title}</h4>
                         <p class="text-gray-700">${ann.message}</p>
-                    </li>`).join('')}</ul>`;
+                    </div>
+                `).join('')}</div>`;
             }
-            content.innerHTML = generateBreadcrumb('Announcements') + `<div class="bg-white p-8 rounded-xl shadow-lg"><h2 class="text-3xl font-bold text-green-800 mb-6">Announcements</h2>${announcementsHtml}</div>`;
-        } catch(e) {
-            console.error("Error loading announcements:", e);
-            content.innerHTML = generateBreadcrumb('Announcements') + `<p class="text-center text-gray-500 py-8">Error loading announcements.</p>`;
-            await showCustomModal("Error", "Failed to load announcements. Please try again.");
-        } finally {
-            hideLoading();
+            const announcementsContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Announcements</h3>
+                    <p class="text-gray-700">Stay up to date with the latest news and announcements from the university.</p>
+                </div>
+                ${announcementsHtml}
+            `;
+            content.innerHTML = generateBreadcrumb("Announcements") + announcementsContentHtml;
+        } catch (error) {
+            console.error("Error loading announcements:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load announcements. Please try again later.</div>`;
         }
+        hideLoading();
     }
 
-    // 9. Graduation Request
-    async function loadGraduation() {
-        showLoading("Loading graduation requests...");
+    // 14. Settings
+    async function loadSettings() {
+        showLoading("Loading settings...");
         const content = document.getElementById("dashboardContent");
-        const graduationRef = collection(db, `graduationRequests`);
         try {
-            const requestsQuery = query(graduationRef, where("studentId", "==", currentUserId), orderBy("submissionDate", "desc"));
-            const requestsSnap = await getDocs(requestsQuery);
-            const requests = requestsSnap.docs.map(doc => doc.data());
-
-            let requestHistoryHtml = `<p class="text-center text-gray-500 py-4">No graduation requests submitted yet.</p>`;
-            if (requests.length > 0) {
-                requestHistoryHtml = `
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white rounded-lg shadow-md">
-                            <thead class="bg-gray-200 text-gray-700">
-                                <tr>
-                                    <th class="py-3 px-6 text-left">Date Submitted</th>
-                                    <th class="py-3 px-6 text-left">Status</th>
-                                    <th class="py-3 px-6 text-left">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-600">
-                                ${requests.map(req => {
-                                    let statusColor = 'text-gray-800';
-                                    if (req.status === 'Pending') statusColor = 'text-yellow-600';
-                                    else if (req.status === 'Approved') statusColor = 'text-green-600';
-                                    else if (req.status === 'Denied') statusColor = 'text-red-600';
-                                    return `
-                                    <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                        <td class="py-3 px-6">${new Date(req.submissionDate).toLocaleDateString()}</td>
-                                        <td class="py-3 px-6"><span class="font-bold ${statusColor}">${req.status}</span></td>
-                                        <td class="py-3 px-6">${req.notes || 'N/A'}</td>
-                                    </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
+            const settingsContentHtml = `
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600 mb-6">
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Settings</h3>
+                    <p class="text-gray-700 mb-6">Manage your account settings and preferences.</p>
+                    <div class="space-y-8">
+                        <div>
+                            <h4 class="text-xl font-bold text-green-800 mb-2">Change Password</h4>
+                            <form id="change-password-form">
+                                <div class="flex flex-col mb-4">
+                                    <label for="new-password" class="text-gray-600 font-medium mb-1">New Password</label>
+                                    <input type="password" id="new-password" name="new-password" placeholder="Enter new password" required class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                                </div>
+                                <div class="flex flex-col mb-4">
+                                    <label for="confirm-new-password" class="text-gray-600 font-medium mb-1">Confirm New Password</label>
+                                    <input type="password" id="confirm-new-password" name="confirm-new-password" placeholder="Confirm new password" required class="p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                                </div>
+                                <button type="submit" id="changePasswordBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Change Password</button>
+                            </form>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold text-red-800 mb-2">Delete Account</h4>
+                            <p class="text-gray-700 mb-4">Permanently delete your account and all associated data. This action is irreversible.</p>
+                            <button onclick="deleteAccount()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">Delete Account</button>
+                        </div>
                     </div>
-                `;
-            }
-
-            const graduationFormHtml = `
-                <div class="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 class="text-3xl font-bold text-green-800 mb-6">Graduation Request</h2>
-                    <div class="border-b border-gray-200 mb-6 pb-6">
-                        <h3 class="text-2xl font-semibold text-green-700 mb-4">Submit a New Request</h3>
-                        <p class="text-gray-600 mb-4">You can submit a graduation request once all your academic requirements are met. Your request will be reviewed by the academic office.</p>
-                        <button onclick="submitGraduationRequest()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Submit Request</button>
-                    </div>
-                    <h3 class="text-2xl font-semibold text-green-700 mb-4">Request History</h3>
-                    ${requestHistoryHtml}
                 </div>
             `;
-            content.innerHTML = generateBreadcrumb('Graduation Request') + graduationFormHtml;
-            
-            window.submitGraduationRequest = async function() {
-                const confirmation = await confirm("Are you sure you want to submit a new graduation request?");
-                if (!confirmation) return;
-                showLoading("Submitting request...");
-                try {
-                    await addDoc(collection(db, `graduationRequests`), {
-                        studentId: currentUserId,
-                        submissionDate: new Date().toISOString(),
-                        status: 'Pending',
-                        notes: 'Awaiting review'
-                    });
-                    await showCustomModal("Success", "Your graduation request has been submitted!");
-                    await loadGraduation();
-                } catch(e) {
-                    console.error("Error submitting graduation request:", e);
-                    await showCustomModal("Error", "Failed to submit request. Please try again.");
-                } finally {
-                    hideLoading();
-                }
-            }
-
-        } catch(e) {
-            console.error("Error loading graduation requests:", e);
-            content.innerHTML = generateBreadcrumb('Graduation Request') + `<p class="text-center text-gray-500 py-8">Error loading graduation requests.</p>`;
-            await showCustomModal("Error", "Failed to load graduation requests. Please try again.");
-        } finally {
-            hideLoading();
+            content.innerHTML = generateBreadcrumb("Settings") + settingsContentHtml;
+            document.getElementById('change-password-form').addEventListener('submit', changePassword);
+        } catch (error) {
+            console.error("Error loading settings:", error);
+            content.innerHTML = `<div class="bg-red-100 p-4 rounded-md text-red-700">Failed to load settings. Please try again later.</div>`;
         }
+        hideLoading();
     }
 
-    // 10. Clearance Request
-    async function loadClearance() {
-        showLoading("Loading clearance requests...");
-        const content = document.getElementById("dashboardContent");
-        const clearanceRef = collection(db, `clearanceRequests`);
-        try {
-            const requestsQuery = query(clearanceRef, where("studentId", "==", currentUserId), orderBy("submissionDate", "desc"));
-            const requestsSnap = await getDocs(requestsQuery);
-            const requests = requestsSnap.docs.map(doc => doc.data());
-
-            let requestHistoryHtml = `<p class="text-center text-gray-500 py-4">No clearance requests submitted yet.</p>`;
-            if (requests.length > 0) {
-                requestHistoryHtml = `
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white rounded-lg shadow-md">
-                            <thead class="bg-gray-200 text-gray-700">
-                                <tr>
-                                    <th class="py-3 px-6 text-left">Date Submitted</th>
-                                    <th class="py-3 px-6 text-left">Status</th>
-                                    <th class="py-3 px-6 text-left">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-600">
-                                ${requests.map(req => {
-                                    let statusColor = 'text-gray-800';
-                                    if (req.status === 'Pending') statusColor = 'text-yellow-600';
-                                    else if (req.status === 'Approved') statusColor = 'text-green-600';
-                                    else if (req.status === 'Denied') statusColor = 'text-red-600';
-                                    return `
-                                    <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                        <td class="py-3 px-6">${new Date(req.submissionDate).toLocaleDateString()}</td>
-                                        <td class="py-3 px-6"><span class="font-bold ${statusColor}">${req.status}</span></td>
-                                        <td class="py-3 px-6">${req.notes || 'N/A'}</td>
-                                    </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-            
-            const clearanceFormHtml = `
-                <div class="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 class="text-3xl font-bold text-green-800 mb-6">Clearance Request</h2>
-                    <div class="border-b border-gray-200 mb-6 pb-6">
-                        <h3 class="text-2xl font-semibold text-green-700 mb-4">Submit a New Request</h3>
-                        <p class="text-gray-600 mb-4">Upload a PDF document and submit your clearance request. It will be reviewed by the administration.</p>
-                        <form id="clearance-form">
-                            <div class="mb-4">
-                                <label for="clearance-pdf" class="block text-gray-700 font-semibold mb-2">Upload Clearance Document (PDF)</label>
-                                <input type="file" id="clearance-pdf" accept="application/pdf" class="w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
-                                <p id="clearance-error" class="text-red-500 text-sm mt-1 hidden">Please select a PDF file.</p>
-                            </div>
-                            <button type="submit" id="submit-clearance-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Submit Request</button>
-                        </form>
-                    </div>
-                    <h3 class="text-2xl font-semibold text-green-700 mb-4">Request History</h3>
-                    ${requestHistoryHtml}
-                </div>
-            `;
-            content.innerHTML = generateBreadcrumb('Clearance Request') + clearanceFormHtml;
-
-            document.getElementById('clearance-form').addEventListener('submit', handleClearanceSubmission);
-
-        } catch(e) {
-            console.error("Error loading clearance requests:", e);
-            content.innerHTML = generateBreadcrumb('Clearance Request') + `<p class="text-center text-gray-500 py-8">Error loading clearance requests.</p>`;
-            await showCustomModal("Error", "Failed to load clearance requests. Please try again.");
-        } finally {
-            hideLoading();
-        }
-    }
-
-    async function handleClearanceSubmission(event) {
+    async function changePassword(event) {
         event.preventDefault();
-        const submitBtn = document.getElementById('submit-clearance-btn');
-        const fileInput = document.getElementById('clearance-pdf');
-        const errorElement = document.getElementById('clearance-error');
-        const file = fileInput.files[0];
+        const newPassword = document.getElementById('new-password').value;
+        const confirmNewPassword = document.getElementById('confirm-new-password').value;
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
 
-        if (!file || file.type !== "application/pdf") {
-            errorElement.classList.remove('hidden');
+        if (newPassword !== confirmNewPassword) {
+            await showCustomModal("Error", "New passwords do not match.");
             return;
         }
-        errorElement.classList.add('hidden');
-        setButtonLoading(submitBtn, true);
 
-        showLoading("Uploading document and submitting request...");
+        if (newPassword.length < 6) {
+            await showCustomModal("Error", "Password must be at least 6 characters long.");
+            return;
+        }
+
+        const confirmChange = await confirm("Are you sure you want to change your password?");
+        if (!confirmChange) return;
+
+        setButtonLoading(changePasswordBtn, true);
+        const user = auth.currentUser;
 
         try {
-            const fileRef = ref(storage, `clearance_documents/${currentUserId}_${Date.now()}.pdf`);
-            const snapshot = await uploadBytes(fileRef, file);
-            const fileURL = await getDownloadURL(snapshot.ref);
-
-            await addDoc(collection(db, `clearanceRequests`), {
-                studentId: currentUserId,
-                submissionDate: new Date().toISOString(),
-                status: 'Pending',
-                documentURL: fileURL,
-                notes: 'Awaiting review'
-            });
-            await showCustomModal("Success", "Your clearance request has been submitted!");
-            await loadClearance();
-        } catch (e) {
-            console.error("Error submitting clearance request:", e);
-            await showCustomModal("Error", "Failed to submit request. Please try again.");
+            await updatePassword(user, newPassword);
+            await showCustomModal("Password Changed", "✅ Your password has been successfully changed.");
+            document.getElementById('change-password-form').reset();
+        } catch (error) {
+            console.error("Error changing password:", error);
+            await showCustomModal("Change Failed", "Failed to change password. Please log out and log in again, then try changing your password.");
         } finally {
-            setButtonLoading(submitBtn, false);
+            setButtonLoading(changePasswordBtn, false);
+        }
+    }
+
+    async function deleteAccount() {
+        const confirmDelete = await confirm("Are you absolutely sure you want to delete your account? This action is irreversible and all your data will be lost.");
+        if (!confirmDelete) return;
+
+        const confirmFinal = await confirm("FINAL WARNING: All data will be permanently deleted. Are you certain?");
+        if (!confirmFinal) return;
+
+        showLoading("Deleting account...");
+        const user = auth.currentUser;
+        try {
+            // Delete associated Firestore data
+            const studentDocRef = doc(db, `students`, user.uid);
+            const registrationsDocRef = doc(db, `registrations`, user.uid);
+            const gradesQuery = query(collection(db, `grades`), where("studentId", "==", user.uid));
+            const receiptsQuery = query(collection(db, `receipts`), where("studentId", "==", user.uid));
+            const examCardsQuery = query(collection(db, `examCards`), where("studentId", "==", user.uid));
+            const graduationRequestDocRef = doc(db, `graduationRequests`, user.uid);
+            const clearanceRequestDocRef = doc(db, `clearanceRequests`, user.uid);
+
+            const gradesSnapshot = await getDocs(gradesQuery);
+            const receiptsSnapshot = await getDocs(receiptsQuery);
+            const examCardsSnapshot = await getDocs(examCardsQuery);
+
+            const deletePromises = [
+                deleteDoc(studentDocRef).catch(e => console.warn("Failed to delete student doc:", e)),
+                deleteDoc(registrationsDocRef).catch(e => console.warn("Failed to delete registrations doc:", e)),
+                deleteDoc(graduationRequestDocRef).catch(e => console.warn("Failed to delete graduation request doc:", e)),
+                deleteDoc(clearanceRequestDocRef).catch(e => console.warn("Failed to delete clearance request doc:", e))
+            ];
+
+            gradesSnapshot.forEach(d => deletePromises.push(deleteDoc(d.ref).catch(e => console.warn("Failed to delete grade doc:", e))));
+            receiptsSnapshot.forEach(d => deletePromises.push(deleteDoc(d.ref).catch(e => console.warn("Failed to delete receipt doc:", e))));
+            examCardsSnapshot.forEach(d => deletePromises.push(deleteDoc(d.ref).catch(e => console.warn("Failed to delete exam card doc:", e))));
+
+            await Promise.all(deletePromises);
+
+            // Delete the user from Firebase Authentication
+            await user.delete();
+            await showCustomModal("Account Deleted", "✅ Your account has been permanently deleted.");
+        } catch (error) {
+            console.error("Error deleting account:", error);
+            await showCustomModal("Deletion Failed", "Failed to delete account. Please try again or contact support.");
             hideLoading();
         }
     }
 
-
     // Main navigation handler
-    async function showDashboardSection(section) {
-      sidebar.classList.add('-translate-x-full');
-
-      if (!currentUserId) {
-        console.log("currentUserId is null. Redirecting to login from showDashboardSection.");
-        authContainer.classList.remove('hidden');
-        dashboardContainer.classList.add('hidden');
-        showForm('login');
-        return;
-      }
-
+    window.showDashboardSection = function(section) {
       const content = document.getElementById("dashboardContent");
       content.innerHTML = '';
-
+      sidebar.classList.add('-translate-x-full'); // Hide sidebar on mobile
       switch (section) {
         case 'home':
-          await loadHome();
+          loadHome();
           break;
         case 'profile':
-          await loadProfile();
-          break;
-        case 'courses':
-          await loadCourses();
+          loadProfile();
           break;
         case 'courseReg':
-          await loadRegistrations();
+          loadCourseReg();
           break;
-        case 'fees':
-          await loadFees();
+        case 'courses':
+          loadCourses();
+          break;
+        case 'timetable':
+          loadTimetable();
           break;
         case 'grades':
-        case 'transcripts':
-          await loadGrades();
-          break;
-        case 'hostels':
-          await loadHostels();
-          break;
-        case 'announcements':
-          await loadAnnouncements();
+          loadGrades();
           break;
         case 'graduation':
-          await loadGraduation();
+          loadGraduation();
           break;
         case 'clearance':
-          await loadClearance();
+          loadClearance();
+          break;
+        case 'fees':
+          loadFees();
+          break;
+        case 'receipts':
+          loadReceipts();
+          break;
+        case 'examCard':
+          loadExamCard();
+          break;
+        case 'hostels':
+          loadHostels();
+          break;
+        case 'announcements':
+          loadAnnouncements();
+          break;
+        case 'settings':
+          loadSettings();
+          break;
+        case 'examTimetable': // Alias for timetable
+          loadTimetable();
           break;
         default:
-          content.innerHTML = generateBreadcrumb(section.charAt(0).toUpperCase() + section.slice(1)) + `<p class="text-center text-gray-500 py-8">Content for this section is coming soon.</p>`;
+          loadHome();
           break;
       }
-    }
-
-    // New menu items for Course and Announcements
-    const academicsSubmenu = document.getElementById('academics-submenu');
-    if (academicsSubmenu) {
-      academicsSubmenu.innerHTML = `
-        <a onclick="showDashboardSection('courses')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-list-alt mr-3"></i> Available Courses</a>
-        <a onclick="showDashboardSection('courseReg')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
-        <a onclick="showDashboardSection('timetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-calendar-alt mr-3"></i> Timetable</a>
-        <a onclick="showDashboardSection('grades')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clipboard-list mr-3"></i> Grades & Transcripts</a>
-        <a onclick="showDashboardSection('graduation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-graduation-cap mr-3"></i> Graduation Request</a>
-        <a onclick="showDashboardSection('clearance')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-check-circle mr-3"></i> Clearance Request</a>
-      `;
-    }
-
-    const examSubmenu = document.getElementById('exam-submenu');
-    if(examSubmenu) {
-      examSubmenu.innerHTML = `
-        <a onclick="showDashboardSection('examTimetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clock mr-3"></i> Timetable</a>
-        <a onclick="showDashboardSection('grades')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-invoice mr-3"></i> Transcripts</a>
-      `;
-    }
-
-    // Expose functions to global scope
-    window.loadTimetable = async function() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Timetable') + `<p class="text-center text-gray-500 py-8">Timetable section is under development.</p>`;
     };
-    window.loadExamCard = async function() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Exam Card') + `<p class="text-center text-gray-500 py-8">Exam Card section is under development.</p>`;
-    };
-    window.loadExamTimetable = async function() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Examination Timetable') + `<p class="text-center text-gray-500 py-8">Examination Timetable section is under development.</p>`;
-    };
-    window.loadReceipts = async function() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Receipts') + `<p class="text-center text-gray-500 py-8">Receipts section is under development.</p>`;
-    };
-    window.loadEvaluation = async function() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Course Evaluation') + `<p class="text-center text-gray-500 py-8">Course Evaluation section is under development.</p>`;
-    };
-    window.loadSettings = async function() {
-        const content = document.getElementById("dashboardContent");
-        content.innerHTML = generateBreadcrumb('Settings') + `<p class="text-center text-gray-500 py-8">Settings section is under development.</p>`;
-    };
-
-
-    window.showDashboardSection = showDashboardSection;
   </script>
 </body>
 </html>
