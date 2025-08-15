@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin | Student Portal</title>
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfTLZyH6ONeV8Su2V9Y77Z3V0N219X2V1Q+qF2F6G1OZQ7aXwIM5x5xg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <!-- jsPDF + autoTable for PDF export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- Firebase v10 Modular (from CDN) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -48,15 +44,22 @@
     // Simple helpers
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+    const currencyFormatter = new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' });
 
-    const sections = ["dashboard","students","grades","fees","registrations","announcements","courses","timetables","hostels","explorer"];
+    const sections = ["dashboard", "students", "student-profile", "announcements", "courses", "timetables", "hostels", "explorer"];
     const state = {
       currentUser: null,
       isAdmin: false,
       selectedStudentId: null,
+      selectedStudent: null, // New: Store selected student data here
       unsubscribers: {},
       // caches for counts
-      counts: { students: 0, courses: 0, announcements: 0 }
+      counts: { students: 0, courses: 0, announcements: 0, timetables: 0, hostels: 0 },
+      // caches for live data
+      gradesCache: [],
+      feesCache: [],
+      gradesUnsub: null,
+      feesUnsub: null
     };
 
     function showToast(kind, msg) {
@@ -64,7 +67,7 @@
       el.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded shadow text-white ${kind==="error"?"bg-red-600":"bg-green-600"}`;
       el.textContent = msg;
       document.body.appendChild(el);
-      setTimeout(()=>el.remove(), 3000);
+      setTimeout(() => el.remove(), 3000);
     }
 
     function setLoading(show, text="Working...") {
@@ -97,9 +100,22 @@
       const target = document.getElementById(`sec-${id}`);
       if (target) target.classList.remove("hidden");
 
-      $$(".nav-item").forEach(i => i.classList.remove("bg-blue-100","text-blue-800"));
+      $$(".nav-item").forEach(i => i.classList.remove("bg-blue-100", "text-blue-800"));
       const active = document.querySelector(`[data-target="${id}"]`);
-      if (active) active.classList.add("bg-blue-100","text-blue-800");
+      if (active) active.classList.add("bg-blue-100", "text-blue-800");
+
+      if (id === "student-profile") {
+        $("#sec-student-profile-tabs").style.display = 'block';
+      } else {
+        $("#sec-student-profile-tabs").style.display = 'none';
+      }
+    }
+
+    function activateStudentProfileTab(tabId) {
+      $$(".student-profile-tab-btn").forEach(btn => btn.classList.remove("border-b-2", "border-blue-500", "text-blue-600"));
+      $$(".student-profile-tab-content").forEach(content => content.classList.add("hidden"));
+      $(`#tab-${tabId}`).classList.add("border-b-2", "border-blue-500", "text-blue-600");
+      $(`#content-${tabId}`).classList.remove("hidden");
     }
 
     // ------------------------------------
@@ -116,7 +132,7 @@
         // Check admin doc
         const adminDoc = await getDoc(doc(db, "admins", user.uid));
         if (!adminDoc.exists() || adminDoc.data().isAdmin !== true) {
-          showToast("error","Access denied. Not an admin.");
+          showToast("error", "Access denied. Not an admin.");
           state.currentUser = null;
           state.isAdmin = false;
           setLoading(false);
@@ -130,9 +146,9 @@
         initDashboardListeners();
         initStudentsListeners();
         // You may attach other listeners lazily on first visit
-        showToast("ok","Welcome, admin!");
+        showToast("ok", "Welcome, admin!");
         activateNav("dashboard");
-      } catch(err) {
+      } catch (err) {
         console.error(err);
         setLoading(false);
         showToast("error", err.message || "Login failed");
@@ -197,29 +213,45 @@
         });
         state.unsubscribers.annCount = unsub;
       }
+      // Timetables count
+      if (!state.unsubscribers.ttCount) {
+        const unsub = onSnapshot(collection(db, "timetables"), (snap) => {
+          state.counts.timetables = snap.size;
+          $("#countTimetables").textContent = snap.size;
+        });
+        state.unsubscribers.ttCount = unsub;
+      }
+      // Hostels count
+      if (!state.unsubscribers.hostelsCount) {
+        const unsub = onSnapshot(collection(db, "hostels"), (snap) => {
+          state.counts.hostels = snap.size;
+          $("#countHostels").textContent = snap.size;
+        });
+        state.unsubscribers.hostelsCount = unsub;
+      }
     }
 
     async function exportStudentsCSV() {
       try {
         setLoading(true, "Exporting CSV...");
         const snap = await getDocs(collection(db, "students"));
-        const rows = [["id","name","email","regNo","programme","department","campus","semester","yearOfStudy","address","gender","dob","photoURL"]];
+        const rows = [["id", "name", "email", "regNo", "programme", "department", "campus", "semester", "yearOfStudy", "address", "gender", "dob", "photoURL"]];
         snap.forEach(d => {
           const x = d.data();
           rows.push([
-            d.id, x.name||"", x.email||"", x.regNo||"", x.programme||"", x.department||"",
-            x.campus||"", x.semester||"", x.yearOfStudy||"", x.address||"", x.gender||"", x.dob||"", x.photoURL||""
+            d.id, x.name || "", x.email || "", x.regNo || "", x.programme || "", x.department || "",
+            x.campus || "", x.semester || "", x.yearOfStudy || "", x.address || "", x.gender || "", x.dob || "", x.photoURL || ""
           ]);
         });
-        const csv = rows.map(r => r.map(v => `"${(v??"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
-        const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+        const csv = rows.map(r => r.map(v => `"${(v ?? "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url; a.download = "students_export.csv"; a.click();
         URL.revokeObjectURL(url);
         setLoading(false);
-        showToast("ok","CSV exported");
-      } catch(err) {
+        showToast("ok", "CSV exported");
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "CSV export failed");
       }
@@ -232,19 +264,19 @@
         const rows = [];
         snap.forEach(d => {
           const x = d.data();
-          rows.push([d.id, x.name||"", x.email||"", x.regNo||"", x.programme||"", x.department||""]);
+          rows.push([d.id, x.name || "", x.email || "", x.regNo || "", x.programme || "", x.department || ""]);
         });
         const { jsPDF } = window.jspdf;
         const docPDF = new jsPDF({ orientation: "landscape" });
         docPDF.text("Students Export", 14, 12);
         docPDF.autoTable({
-          head: [["ID","Name","Email","Reg No","Programme","Department"]],
+          head: [["ID", "Name", "Email", "Reg No", "Programme", "Department"]],
           body: rows,
           startY: 18
         });
         docPDF.save("students_export.pdf");
         setLoading(false);
-        showToast("ok","PDF exported");
+        showToast("ok", "PDF exported");
       } catch (err) {
         setLoading(false);
         showToast("error", err.message || "PDF export failed");
@@ -274,14 +306,14 @@
       let arr = data;
       if (term) {
         arr = data.filter(s =>
-          (s.name||"").toLowerCase().includes(term) ||
-          (s.regNo||"").toLowerCase().includes(term) ||
-          (s.email||"").toLowerCase().includes(term)
+          (s.name || "").toLowerCase().includes(term) ||
+          (s.regNo || "").toLowerCase().includes(term) ||
+          (s.email || "").toLowerCase().includes(term)
         );
       }
-      if (sortBy === "name") arr.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
-      if (sortBy === "newest") arr.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-      if (sortBy === "oldest") arr.sort((a,b)=> (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+      if (sortBy === "name") arr.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      if (sortBy === "newest") arr.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      if (sortBy === "oldest") arr.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
 
       for (const s of arr) {
         const tr = document.createElement("tr");
@@ -289,18 +321,19 @@
         tr.innerHTML = `
           <td class="p-3 text-sm">
             <div class="flex items-center gap-3">
-              <img src="${s.photoURL||'https://ui-avatars.com/api/?name='+(encodeURIComponent(s.name||'S'))}" class="h-10 w-10 rounded-full object-cover" alt="photo">
+              <img src="${s.photoURL || 'https://ui-avatars.com/api/?name=' + (encodeURIComponent(s.name || 'S'))}" class="h-10 w-10 rounded-full object-cover" alt="photo">
               <div>
-                <div class="font-semibold">${s.name||'-'}</div>
-                <div class="text-xs text-gray-500">${s.email||''}</div>
+                <div class="font-semibold">${s.name || '-'}</div>
+                <div class="text-xs text-gray-500">${s.email || ''}</div>
               </div>
             </div>
           </td>
-          <td class="p-3 text-sm">${s.regNo||'-'}</td>
-          <td class="p-3 text-sm">${s.programme||'-'}</td>
-          <td class="p-3 text-sm">${s.department||'-'}</td>
-          <td class="p-3 text-sm">${s.yearOfStudy||'-'}</td>
+          <td class="p-3 text-sm">${s.regNo || '-'}</td>
+          <td class="p-3 text-sm">${s.programme || '-'}</td>
+          <td class="p-3 text-sm">${s.department || '-'}</td>
+          <td class="p-3 text-sm">${s.yearOfStudy || '-'}</td>
           <td class="p-3 text-sm">
+            <button class="px-3 py-1 text-xs bg-gray-600 text-white rounded mr-2" data-view="${s.id}"><i class="fa fa-eye"></i></button>
             <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${s.id}"><i class="fa fa-pen"></i></button>
             <button class="px-3 py-1 text-xs bg-red-600 text-white rounded" data-del="${s.id}"><i class="fa fa-trash"></i></button>
           </td>
@@ -309,6 +342,7 @@
       }
 
       // bind row buttons
+      $$("#studentsTableBody [data-view]").forEach(btn => btn.addEventListener("click", () => openStudentProfile(btn.getAttribute("data-view"))));
       $$("#studentsTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openStudentModal(btn.getAttribute("data-edit"))));
       $$("#studentsTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => confirmDeleteStudent(btn.getAttribute("data-del"))));
     }
@@ -316,25 +350,25 @@
     $("#studentSearch").addEventListener("input", () => renderStudentsTable(studentsCache));
     $("#studentSortBy").addEventListener("change", () => renderStudentsTable(studentsCache));
 
-    function openStudentModal(id=null) {
+    function openStudentModal(id = null) {
       $("#studentForm").reset();
-      $("#studentId").value = id||"";
+      $("#studentId").value = id || "";
       $("#studentPhoto").value = "";
       $("#studentPhotoPreview").src = "https://placehold.co/80x80";
       if (id) {
         const s = studentsCache.find(x => x.id === id);
         if (s) {
-          $("#studentName").value = s.name||"";
-          $("#studentEmail").value = s.email||"";
-          $("#studentRegNo").value = s.regNo||"";
-          $("#studentProgramme").value = s.programme||"";
-          $("#studentDepartment").value = s.department||"";
-          $("#studentCampus").value = s.campus||"";
-          $("#studentSemester").value = s.semester||"";
-          $("#studentYear").value = s.yearOfStudy||"";
-          $("#studentAddress").value = s.address||"";
-          $("#studentGender").value = s.gender||"";
-          $("#studentDOB").value = s.dob||"";
+          $("#studentName").value = s.name || "";
+          $("#studentEmail").value = s.email || "";
+          $("#studentRegNo").value = s.regNo || "";
+          $("#studentProgramme").value = s.programme || "";
+          $("#studentDepartment").value = s.department || "";
+          $("#studentCampus").value = s.campus || "";
+          $("#studentSemester").value = s.semester || "";
+          $("#studentYear").value = s.yearOfStudy || "";
+          $("#studentAddress").value = s.address || "";
+          $("#studentGender").value = s.gender || "";
+          $("#studentDOB").value = s.dob || "";
           $("#studentPhotoPreview").src = s.photoURL || "https://placehold.co/80x80";
         }
         $("#studentModalTitle").textContent = "Edit Student";
@@ -392,7 +426,7 @@
         $("#studentModal").classList.add("hidden");
         setLoading(false);
         showToast("ok", id ? "Student updated" : "Student added");
-      } catch(err) {
+      } catch (err) {
         console.error(err);
         setLoading(false);
         showToast("error", err.message || "Failed to save student");
@@ -417,10 +451,10 @@
               const url = new URL(d.photoURL);
               const parts = decodeURIComponent(url.pathname).split("/");
               const idx = parts.indexOf("o");
-              const path = parts[idx+1]; // may vary, best-effort
+              const path = parts[idx + 1]; // may vary, best-effort
               if (path) {
                 const sRef = storageRef(storage, path);
-                await deleteObject(sRef).catch(()=>{});
+                await deleteObject(sRef).catch(() => {});
               }
             }
           }
@@ -428,73 +462,129 @@
         await deleteDoc(doc(db, "students", id));
         $("#confirmDeleteModal").classList.add("hidden");
         setLoading(false);
-        showToast("ok","Student deleted");
-      } catch(err) {
+        showToast("ok", "Student deleted");
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Delete failed");
       }
     }
 
     // ------------------------------------
-    // SUBCOLLECTION HELPERS (Grades, Fees, Registrations) – by selected student
+    // STUDENT PROFILE VIEW
     // ------------------------------------
-    function pickStudentForSubcollections() {
-      const id = prompt("Enter Student Document ID for this operation:");
-      if (!id) return null;
-      state.selectedStudentId = id;
-      $("#subcStudentLabel").textContent = id;
-      return id;
+    async function openStudentProfile(studentId) {
+      const s = studentsCache.find(x => x.id === studentId);
+      if (!s) {
+        showToast("error", "Student not found.");
+        return;
+      }
+      state.selectedStudentId = studentId;
+      state.selectedStudent = s;
+
+      // Unsubscribe from previous student's listeners
+      if (state.gradesUnsub) state.gradesUnsub();
+      if (state.feesUnsub) state.feesUnsub();
+
+      // Populate student details
+      $("#profilePhoto").src = s.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name || 'S')}`;
+      $("#profileName").textContent = s.name || "-";
+      $("#profileRegNo").textContent = s.regNo || "-";
+      $("#profileProgramme").textContent = s.programme || "-";
+      $("#profileDepartment").textContent = s.department || "-";
+
+      // Load data for the first tab (Grades)
+      loadGrades();
+      activateStudentProfileTab("grades");
+      activateNav("student-profile");
     }
 
+    // ------------------------------------
+    // SUBCOLLECTIONS (Grades, Fees, Registrations)
+    // ------------------------------------
     // GRADES
-    async function loadGrades() {
-      const sid = state.selectedStudentId || pickStudentForSubcollections();
-      if (!sid) return;
-      const tbody = $("#gradesTableBody");
-      tbody.innerHTML = "";
-      const qRef = collection(db, `students/${sid}/grades`);
-      const snap = await getDocs(qRef);
-      snap.forEach(d => {
-        const x = d.data();
-        const tr = document.createElement("tr");
-        tr.className = "border-b hover:bg-gray-50";
-        tr.innerHTML = `
-          <td class="p-3 text-sm">${x.courseCode||'-'}</td>
-          <td class="p-3 text-sm">${x.courseName||'-'}</td>
-          <td class="p-3 text-sm">${x.courseUnit||'-'}</td>
-          <td class="p-3 text-sm">${x.grade||'-'}</td>
-          <td class="p-3 text-sm">
-            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
-            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
-          </td>`;
-        tbody.appendChild(tr);
+    const gradePoints = { "A": 5, "B+": 4.5, "B": 4, "C+": 3.5, "C": 3, "D+": 2.5, "D": 2, "E": 1, "F": 0 };
+    function calculateGPA(grades) {
+      if (grades.length === 0) return { gpa: 0, remarks: "" };
+      let totalPoints = 0;
+      let totalUnits = 0;
+      grades.forEach(g => {
+        const points = gradePoints[g.grade] || 0;
+        const units = parseFloat(g.courseUnit) || 0;
+        totalPoints += points * units;
+        totalUnits += units;
       });
-      $$("#gradesTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openGradeModal(btn.getAttribute("data-edit"))));
-      $$("#gradesTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => removeGrade(btn.getAttribute("data-del"))));
+      const gpa = totalUnits > 0 ? (totalPoints / totalUnits) : 0;
+      let remarks = "";
+      if (gpa >= 4.5) remarks = "First Class Honours";
+      else if (gpa >= 3.5) remarks = "Second Class Honours (Upper Division)";
+      else if (gpa >= 2.5) remarks = "Second Class Honours (Lower Division)";
+      else if (gpa >= 1.5) remarks = "Pass";
+      else remarks = "Fail";
+      return { gpa: gpa.toFixed(2), remarks };
     }
-    function openGradeModal(id=null) {
-      $("#gradeForm").reset();
-      $("#gradeId").value = id||"";
-      const sid = state.selectedStudentId;
-      $("#gradeStudentLabel").textContent = sid||"-";
-      if (id) {
-        // load existing
-        // We can best-effort fetch once
-        getDoc(doc(db, `students/${sid}/grades`, id)).then(snap => {
-          if (snap.exists()) {
-            const x = snap.data();
-            $("#gCourseCode").value = x.courseCode||"";
-            $("#gCourseName").value = x.courseName||"";
-            $("#gCourseUnit").value = x.courseUnit||"";
-            $("#gGrade").value = x.grade||"";
-          }
+
+    async function loadGrades() {
+      if (!state.selectedStudentId) return;
+      if (state.gradesUnsub) state.gradesUnsub();
+      const tbody = $("#gradesTableBody");
+      const qRef = collection(db, `students/${state.selectedStudentId}/grades`);
+      state.gradesUnsub = onSnapshot(qRef, (snap) => {
+        state.gradesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const arr = state.gradesCache.filter(g =>
+          (g.courseName || "").toLowerCase().includes($("#gradesSearch").value.toLowerCase()) ||
+          (g.courseCode || "").toLowerCase().includes($("#gradesSearch").value.toLowerCase())
+        );
+        tbody.innerHTML = "";
+        arr.forEach(g => {
+          const tr = document.createElement("tr");
+          tr.className = "border-b hover:bg-gray-50";
+          tr.innerHTML = `
+            <td class="p-3 text-sm">${g.courseCode || '-'}</td>
+            <td class="p-3 text-sm">${g.courseName || '-'}</td>
+            <td class="p-3 text-sm">${g.courseUnit || '-'}</td>
+            <td class="p-3 text-sm">${g.grade || '-'}</td>
+            <td class="p-3 text-sm">${g.semester || '-'}</td>
+            <td class="p-3 text-sm">${g.yearOfStudy || '-'}</td>
+            <td class="p-3 text-sm text-right">
+              <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${g.id}"><i class="fa fa-pen"></i></button>
+              <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${g.id}"><i class="fa fa-trash"></i></button>
+            </td>`;
+          tbody.appendChild(tr);
         });
-        $("#gradeModalTitle").textContent = "Edit Grade";
-      } else {
-        $("#gradeModalTitle").textContent = "Add Grade";
+        const { gpa, remarks } = calculateGPA(state.gradesCache);
+        $("#gpaValue").textContent = `GPA: ${gpa}`;
+        $("#gpaRemarks").textContent = `Remarks: ${remarks}`;
+        $$("#gradesTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openGradeModal(btn.getAttribute("data-edit"))));
+        $$("#gradesTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => confirmDeleteGrade(btn.getAttribute("data-del"))));
+      });
+    }
+
+    $("#gradesSearch").addEventListener("input", () => {
+      // Re-render table with search filter
+      loadGrades();
+    });
+
+    $("#gradesAddBtn").addEventListener("click", () => openGradeModal());
+    $("#gradesExportPDFBtn").addEventListener("click", () => generateTranscriptPDF());
+
+    function openGradeModal(id = null) {
+      $("#gradeForm").reset();
+      $("#gradeId").value = id || "";
+      $("#gradeModalTitle").textContent = id ? "Edit Grade" : "Add Grade";
+      if (id) {
+        const grade = state.gradesCache.find(g => g.id === id);
+        if (grade) {
+          $("#gCourseCode").value = grade.courseCode || "";
+          $("#gCourseName").value = grade.courseName || "";
+          $("#gCourseUnit").value = grade.courseUnit || "";
+          $("#gGrade").value = grade.grade || "";
+          $("#gSemester").value = grade.semester || "";
+          $("#gYear").value = grade.yearOfStudy || "";
+        }
       }
       $("#gradeModal").classList.remove("hidden");
     }
+
     async function upsertGrade(e) {
       e.preventDefault();
       const sid = state.selectedStudentId;
@@ -503,10 +593,16 @@
       const payload = {
         courseCode: $("#gCourseCode").value.trim(),
         courseName: $("#gCourseName").value.trim(),
-        courseUnit: $("#gCourseUnit").value.trim(),
+        courseUnit: parseFloat($("#gCourseUnit").value) || 0,
         grade: $("#gGrade").value.trim(),
+        semester: $("#gSemester").value.trim(),
+        yearOfStudy: $("#gYear").value.trim(),
         updatedAt: serverTimestamp()
       };
+      if (!payload.courseCode || !payload.courseName || !payload.grade || payload.courseUnit === 0) {
+        showToast("error", "Please fill all required fields.");
+        return;
+      }
       try {
         setLoading(true, id ? "Updating grade..." : "Adding grade...");
         if (id) {
@@ -518,75 +614,156 @@
         $("#gradeModal").classList.add("hidden");
         setLoading(false);
         showToast("ok", id ? "Grade updated" : "Grade added");
-        loadGrades();
-      } catch(err) {
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Save failed");
       }
     }
-    async function removeGrade(id) {
+
+    function confirmDeleteGrade(id) {
+      $("#confirmDeleteBtn-grade").setAttribute("data-id", id);
+      $("#confirmDeleteModal-grade").classList.remove("hidden");
+    }
+
+    async function deleteGradeNow() {
+      const id = $("#confirmDeleteBtn-grade").getAttribute("data-id");
       const sid = state.selectedStudentId;
       if (!sid || !id) return;
-      if (!confirm("Delete this grade?")) return;
       try {
         setLoading(true, "Deleting grade...");
         await deleteDoc(doc(db, `students/${sid}/grades`, id));
+        $("#confirmDeleteModal-grade").classList.add("hidden");
         setLoading(false);
-        showToast("ok","Grade deleted");
-        loadGrades();
-      } catch(err) {
+        showToast("ok", "Grade deleted");
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Delete failed");
       }
     }
 
-    // FEES
-    async function loadFees() {
-      const sid = state.selectedStudentId || pickStudentForSubcollections();
-      if (!sid) return;
-      const tbody = $("#feesTableBody");
-      tbody.innerHTML = "";
-      const qRef = collection(db, `students/${sid}/feesStatement`);
-      const snap = await getDocs(qRef);
-      snap.forEach(d => {
-        const x = d.data();
-        const tr = document.createElement("tr");
-        tr.className = "border-b hover:bg-gray-50";
-        tr.innerHTML = `
-          <td class="p-3 text-sm">${x.date||'-'}</td>
-          <td class="p-3 text-sm">${x.description||'-'}</td>
-          <td class="p-3 text-sm">${x.debit||'-'}</td>
-          <td class="p-3 text-sm">${x.credit||'-'}</td>
-          <td class="p-3 text-sm">
-            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
-            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
-          </td>`;
-        tbody.appendChild(tr);
+    async function generateTranscriptPDF() {
+      if (!state.selectedStudent) {
+        showToast("error", "No student selected.");
+        return;
+      }
+      if (state.gradesCache.length === 0) {
+        showToast("error", "No grades to generate transcript.");
+        return;
+      }
+
+      setLoading(true, "Generating PDF transcript...");
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF();
+      const student = state.selectedStudent;
+
+      // School logo (placeholder, you would replace this with a real image)
+      docPDF.setFontSize(22);
+      docPDF.text("University Name", 105, 20, null, null, "center");
+      docPDF.setFontSize(16);
+      docPDF.text("Official Academic Transcript", 105, 28, null, null, "center");
+      docPDF.setFontSize(10);
+      docPDF.text("P.O Box 123-4567, City", 105, 35, null, null, "center");
+
+      // Student details
+      docPDF.setFontSize(12);
+      docPDF.text(`Student Name: ${student.name || "-"}`, 15, 50);
+      docPDF.text(`Registration No: ${student.regNo || "-"}`, 15, 57);
+      docPDF.text(`Programme: ${student.programme || "-"}`, 15, 64);
+      docPDF.text(`Department: ${student.department || "-"}`, 15, 71);
+
+      // Grades table
+      const rows = state.gradesCache.map(g => [g.courseCode, g.courseName, g.courseUnit, g.grade]);
+      docPDF.autoTable({
+        startY: 85,
+        head: [["Course Code", "Course Name", "Units", "Grade"]],
+        body: rows,
+        headStyles: { fillColor: [24, 116, 205] },
+        theme: 'striped',
+        styles: { fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+        }
       });
-      $$("#feesTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openFeeModal(btn.getAttribute("data-edit"))));
-      $$("#feesTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => removeFee(btn.getAttribute("data-del"))));
+
+      // GPA and Remarks
+      const { gpa, remarks } = calculateGPA(state.gradesCache);
+      const finalY = docPDF.lastAutoTable.finalY + 10;
+      docPDF.text(`Overall GPA: ${gpa}`, 15, finalY);
+      docPDF.text(`Remarks: ${remarks}`, 15, finalY + 7);
+
+      docPDF.save(`${student.regNo || 'transcript'}_Transcript.pdf`);
+      setLoading(false);
+      showToast("ok", "Transcript generated");
     }
-    function openFeeModal(id=null) {
-      $("#feeForm").reset();
-      $("#feeId").value = id||"";
-      const sid = state.selectedStudentId;
-      $("#feeStudentLabel").textContent = sid||"-";
-      if (id) {
-        getDoc(doc(db, `students/${sid}/feesStatement`, id)).then(snap => {
-          if (snap.exists()) {
-            const x = snap.data();
-            $("#fDate").value = x.date||"";
-            $("#fDescription").value = x.description||"";
-            $("#fDebit").value = x.debit||"";
-            $("#fCredit").value = x.credit||"";
-          }
+
+    // FEES
+    async function loadFeesStatement() {
+      if (!state.selectedStudentId) return;
+      if (state.feesUnsub) state.feesUnsub();
+      const tbody = $("#feesTableBody");
+      const qRef = query(collection(db, `students/${state.selectedStudentId}/feesStatement`), orderBy("date", "asc"));
+      state.feesUnsub = onSnapshot(qRef, (snap) => {
+        state.feesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const arr = state.feesCache.filter(f =>
+          (f.description || "").toLowerCase().includes($("#feesSearch").value.toLowerCase()) ||
+          (f.date || "").toLowerCase().includes($("#feesSearch").value.toLowerCase())
+        );
+
+        tbody.innerHTML = "";
+        let runningBalance = 0;
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        arr.forEach(f => {
+          const debit = parseFloat(f.debit) || 0;
+          const credit = parseFloat(f.credit) || 0;
+          runningBalance += debit - credit;
+          totalDebit += debit;
+          totalCredit += credit;
+
+          const tr = document.createElement("tr");
+          tr.className = "border-b hover:bg-gray-50";
+          tr.innerHTML = `
+            <td class="p-3 text-sm">${f.date || '-'}</td>
+            <td class="p-3 text-sm">${f.description || '-'}</td>
+            <td class="p-3 text-sm">${currencyFormatter.format(debit)}</td>
+            <td class="p-3 text-sm">${currencyFormatter.format(credit)}</td>
+            <td class="p-3 text-sm">${currencyFormatter.format(runningBalance)}</td>
+            <td class="p-3 text-sm text-right">
+              <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${f.id}"><i class="fa fa-pen"></i></button>
+              <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${f.id}"><i class="fa fa-trash"></i></button>
+            </td>`;
+          tbody.appendChild(tr);
         });
-        $("#feeModalTitle").textContent = "Edit Fee Entry";
-      } else {
-        $("#feeModalTitle").textContent = "Add Fee Entry";
+
+        $("#runningBalance").textContent = `Running Balance: ${currencyFormatter.format(runningBalance)}`;
+        $$("#feesTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openFeeModal(btn.getAttribute("data-edit"))));
+        $$("#feesTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => confirmDeleteFee(btn.getAttribute("data-id"))));
+      });
+    }
+
+    $("#feesSearch").addEventListener("input", () => loadFeesStatement());
+    $("#feesAddBtn").addEventListener("click", () => openFeeModal());
+
+    function openFeeModal(id = null) {
+      $("#feeForm").reset();
+      $("#feeId").value = id || "";
+      $("#feeModalTitle").textContent = id ? "Edit Fee Entry" : "Add Fee Entry";
+      if (id) {
+        const fee = state.feesCache.find(f => f.id === id);
+        if (fee) {
+          $("#fDate").value = fee.date || "";
+          $("#fDescription").value = fee.description || "";
+          $("#fDebit").value = fee.debit || "";
+          $("#fCredit").value = fee.credit || "";
+        }
       }
       $("#feeModal").classList.remove("hidden");
     }
+
     async function upsertFee(e) {
       e.preventDefault();
       const sid = state.selectedStudentId;
@@ -595,10 +772,14 @@
       const payload = {
         date: $("#fDate").value.trim(),
         description: $("#fDescription").value.trim(),
-        debit: $("#fDebit").value.trim(),
-        credit: $("#fCredit").value.trim(),
+        debit: parseFloat($("#fDebit").value) || 0,
+        credit: parseFloat($("#fCredit").value) || 0,
         updatedAt: serverTimestamp()
       };
+      if (!payload.date || !payload.description || (payload.debit === 0 && payload.credit === 0)) {
+        showToast("error", "Date and Description required, and at least one of Debit or Credit must be > 0.");
+        return;
+      }
       try {
         setLoading(true, id ? "Updating entry..." : "Adding entry...");
         if (id) {
@@ -610,23 +791,28 @@
         $("#feeModal").classList.add("hidden");
         setLoading(false);
         showToast("ok", id ? "Fees updated" : "Fees added");
-        loadFees();
-      } catch(err) {
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Save failed");
       }
     }
-    async function removeFee(id) {
+
+    function confirmDeleteFee(id) {
+      $("#confirmDeleteBtn-fee").setAttribute("data-id", id);
+      $("#confirmDeleteModal-fee").classList.remove("hidden");
+    }
+
+    async function deleteFeeNow() {
+      const id = $("#confirmDeleteBtn-fee").getAttribute("data-id");
       const sid = state.selectedStudentId;
       if (!sid || !id) return;
-      if (!confirm("Delete this entry?")) return;
       try {
         setLoading(true, "Deleting...");
         await deleteDoc(doc(db, `students/${sid}/feesStatement`, id));
+        $("#confirmDeleteModal-fee").classList.add("hidden");
         setLoading(false);
-        showToast("ok","Entry deleted");
-        loadFees();
-      } catch(err) {
+        showToast("ok", "Entry deleted");
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Delete failed");
       }
@@ -634,7 +820,7 @@
 
     // REGISTRATIONS
     async function loadRegistrations() {
-      const sid = state.selectedStudentId || pickStudentForSubcollections();
+      const sid = state.selectedStudentId;
       if (!sid) return;
       const tbody = $("#regsTableBody");
       tbody.innerHTML = "";
@@ -645,44 +831,42 @@
         const tr = document.createElement("tr");
         tr.className = "border-b hover:bg-gray-50";
         tr.innerHTML = `
-          <td class="p-3 text-sm">${x.courseCode||'-'}</td>
-          <td class="p-3 text-sm">${x.courseName||'-'}</td>
-          <td class="p-3 text-sm">${x.department||'-'}</td>
-          <td class="p-3 text-sm">${x.yearOfStudy||'-'}</td>
-          <td class="p-3 text-sm">${x.semester||'-'}</td>
-          <td class="p-3 text-sm">${x.status||'-'}</td>
-          <td class="p-3 text-sm">
-            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
-            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
+          <td class="p-3 text-sm">${x.courseCode || '-'}</td>
+          <td class="p-3 text-sm">${x.courseName || '-'}</td>
+          <td class="p-3 text-sm">${x.department || '-'}</td>
+          <td class="p-3 text-sm">${x.yearOfStudy || '-'}</td>
+          <td class="p-3 text-sm">${x.semester || '-'}</td>
+          <td class="p-3 text-sm">${x.status || '-'}</td>
+          <td class="p-3 text-sm text-right">
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}"><i class="fa fa-pen"></i></button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}"><i class="fa fa-trash"></i></button>
           </td>`;
         tbody.appendChild(tr);
       });
       $$("#regsTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openRegModal(btn.getAttribute("data-edit"))));
       $$("#regsTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => removeRegistration(btn.getAttribute("data-del"))));
     }
-    function openRegModal(id=null) {
+
+    function openRegModal(id = null) {
       $("#regForm").reset();
-      $("#regId").value = id||"";
-      const sid = state.selectedStudentId;
-      $("#regStudentLabel").textContent = sid||"-";
+      $("#regId").value = id || "";
+      $("#regModalTitle").textContent = id ? "Edit Registration" : "Add Registration";
       if (id) {
-        getDoc(doc(db, `students/${sid}/registrations`, id)).then(snap => {
+        getDoc(doc(db, `students/${state.selectedStudentId}/registrations`, id)).then(snap => {
           if (snap.exists()) {
             const x = snap.data();
-            $("#rCourseCode").value = x.courseCode||"";
-            $("#rCourseName").value = x.courseName||"";
-            $("#rDepartment").value = x.department||"";
-            $("#rYear").value = x.yearOfStudy||"";
-            $("#rSemester").value = x.semester||"";
-            $("#rStatus").value = x.status||"";
+            $("#rCourseCode").value = x.courseCode || "";
+            $("#rCourseName").value = x.courseName || "";
+            $("#rDepartment").value = x.department || "";
+            $("#rYear").value = x.yearOfStudy || "";
+            $("#rSemester").value = x.semester || "";
+            $("#rStatus").value = x.status || "";
           }
         });
-        $("#regModalTitle").textContent = "Edit Registration";
-      } else {
-        $("#regModalTitle").textContent = "Add Registration";
       }
       $("#regModal").classList.remove("hidden");
     }
+
     async function upsertRegistration(e) {
       e.preventDefault();
       const sid = state.selectedStudentId;
@@ -709,11 +893,12 @@
         setLoading(false);
         showToast("ok", id ? "Registration updated" : "Registration added");
         loadRegistrations();
-      } catch(err) {
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Save failed");
       }
     }
+
     async function removeRegistration(id) {
       const sid = state.selectedStudentId;
       if (!sid || !id) return;
@@ -722,9 +907,9 @@
         setLoading(true, "Deleting...");
         await deleteDoc(doc(db, `students/${sid}/registrations`, id));
         setLoading(false);
-        showToast("ok","Registration deleted");
+        showToast("ok", "Registration deleted");
         loadRegistrations();
-      } catch(err) {
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Delete failed");
       }
@@ -745,8 +930,8 @@
         const tds = columns.map(c => `<td class="p-3 text-sm">${(x[c] ?? "-")}</td>`).join("");
         tr.innerHTML = `${tds}
           <td class="p-3 text-sm text-right">
-            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}">Edit</button>
-            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}">Delete</button>
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${d.id}"><i class="fa fa-pen"></i> Edit</button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded" data-del="${d.id}"><i class="fa fa-trash"></i> Delete</button>
           </td>`;
         tbody.appendChild(tr);
       });
@@ -755,7 +940,7 @@
       $$(tableBodySel + " [data-del]").forEach(btn => btn.addEventListener("click", () => removeGenericDoc(collectionName, btn.getAttribute("data-del"))));
     }
 
-    function openGenericModal(collectionName, id=null) {
+    function openGenericModal(collectionName, id = null) {
       $("#genericForm").reset();
       $("#genericCollection").value = collectionName;
       $("#genericId").value = id || "";
@@ -763,20 +948,20 @@
       // Build fields per collection
       const map = {
         announcements: [
-          ["date","Date"],["title","Title"],["content","Content","textarea"]
+          ["date", "Date"], ["title", "Title"], ["content", "Content", "textarea"]
         ],
         courses: [
-          ["courseCode","Course Code"],["courseName","Course Name"],["department","Department"],["yearOfStudy","Year"],["semester","Semester"],["courseUnit","Course Unit"]
+          ["courseCode", "Course Code"], ["courseName", "Course Name"], ["department", "Department"], ["yearOfStudy", "Year"], ["semester", "Semester"], ["courseUnit", "Course Unit"]
         ],
         timetables: [
-          ["department","Department"],["yearOfStudy","Year"],["semester","Semester"],["day","Day"],["startTime","Start Time"],["endTime","End Time"],["venue","Venue"],["courseCode","Course Code"]
+          ["department", "Department"], ["yearOfStudy", "Year"], ["semester", "Semester"], ["day", "Day"], ["startTime", "Start Time"], ["endTime", "End Time"], ["venue", "Venue"], ["courseCode", "Course Code"]
         ],
         hostels: [
-          ["name","Name"],["capacity","Capacity"],["price","Price"],["status","Status"]
+          ["name", "Name"], ["capacity", "Capacity"], ["price", "Price"], ["status", "Status"]
         ]
       };
       const fields = map[collectionName] || [];
-      for (const [key,label,type] of fields) {
+      for (const [key, label, type] of fields) {
         const wrapper = document.createElement("div");
         wrapper.className = "mb-3";
         if (type === "textarea") {
@@ -792,7 +977,6 @@
         }
         $("#genericFields").appendChild(wrapper);
       }
-
       if (id) {
         getDoc(doc(db, collectionName, id)).then(snap => {
           if (snap.exists()) {
@@ -803,11 +987,10 @@
             });
           }
         });
-        $("#genericModalTitle").textContent = `Edit ${collectionName.slice(0,1).toUpperCase()+collectionName.slice(1,)} Document`;
+        $("#genericModalTitle").textContent = `Edit ${collectionName.slice(0, 1).toUpperCase() + collectionName.slice(1,)} Document`;
       } else {
-        $("#genericModalTitle").textContent = `Add ${collectionName.slice(0,1).toUpperCase()+collectionName.slice(1,)} Document`;
+        $("#genericModalTitle").textContent = `Add ${collectionName.slice(0, 1).toUpperCase() + collectionName.slice(1,)} Document`;
       }
-
       $("#genericModal").classList.remove("hidden");
     }
 
@@ -815,9 +998,9 @@
       e.preventDefault();
       const col = $("#genericCollection").value;
       const id = $("#genericId").value || null;
-      const keys = Array.from($$("#genericFields [id^='gf-']")).map(el => el.id.replace("gf-",""));
+      const keys = Array.from($$("#genericFields [id^='gf-']")).map(el => el.id.replace("gf-", ""));
       const payload = { updatedAt: serverTimestamp() };
-      keys.forEach(k => payload[k] = (document.getElementById("gf-"+k).value||"").trim());
+      keys.forEach(k => payload[k] = (document.getElementById("gf-" + k).value || "").trim());
       try {
         setLoading(true, id ? "Updating..." : "Adding...");
         if (id) {
@@ -830,29 +1013,29 @@
         setLoading(false);
         showToast("ok", id ? "Updated" : "Added");
         // reload list
-        if (col === "announcements") genericList("announcements","#annTableBody",["date","title","content"]);
-        if (col === "courses") genericList("courses","#coursesTableBody",["courseCode","courseName","department","yearOfStudy","semester","courseUnit"]);
-        if (col === "timetables") genericList("timetables","#ttTableBody",["department","yearOfStudy","semester","day","startTime","endTime","venue","courseCode"]);
-        if (col === "hostels") genericList("hostels","#hostelsTableBody",["name","capacity","price","status"]);
-      } catch(err) {
+        if (col === "announcements") genericList("announcements", "#annTableBody", ["date", "title", "content"]);
+        if (col === "courses") genericList("courses", "#coursesTableBody", ["courseCode", "courseName", "department", "yearOfStudy", "semester", "courseUnit"]);
+        if (col === "timetables") genericList("timetables", "#ttTableBody", ["department", "yearOfStudy", "semester", "day", "startTime", "endTime", "venue", "courseCode"]);
+        if (col === "hostels") genericList("hostels", "#hostelsTableBody", ["name", "capacity", "price", "status"]);
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Failed");
       }
     }
-
+    
     async function removeGenericDoc(collectionName, id) {
       if (!confirm("Delete this document?")) return;
       try {
         setLoading(true, "Deleting...");
         await deleteDoc(doc(db, collectionName, id));
         setLoading(false);
-        showToast("ok","Deleted");
+        showToast("ok", "Deleted");
         // refresh
-        if (collectionName === "announcements") genericList("announcements","#annTableBody",["date","title","content"]);
-        if (collectionName === "courses") genericList("courses","#coursesTableBody",["courseCode","courseName","department","yearOfStudy","semester","courseUnit"]);
-        if (collectionName === "timetables") genericList("timetables","#ttTableBody",["department","yearOfStudy","semester","day","startTime","endTime","venue","courseCode"]);
-        if (collectionName === "hostels") genericList("hostels","#hostelsTableBody",["name","capacity","price","status"]);
-      } catch(err) {
+        if (collectionName === "announcements") genericList("announcements", "#annTableBody", ["date", "title", "content"]);
+        if (collectionName === "courses") genericList("courses", "#coursesTableBody", ["courseCode", "courseName", "department", "yearOfStudy", "semester", "courseUnit"]);
+        if (collectionName === "timetables") genericList("timetables", "#ttTableBody", ["department", "yearOfStudy", "semester", "day", "startTime", "endTime", "venue", "courseCode"]);
+        if (collectionName === "hostels") genericList("hostels", "#hostelsTableBody", ["name", "capacity", "price", "status"]);
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Delete failed");
       }
@@ -880,10 +1063,11 @@
           snap.forEach(d => list.push({ id: d.id, ...d.data() }));
           out.textContent = JSON.stringify(list, null, 2);
         }
-      } catch(err) {
-        out.textContent = "Error: " + (err.message||String(err));
+      } catch (err) {
+        out.textContent = "Error: " + (err.message || String(err));
       }
     }
+
     async function explorerAddUpdate() {
       const path = $("#explorerPath").value.trim();
       const payloadRaw = $("#explorerPayload").value.trim();
@@ -892,7 +1076,12 @@
         const segs = path.split("/").filter(Boolean);
         let payload = {};
         if (payloadRaw) {
-          try { payload = JSON.parse(payloadRaw); } catch { alert("Payload must be valid JSON"); return; }
+          try {
+            payload = JSON.parse(payloadRaw);
+          } catch {
+            alert("Payload must be valid JSON");
+            return;
+          }
         }
         setLoading(true, "Saving...");
         if (segs.length % 2 === 0) {
@@ -903,26 +1092,30 @@
           await addDoc(collection(db, path), payload);
         }
         setLoading(false);
-        showToast("ok","Saved");
+        showToast("ok", "Saved");
         explorerBrowse();
-      } catch(err) {
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Save failed");
       }
     }
+
     async function explorerDelete() {
       const path = $("#explorerPath").value.trim();
       if (!path) return;
       const segs = path.split("/").filter(Boolean);
-      if (segs.length % 2 !== 0) { alert("Provide a full document path to delete."); return; }
+      if (segs.length % 2 !== 0) {
+        alert("Provide a full document path to delete.");
+        return;
+      }
       if (!confirm("Delete this document?")) return;
       try {
         setLoading(true, "Deleting...");
         await deleteDoc(doc(db, path));
         setLoading(false);
-        showToast("ok","Deleted");
+        showToast("ok", "Deleted");
         $("#explorerOutput").textContent = "";
-      } catch(err) {
+      } catch (err) {
         setLoading(false);
         showToast("error", err.message || "Delete failed");
       }
@@ -933,636 +1126,683 @@
     // ------------------------------------
     window.addEventListener("DOMContentLoaded", () => {
       initAuthWatcher();
-
       // Nav actions
       $$(".nav-item").forEach(item => {
         item.addEventListener("click", () => {
           const id = item.getAttribute("data-target");
           activateNav(id);
-          if (id === "announcements") genericList("announcements","#annTableBody",["date","title","content"]);
-          if (id === "courses") genericList("courses","#coursesTableBody",["courseCode","courseName","department","yearOfStudy","semester","courseUnit"]);
-          if (id === "timetables") genericList("timetables","#ttTableBody",["department","yearOfStudy","semester","day","startTime","endTime","venue","courseCode"]);
-          if (id === "hostels") genericList("hostels","#hostelsTableBody",["name","capacity","price","status"]);
+          if (id === "announcements") genericList("announcements", "#annTableBody", ["date", "title", "content"]);
+          if (id === "courses") genericList("courses", "#coursesTableBody", ["courseCode", "courseName", "department", "yearOfStudy", "semester", "courseUnit"]);
+          if (id === "timetables") genericList("timetables", "#ttTableBody", ["department", "yearOfStudy", "semester", "day", "startTime", "endTime", "venue", "courseCode"]);
+          if (id === "hostels") genericList("hostels", "#hostelsTableBody", ["name", "capacity", "price", "status"]);
         });
       });
-
       // Buttons
       $("#loginForm").addEventListener("submit", loginEmailPassword);
       $("#logoutBtn").addEventListener("click", logout);
-
-      // Students
-      $("#addStudentBtn").addEventListener("click", () => openStudentModal(null));
+      $("#addStudentBtn").addEventListener("click", () => openStudentModal());
       $("#studentForm").addEventListener("submit", upsertStudent);
-      $("#closeStudentModal").addEventListener("click", () => $("#studentModal").classList.add("hidden"));
-      $("#cancelStudent").addEventListener("click", () => $("#studentModal").classList.add("hidden"));
-      $("#confirmDeleteCancel").addEventListener("click", () => $("#confirmDeleteModal").classList.add("hidden"));
       $("#confirmDeleteBtn").addEventListener("click", deleteStudentNow);
-
-      // Subs
-      $("#loadGradesBtn").addEventListener("click", loadGrades);
-      $("#addGradeBtn").addEventListener("click", () => openGradeModal(null));
+      $("#confirmDeleteBtn-grade").addEventListener("click", deleteGradeNow);
+      $("#confirmDeleteBtn-fee").addEventListener("click", deleteFeeNow);
       $("#gradeForm").addEventListener("submit", upsertGrade);
-      $("#closeGradeModal").addEventListener("click", () => $("#gradeModal").classList.add("hidden"));
-      $("#cancelGrade").addEventListener("click", () => $("#gradeModal").classList.add("hidden"));
-
-      $("#loadFeesBtn").addEventListener("click", loadFees);
-      $("#addFeeBtn").addEventListener("click", () => openFeeModal(null));
       $("#feeForm").addEventListener("submit", upsertFee);
-      $("#closeFeeModal").addEventListener("click", () => $("#feeModal").classList.add("hidden"));
-      $("#cancelFee").addEventListener("click", () => $("#feeModal").classList.add("hidden"));
-
-      $("#loadRegsBtn").addEventListener("click", loadRegistrations);
-      $("#addRegBtn").addEventListener("click", () => openRegModal(null));
       $("#regForm").addEventListener("submit", upsertRegistration);
-      $("#closeRegModal").addEventListener("click", () => $("#regModal").classList.add("hidden"));
-      $("#cancelReg").addEventListener("click", () => $("#regModal").classList.add("hidden"));
-
-      // Generic modal
       $("#genericForm").addEventListener("submit", upsertGeneric);
-      $("#closeGenericModal").addEventListener("click", () => $("#genericModal").classList.add("hidden"));
-      $("#cancelGeneric").addEventListener("click", () => $("#genericModal").classList.add("hidden"));
-
-      // Explorer
-      $("#explorerBrowseBtn").addEventListener("click", explorerBrowse);
-      $("#explorerSaveBtn").addEventListener("click", explorerAddUpdate);
+      $("#exploreBtn").addEventListener("click", explorerBrowse);
+      $("#explorerAddUpdateBtn").addEventListener("click", explorerAddUpdate);
       $("#explorerDeleteBtn").addEventListener("click", explorerDelete);
-
-      // Dashboard exports
-      $("#exportCSVBtn").addEventListener("click", exportStudentsCSV);
-      $("#exportPDFBtn").addEventListener("click", exportStudentsPDF);
-
-      // Default view
-      activateNav("dashboard");
+      $("#exportStudentsCsvBtn").addEventListener("click", exportStudentsCSV);
+      $("#exportStudentsPdfBtn").addEventListener("click", exportStudentsPDF);
+      $("#backToStudentsBtn").addEventListener("click", () => {
+        activateNav("students");
+        state.selectedStudentId = null;
+        state.selectedStudent = null;
+      });
+      // Student profile tabs
+      $("#tab-grades").addEventListener("click", () => { activateStudentProfileTab("grades"); loadGrades(); });
+      $("#tab-fees").addEventListener("click", () => { activateStudentProfileTab("fees"); loadFeesStatement(); });
+      $("#tab-registrations").addEventListener("click", () => { activateStudentProfileTab("registrations"); loadRegistrations(); });
     });
   </script>
-
-  <style>
-    /* Smooth scrollbar & spacing */
-    ::-webkit-scrollbar { height: 8px; width: 8px; }
-    ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
-    html, body { height: 100%; }
-  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 font-sans">
 
-  <!-- Loading overlay -->
-  <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg p-6 shadow-xl w-80 flex flex-col items-center gap-3">
-      <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600"></div>
-      <div id="loadingText" class="text-sm text-gray-700">Working...</div>
+  <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-[100] flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto"></div>
+      <p id="loadingText" class="mt-4 text-sm text-gray-700 font-medium">Working...</p>
     </div>
   </div>
 
-  <!-- Auth screen -->
-  <div id="authScreen" class="min-h-screen flex items-center justify-center px-4 py-10">
-    <div class="bg-white w-full max-w-md rounded-xl shadow p-6">
-      <div class="flex items-center gap-3 mb-4">
-        <img src="myschoollogo.png" class="h-10 w-10 object-contain" alt="Logo">
-        <h1 class="text-2xl font-bold text-blue-800">Admin Sign In</h1>
-      </div>
-      <p class="text-sm text-gray-600 mb-4">Only users listed in <code>admins/{uid}</code> with <code>isAdmin: true</code> can access.</p>
-      <form id="loginForm" class="space-y-3">
+  <div id="authScreen" class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+      <h1 class="text-2xl font-bold text-center mb-6">Admin Login</h1>
+      <form id="loginForm" class="space-y-4">
         <div>
-          <label class="text-sm font-medium">Email</label>
-          <input id="loginEmail" type="email" required class="mt-1 w-full border rounded p-2" placeholder="admin@example.com" />
+          <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" id="loginEmail" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
         <div>
-          <label class="text-sm font-medium">Password</label>
-          <input id="loginPassword" type="password" required class="mt-1 w-full border rounded p-2" placeholder="••••••••" />
+          <label for="loginPassword" class="block text-sm font-medium text-gray-700">Password</label>
+          <input type="password" id="loginPassword" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
-        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded py-2 font-medium">Sign In</button>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Login</button>
       </form>
-      <p class="text-xs text-gray-500 mt-4">Tip: Create a document in <code>admins</code> with your UID and <code>{ isAdmin: true }</code>.</p>
     </div>
   </div>
 
-  <!-- App -->
-  <div id="appScreen" class="hidden">
+  <div id="appScreen" class="hidden flex min-h-screen">
+    <div class="bg-gray-800 text-white w-64 p-4 space-y-4">
+      <div class="text-center font-bold text-xl mb-6">Admin Panel</div>
+      <nav class="space-y-2">
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="dashboard">
+          <i class="fa fa-tachometer-alt"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="students">
+          <i class="fa fa-users"></i>
+          <span>Students</span>
+        </a>
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="announcements">
+          <i class="fa fa-bullhorn"></i>
+          <span>Announcements</span>
+        </a>
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="courses">
+          <i class="fa fa-book"></i>
+          <span>Courses</span>
+        </a>
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="timetables">
+          <i class="fa fa-calendar-alt"></i>
+          <span>Timetables</span>
+        </a>
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="hostels">
+          <i class="fa fa-bed"></i>
+          <span>Hostels</span>
+        </a>
+        <a href="#" class="nav-item flex items-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-gray-700 active:bg-blue-600" data-target="explorer">
+          <i class="fa fa-database"></i>
+          <span>Firestore Explorer</span>
+        </a>
+      </nav>
+      <div class="mt-auto pt-4 border-t border-gray-700">
+        <button id="logoutBtn" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-md transition-colors hover:bg-red-600">
+          <i class="fa fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
 
-    <!-- Topbar -->
-    <header class="bg-white border-b">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <img src="myschoollogo.png" class="h-9 w-9 object-contain" alt="Logo">
-          <div>
-            <h1 class="text-xl font-bold text-blue-800 leading-tight">Admin Panel</h1>
-            <p class="text-xs text-gray-500 -mt-1">Student Portal Management</p>
+    <main class="flex-1 p-8 overflow-y-auto">
+      <div id="sec-dashboard" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Dashboard</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+          <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+            <div class="text-gray-500">
+              <i class="fa fa-users text-4xl"></i>
+              <p class="mt-2 text-sm font-medium">Total Students</p>
+            </div>
+            <div class="text-right">
+              <span id="countStudents" class="text-4xl font-bold text-blue-600">0</span>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+            <div class="text-gray-500">
+              <i class="fa fa-book text-4xl"></i>
+              <p class="mt-2 text-sm font-medium">Total Courses</p>
+            </div>
+            <div class="text-right">
+              <span id="countCourses" class="text-4xl font-bold text-blue-600">0</span>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+            <div class="text-gray-500">
+              <i class="fa fa-bullhorn text-4xl"></i>
+              <p class="mt-2 text-sm font-medium">Announcements</p>
+            </div>
+            <div class="text-right">
+              <span id="countAnnouncements" class="text-4xl font-bold text-blue-600">0</span>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+            <div class="text-gray-500">
+              <i class="fa fa-calendar-alt text-4xl"></i>
+              <p class="mt-2 text-sm font-medium">Timetables</p>
+            </div>
+            <div class="text-right">
+              <span id="countTimetables" class="text-4xl font-bold text-blue-600">0</span>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+            <div class="text-gray-500">
+              <i class="fa fa-bed text-4xl"></i>
+              <p class="mt-2 text-sm font-medium">Hostels</p>
+            </div>
+            <div class="text-right">
+              <span id="countHostels" class="text-4xl font-bold text-blue-600">0</span>
+            </div>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <button id="logoutBtn" class="px-3 py-1.5 rounded bg-red-600 text-white text-sm hover:bg-red-700"><i class="fa fa-right-from-bracket mr-2"></i>Logout</button>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
+          <div class="flex flex-wrap gap-4">
+            <button id="exportStudentsCsvBtn" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+              <i class="fa fa-file-csv"></i>
+              <span>Export Students to CSV</span>
+            </button>
+            <button id="exportStudentsPdfBtn" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+              <i class="fa fa-file-pdf"></i>
+              <span>Export Students to PDF</span>
+            </button>
+          </div>
         </div>
       </div>
-    </header>
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-4 px-4 py-6">
-
-      <!-- Sidebar -->
-      <aside class="md:col-span-3 lg:col-span-2">
-        <nav class="bg-white rounded-xl shadow overflow-hidden">
-          <div class="p-3 text-xs uppercase text-gray-500">Navigation</div>
-          <ul class="text-sm">
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="dashboard"><i class="fa fa-gauge"></i><span>Dashboard</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="students"><i class="fa fa-user-graduate"></i><span>Students</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="grades"><i class="fa fa-list-check"></i><span>Grades</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="fees"><i class="fa fa-receipt"></i><span>Fees</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="registrations"><i class="fa fa-clipboard-list"></i><span>Registrations</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="announcements"><i class="fa fa-bullhorn"></i><span>Announcements</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="courses"><i class="fa fa-book"></i><span>Courses</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="timetables"><i class="fa fa-calendar-days"></i><span>Timetables</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="hostels"><i class="fa fa-house-user"></i><span>Hostels</span></button></li>
-            <li><button class="nav-item w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3" data-target="explorer"><i class="fa fa-database"></i><span>Firestore Explorer</span></button></li>
-          </ul>
-        </nav>
-      </aside>
-
-      <!-- Main -->
-      <main class="md:col-span-9 lg:col-span-10 space-y-6">
-
-        <!-- Dashboard -->
-        <section id="sec-dashboard" class="bg-white rounded-xl shadow p-4">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Dashboard</h2>
-            <div class="flex gap-2">
-              <button id="exportCSVBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"><i class="fa fa-file-csv mr-2"></i>Export CSV</button>
-              <button id="exportPDFBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"><i class="fa fa-file-pdf mr-2"></i>Export PDF</button>
+      <div id="sec-students" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Students Management</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+            <div class="flex-1 w-full sm:w-auto mb-2 sm:mb-0">
+              <input type="text" id="studentSearch" placeholder="Search by name, regNo, or email..." class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+              <select id="studentSortBy" class="border border-gray-300 rounded-md p-2">
+                <option value="name">Sort by Name</option>
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+              <button id="addStudentBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fa fa-plus"></i> Add Student
+              </button>
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div class="p-4 rounded-lg border">
-              <div class="text-xs uppercase text-gray-500">Students</div>
-              <div id="countStudents" class="text-3xl font-bold text-blue-800 mt-1">-</div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Email</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reg No</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                  <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-student-profile" class="hidden">
+        <button id="backToStudentsBtn" class="mb-4 text-blue-600 hover:text-blue-800 font-medium">
+          <i class="fa fa-arrow-left"></i> Back to Students
+        </button>
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Student Profile</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+          <div class="flex items-center space-x-4">
+            <img id="profilePhoto" class="h-20 w-20 rounded-full object-cover" alt="Student photo" />
+            <div>
+              <h3 id="profileName" class="text-xl font-bold text-gray-800">-</h3>
+              <p id="profileRegNo" class="text-gray-500">-</p>
+              <p id="profileProgramme" class="text-sm text-gray-500">-</p>
+              <p id="profileDepartment" class="text-sm text-gray-500">-</p>
             </div>
-            <div class="p-4 rounded-lg border">
-              <div class="text-xs uppercase text-gray-500">Courses</div>
-              <div id="countCourses" class="text-3xl font-bold text-blue-800 mt-1">-</div>
-            </div>
-            <div class="p-4 rounded-lg border">
-              <div class="text-xs uppercase text-gray-500">Announcements</div>
-              <div id="countAnnouncements" class="text-3xl font-bold text-blue-800 mt-1">-</div>
-            </div>
           </div>
-        </section>
+        </div>
 
-        <!-- Students -->
-        <section id="sec-students" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Students <span class="text-xs text-gray-500">(total <span id="studentsTotal">0</span>)</span></h2>
-            <button id="addStudentBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"><i class="fa fa-plus mr-2"></i>New Student</button>
+        <div id="sec-student-profile-tabs" class="bg-white rounded-lg shadow-md">
+          <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8 px-4" aria-label="Tabs">
+              <a href="#" id="tab-grades" class="student-profile-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Grades & Transcripts</a>
+              <a href="#" id="tab-fees" class="student-profile-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Fees Statement</a>
+              <a href="#" id="tab-registrations" class="student-profile-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Course Registrations</a>
+            </nav>
           </div>
-          <div class="flex flex-col sm:flex-row gap-3 mb-3">
-            <input id="studentSearch" class="flex-1 border rounded p-2" placeholder="Search by name, regNo or email..." />
-            <select id="studentSortBy" class="w-48 border rounded p-2">
-              <option value="name">Sort: Name (A–Z)</option>
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-            </select>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Student</th>
-                  <th class="p-3">Reg No</th>
-                  <th class="p-3">Programme</th>
-                  <th class="p-3">Department</th>
-                  <th class="p-3">Year</th>
-                  <th class="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="studentsTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Grades -->
-        <section id="sec-grades" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Grades & Transcripts</h2>
-            <div class="text-sm text-gray-600">Student: <span id="subcStudentLabel" class="font-semibold">None</span></div>
-          </div>
-          <div class="flex gap-2 mb-3">
-            <button id="loadGradesBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm"><i class="fa fa-rotate mr-2"></i>Load</button>
-            <button id="addGradeBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"><i class="fa fa-plus mr-2"></i>Add Grade</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Course Code</th>
-                  <th class="p-3">Course Name</th>
-                  <th class="p-3">Unit</th>
-                  <th class="p-3">Grade</th>
-                  <th class="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="gradesTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Fees -->
-        <section id="sec-fees" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Fees Statement</h2>
-            <div class="text-sm text-gray-600">Student: <span id="subcStudentLabel" class="font-semibold">None</span></div>
-          </div>
-          <div class="flex gap-2 mb-3">
-            <button id="loadFeesBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm"><i class="fa fa-rotate mr-2"></i>Load</button>
-            <button id="addFeeBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"><i class="fa fa-plus mr-2"></i>Add Entry</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Date</th>
-                  <th class="p-3">Description</th>
-                  <th class="p-3">Debit</th>
-                  <th class="p-3">Credit</th>
-                  <th class="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="feesTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Registrations -->
-        <section id="sec-registrations" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Course Registrations</h2>
-            <div class="text-sm text-gray-600">Student: <span id="subcStudentLabel" class="font-semibold">None</span></div>
-          </div>
-          <div class="flex gap-2 mb-3">
-            <button id="loadRegsBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm"><i class="fa fa-rotate mr-2"></i>Load</button>
-            <button id="addRegBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"><i class="fa fa-plus mr-2"></i>Add Registration</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Course Code</th>
-                  <th class="p-3">Course Name</th>
-                  <th class="p-3">Department</th>
-                  <th class="p-3">Year</th>
-                  <th class="p-3">Semester</th>
-                  <th class="p-3">Status</th>
-                  <th class="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="regsTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Announcements -->
-        <section id="sec-announcements" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Announcements</h2>
-            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('announcements')"><i class="fa fa-plus mr-2"></i>New</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Date</th>
-                  <th class="p-3">Title</th>
-                  <th class="p-3">Content</th>
-                  <th class="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="annTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Courses -->
-        <section id="sec-courses" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Courses</h2>
-            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('courses')"><i class="fa fa-plus mr-2"></i>New</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Code</th>
-                  <th class="p-3">Name</th>
-                  <th class="p-3">Department</th>
-                  <th class="p-3">Year</th>
-                  <th class="p-3">Semester</th>
-                  <th class="p-3">Unit</th>
-                  <th class="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="coursesTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Timetables -->
-        <section id="sec-timetables" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Timetables</h2>
-            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('timetables')"><i class="fa fa-plus mr-2"></i>New</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Department</th>
-                  <th class="p-3">Year</th>
-                  <th class="p-3">Semester</th>
-                  <th class="p-3">Day</th>
-                  <th class="p-3">Start</th>
-                  <th class="p-3">End</th>
-                  <th class="p-3">Venue</th>
-                  <th class="p-3">Course</th>
-                  <th class="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="ttTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Hostels -->
-        <section id="sec-hostels" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Hostels</h2>
-            <button class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" onclick="openGenericModal('hostels')"><i class="fa fa-plus mr-2"></i>New</button>
-          </div>
-          <div class="overflow-auto">
-            <table class="min-w-full">
-              <thead>
-                <tr class="text-left text-xs uppercase text-gray-500 border-b">
-                  <th class="p-3">Name</th>
-                  <th class="p-3">Capacity</th>
-                  <th class="p-3">Price</th>
-                  <th class="p-3">Status</th>
-                  <th class="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="hostelsTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Explorer -->
-        <section id="sec-explorer" class="bg-white rounded-xl shadow p-4 hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-blue-800">Firestore Explorer (Simple)</h2>
-          </div>
-          <div class="space-y-3">
-            <div class="flex flex-col sm:flex-row gap-3">
-              <input id="explorerPath" class="flex-1 border rounded p-2" placeholder="Path e.g. students or students/ABC123" />
-              <div class="flex gap-2">
-                <button id="explorerBrowseBtn" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm">Browse</button>
-                <button id="explorerSaveBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm">Save</button>
-                <button id="explorerDeleteBtn" class="px-3 py-1.5 bg-red-600 text-white rounded text-sm">Delete</button>
+          <div class="p-6">
+            <div id="content-grades" class="student-profile-tab-content">
+              <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                <div class="flex-1 w-full sm:w-auto mb-2 sm:mb-0">
+                  <input type="text" id="gradesSearch" placeholder="Search by course code or name..." class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                  <button id="gradesExportPDFBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <i class="fa fa-file-pdf"></i> Generate Transcript
+                  </button>
+                  <button id="gradesAddBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fa fa-plus"></i> Add Grade
+                  </button>
+                </div>
+              </div>
+              <div class="mb-4 text-gray-700 font-semibold">
+                <span id="gpaValue">GPA: -</span> | <span id="gpaRemarks">Remarks: -</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Code</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Unit</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                      <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gradesTableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
               </div>
             </div>
-            <textarea id="explorerPayload" class="w-full border rounded p-2" rows="6" placeholder='Optional JSON payload for Save (use valid JSON)'></textarea>
-            <pre id="explorerOutput" class="w-full border rounded p-3 bg-gray-50 text-xs overflow-auto" style="max-height: 320px;"></pre>
-          </div>
-        </section>
 
-      </main>
-    </div>
+            <div id="content-fees" class="student-profile-tab-content hidden">
+              <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                <div class="flex-1 w-full sm:w-auto mb-2 sm:mb-0">
+                  <input type="text" id="feesSearch" placeholder="Search by date or description..." class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                  <button id="feesExportPDFBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <i class="fa fa-file-pdf"></i> Export PDF
+                  </button>
+                  <button id="feesAddBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fa fa-plus"></i> Add Fee
+                  </button>
+                </div>
+              </div>
+              <div class="mb-4 text-gray-700 font-semibold">
+                <span id="runningBalance">Running Balance: KES 0.00</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Debit (KES)</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit (KES)</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                      <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="feesTableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="content-registrations" class="student-profile-tab-content hidden">
+              <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                <input type="text" id="regsSearch" placeholder="Search registrations..." class="w-full sm:w-1/2 mb-2 sm:mb-0 border border-gray-300 rounded-md p-2" />
+                <button id="regsAddBtn" class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"><i class="fa fa-plus"></i> Add Registration</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Code</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Name</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                      <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="regsTableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-announcements" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Announcements</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <button onclick="openGenericModal('announcements')" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><i class="fa fa-plus"></i> Add Announcement</button>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Content</th>
+                  <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="annTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="sec-courses" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Courses</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <button onclick="openGenericModal('courses')" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><i class="fa fa-plus"></i> Add Course</button>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
+                  <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="coursesTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="sec-timetables" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Timetables</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <button onclick="openGenericModal('timetables')" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><i class="fa fa-plus"></i> Add Timetable</button>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Venue</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Code</th>
+                  <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ttTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="sec-hostels" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Hostels</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <button onclick="openGenericModal('hostels')" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><i class="fa fa-plus"></i> Add Hostel</button>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="p-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hostelsTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="sec-explorer" class="hidden">
+        <h2 class="text-3xl font-semibold text-gray-800 mb-6">Firestore Explorer</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md space-y-4">
+          <div>
+            <label for="explorerPath" class="block text-sm font-medium text-gray-700">Collection/Document Path:</label>
+            <input type="text" id="explorerPath" placeholder="e.g., students/studentId or courses" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+          </div>
+          <div class="flex space-x-2">
+            <button id="exploreBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Browse</button>
+            <button id="explorerDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Delete</button>
+          </div>
+          <div>
+            <label for="explorerPayload" class="block text-sm font-medium text-gray-700">Payload (JSON):</label>
+            <textarea id="explorerPayload" rows="8" placeholder='{"key":"value"}' class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 font-mono"></textarea>
+          </div>
+          <div class="flex space-x-2">
+            <button id="explorerAddUpdateBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add/Update</button>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Output:</label>
+            <pre id="explorerOutput" class="mt-1 w-full bg-gray-800 text-gray-200 rounded-md p-4 overflow-x-auto text-sm"></pre>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <!-- Modals -->
-  <!-- Student Modal -->
-  <div id="studentModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-2xl p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 id="studentModalTitle" class="text-lg font-semibold text-blue-800">Add Student</h3>
-        <button id="closeStudentModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+  <div id="studentModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="studentModalTitle" class="text-xl font-bold">Add Student</h3>
+        <button onclick="document.getElementById('studentModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-800"><i class="fa fa-times"></i></button>
       </div>
-      <form id="studentForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <form id="studentForm" class="space-y-4" onsubmit="return false;">
         <input type="hidden" id="studentId" />
-        <div>
-          <label class="text-sm font-medium">Name</label>
-          <input id="studentName" class="mt-1 w-full border rounded p-2" required />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Email</label>
-          <input id="studentEmail" type="email" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Reg No</label>
-          <input id="studentRegNo" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Programme</label>
-          <input id="studentProgramme" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Department</label>
-          <input id="studentDepartment" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Campus</label>
-          <input id="studentCampus" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Semester</label>
-          <input id="studentSemester" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Year of Study</label>
-          <input id="studentYear" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div class="sm:col-span-2">
-          <label class="text-sm font-medium">Address</label>
-          <input id="studentAddress" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Gender</label>
-          <select id="studentGender" class="mt-1 w-full border rounded p-2">
-            <option value="">Select</option>
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium">Date of Birth</label>
-          <input id="studentDOB" type="date" class="mt-1 w-full border rounded p-2" />
-        </div>
-
-        <!-- Photo -->
-        <div class="sm:col-span-2">
-          <label class="text-sm font-medium">Profile Photo</label>
-          <div class="mt-1 flex items-center gap-3">
-            <img id="studentPhotoPreview" src="https://placehold.co/80x80" class="h-16 w-16 rounded object-cover border" />
-            <input id="studentPhoto" type="file" accept="image/*" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="studentName" class="block text-sm font-medium text-gray-700">Name</label>
+            <input type="text" id="studentName" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentEmail" class="block text-sm font-medium text-gray-700">Email</label>
+            <input type="email" id="studentEmail" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentRegNo" class="block text-sm font-medium text-gray-700">Reg No</label>
+            <input type="text" id="studentRegNo" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentProgramme" class="block text-sm font-medium text-gray-700">Programme</label>
+            <input type="text" id="studentProgramme" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentDepartment" class="block text-sm font-medium text-gray-700">Department</label>
+            <input type="text" id="studentDepartment" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentCampus" class="block text-sm font-medium text-gray-700">Campus</label>
+            <input type="text" id="studentCampus" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentSemester" class="block text-sm font-medium text-gray-700">Semester</label>
+            <input type="number" id="studentSemester" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentYear" class="block text-sm font-medium text-gray-700">Year of Study</label>
+            <input type="number" id="studentYear" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentAddress" class="block text-sm font-medium text-gray-700">Address</label>
+            <input type="text" id="studentAddress" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentGender" class="block text-sm font-medium text-gray-700">Gender</label>
+            <select id="studentGender" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="studentDOB" class="block text-sm font-medium text-gray-700">Date of Birth</label>
+            <input type="date" id="studentDOB" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+          </div>
+          <div>
+            <label for="studentPhoto" class="block text-sm font-medium text-gray-700">Profile Photo</label>
+            <input type="file" id="studentPhoto" accept="image/*" class="mt-1 block w-full" />
+            <img id="studentPhotoPreview" class="mt-2 h-20 w-20 rounded-full object-cover" src="https://placehold.co/80x80" alt="Photo Preview" />
           </div>
         </div>
-
-        <div class="sm:col-span-2 flex justify-end gap-2 mt-2">
-          <button id="cancelStudent" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        <div class="text-right">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Student</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Confirm Delete -->
-  <div id="confirmDeleteModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-sm p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold text-blue-800">Confirm Delete</h3>
-        <button id="confirmDeleteCancel" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+  <div id="gradeModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="gradeModalTitle" class="text-xl font-bold">Add Grade</h3>
+        <button onclick="document.getElementById('gradeModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-800"><i class="fa fa-times"></i></button>
       </div>
-      <p class="text-sm text-gray-600">This action cannot be undone.</p>
-      <div class="mt-4 flex justify-end gap-2">
-        <button id="confirmDeleteCancel" class="px-3 py-1.5 rounded border">Cancel</button>
-        <button id="confirmDeleteBtn" class="px-3 py-1.5 rounded bg-red-600 text-white">Delete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Grade Modal -->
-  <div id="gradeModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-lg p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 id="gradeModalTitle" class="text-lg font-semibold text-blue-800">Add Grade</h3>
-        <button id="closeGradeModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
-      </div>
-      <form id="gradeForm" class="grid grid-cols-1 gap-3">
+      <form id="gradeForm" class="space-y-4" onsubmit="return false;">
         <input type="hidden" id="gradeId" />
-        <div class="text-xs text-gray-500">Student: <span id="gradeStudentLabel">-</span></div>
         <div>
-          <label class="text-sm font-medium">Course Code</label>
-          <input id="gCourseCode" class="mt-1 w-full border rounded p-2" required />
+          <label for="gCourseCode" class="block text-sm font-medium text-gray-700">Course Code</label>
+          <input type="text" id="gCourseCode" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Course Name</label>
-          <input id="gCourseName" class="mt-1 w-full border rounded p-2" />
+          <label for="gCourseName" class="block text-sm font-medium text-gray-700">Course Name</label>
+          <input type="text" id="gCourseName" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Course Unit</label>
-          <input id="gCourseUnit" class="mt-1 w-full border rounded p-2" />
+          <label for="gCourseUnit" class="block text-sm font-medium text-gray-700">Course Unit</label>
+          <input type="number" id="gCourseUnit" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Grade</label>
-          <input id="gGrade" class="mt-1 w-full border rounded p-2" />
+          <label for="gGrade" class="block text-sm font-medium text-gray-700">Grade (e.g., A, B+, C)</label>
+          <input type="text" id="gGrade" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
-        <div class="flex justify-end gap-2 mt-2">
-          <button id="cancelGrade" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        <div>
+          <label for="gSemester" class="block text-sm font-medium text-gray-700">Semester</label>
+          <input type="number" id="gSemester" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+        </div>
+        <div>
+          <label for="gYear" class="block text-sm font-medium text-gray-700">Year of Study</label>
+          <input type="number" id="gYear" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+        </div>
+        <div class="text-right">
+          <button type="submit" onclick="upsertGrade(event)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Grade</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Fee Modal -->
-  <div id="feeModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-lg p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 id="feeModalTitle" class="text-lg font-semibold text-blue-800">Add Fee Entry</h3>
-        <button id="closeFeeModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+  <div id="feeModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="feeModalTitle" class="text-xl font-bold">Add Fee Entry</h3>
+        <button onclick="document.getElementById('feeModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-800"><i class="fa fa-times"></i></button>
       </div>
-      <form id="feeForm" class="grid grid-cols-1 gap-3">
+      <form id="feeForm" class="space-y-4" onsubmit="return false;">
         <input type="hidden" id="feeId" />
-        <div class="text-xs text-gray-500">Student: <span id="feeStudentLabel">-</span></div>
         <div>
-          <label class="text-sm font-medium">Date</label>
-          <input id="fDate" type="date" class="mt-1 w-full border rounded p-2" />
+          <label for="fDate" class="block text-sm font-medium text-gray-700">Date</label>
+          <input type="date" id="fDate" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Description</label>
-          <input id="fDescription" class="mt-1 w-full border rounded p-2" />
+          <label for="fDescription" class="block text-sm font-medium text-gray-700">Description</label>
+          <input type="text" id="fDescription" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Debit</label>
-          <input id="fDebit" type="number" step="0.01" class="mt-1 w-full border rounded p-2" />
+          <label for="fDebit" class="block text-sm font-medium text-gray-700">Debit (Amount Charged)</label>
+          <input type="number" id="fDebit" min="0" value="0" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Credit</label>
-          <input id="fCredit" type="number" step="0.01" class="mt-1 w-full border rounded p-2" />
+          <label for="fCredit" class="block text-sm font-medium text-gray-700">Credit (Amount Paid)</label>
+          <input type="number" id="fCredit" min="0" value="0" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
-        <div class="flex justify-end gap-2 mt-2">
-          <button id="cancelFee" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        <div class="text-right">
+          <button type="submit" onclick="upsertFee(event)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Entry</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Registration Modal -->
-  <div id="regModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-lg p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 id="regModalTitle" class="text-lg font-semibold text-blue-800">Add Registration</h3>
-        <button id="closeRegModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+  <div id="regModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="regModalTitle" class="text-xl font-bold">Add Registration</h3>
+        <button onclick="document.getElementById('regModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-800"><i class="fa fa-times"></i></button>
       </div>
-      <form id="regForm" class="grid grid-cols-1 gap-3">
+      <form id="regForm" class="space-y-4" onsubmit="return false;">
         <input type="hidden" id="regId" />
-        <div class="text-xs text-gray-500">Student: <span id="regStudentLabel">-</span></div>
         <div>
-          <label class="text-sm font-medium">Course Code</label>
-          <input id="rCourseCode" class="mt-1 w-full border rounded p-2" required />
+          <label for="rCourseCode" class="block text-sm font-medium text-gray-700">Course Code</label>
+          <input type="text" id="rCourseCode" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Course Name</label>
-          <input id="rCourseName" class="mt-1 w-full border rounded p-2" />
+          <label for="rCourseName" class="block text-sm font-medium text-gray-700">Course Name</label>
+          <input type="text" id="rCourseName" required class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Department</label>
-          <input id="rDepartment" class="mt-1 w-full border rounded p-2" />
+          <label for="rDepartment" class="block text-sm font-medium text-gray-700">Department</label>
+          <input type="text" id="rDepartment" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Year of Study</label>
-          <input id="rYear" class="mt-1 w-full border rounded p-2" />
+          <label for="rYear" class="block text-sm font-medium text-gray-700">Year</label>
+          <input type="number" id="rYear" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Semester</label>
-          <input id="rSemester" class="mt-1 w-full border rounded p-2" />
+          <label for="rSemester" class="block text-sm font-medium text-gray-700">Semester</label>
+          <input type="number" id="rSemester" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
         <div>
-          <label class="text-sm font-medium">Status</label>
-          <input id="rStatus" class="mt-1 w-full border rounded p-2" />
+          <label for="rStatus" class="block text-sm font-medium text-gray-700">Status</label>
+          <input type="text" id="rStatus" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
         </div>
-        <div class="flex justify-end gap-2 mt-2">
-          <button id="cancelReg" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        <div class="text-right">
+          <button type="submit" onclick="upsertRegistration(event)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Registration</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Generic Modal (Announcements, Courses, Timetables, Hostels) -->
-  <div id="genericModal" class="hidden fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg w-[95%] max-w-2xl p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 id="genericModalTitle" class="text-lg font-semibold text-blue-800">Add</h3>
-        <button id="closeGenericModal" class="text-gray-500 hover:text-gray-700"><i class="fa fa-times"></i></button>
+  <div id="genericModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="genericModalTitle" class="text-xl font-bold">Add Document</h3>
+        <button onclick="document.getElementById('genericModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-800"><i class="fa fa-times"></i></button>
       </div>
-      <form id="genericForm" class="grid grid-cols-1 gap-3">
+      <form id="genericForm" class="space-y-4" onsubmit="return false;">
         <input type="hidden" id="genericCollection" />
         <input type="hidden" id="genericId" />
-        <div id="genericFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-        <div class="flex justify-end gap-2 mt-2">
-          <button id="cancelGeneric" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
+        <div id="genericFields">
+          </div>
+        <div class="text-right">
+          <button type="submit" onclick="upsertGeneric(event)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
         </div>
       </form>
     </div>
   </div>
 
-</body>
-</html>
+  <div id="confirmDeleteModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4">Confirm Deletion</h3>
+      <p>Are you sure you want to delete this student?</p>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button onclick="document.getElementById('confirmDeleteModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md">Cancel</button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md">Delete</button>
+      </div>
+    </div>
+  </div>
 
-        <input type="hidden" id="genericCollection" />
-        <input type="hidden" id="genericId" />
-        <div id="genericFields" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-        <div class="sm:col-span-2 flex justify-end gap-2 mt-2">
-          <button id="cancelGeneric" type="button" class="px-3 py-1.5 rounded border">Cancel</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white">Save</button>
-        </div>
-      </form>
+  <div id="confirmDeleteModal-grade" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4">Confirm Deletion</h3>
+      <p>Are you sure you want to delete this grade?</p>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button onclick="document.getElementById('confirmDeleteModal-grade').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md">Cancel</button>
+        <button id="confirmDeleteBtn-grade" class="px-4 py-2 bg-red-600 text-white rounded-md">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmDeleteModal-fee" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <h3 class="text-xl font-bold mb-4">Confirm Deletion</h3>
+      <p>Are you sure you want to delete this fee entry?</p>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button onclick="document.getElementById('confirmDeleteModal-fee').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md">Cancel</button>
+        <button id="confirmDeleteBtn-fee" class="px-4 py-2 bg-red-600 text-white rounded-md">Delete</button>
+      </div>
     </div>
   </div>
 
