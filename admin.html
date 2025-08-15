@@ -502,8 +502,8 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"; // Added signInWithEmailAndPassword, onAuthStateChanged, signOut
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"; // Added query, where, orderBy, writeBatch
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -569,44 +569,65 @@
 
             try {
                 showLoading('Authenticating...');
-                const res = await signInWithEmailAndPassword(auth, email, password); // Use signInWithEmailAndPassword with auth instance
+                const res = await signInWithEmailAndPassword(auth, email, password);
                 const user = res.user;
 
                 // Check if the user is an admin
-                const adminDoc = await getDoc(doc(db, 'admins', user.email));
+                // Convert email to lowercase for consistent Firestore lookups
+                const adminDoc = await getDoc(doc(db, 'admins', user.email.toLowerCase()));
                 if (adminDoc.exists() && adminDoc.data().isAdmin) {
                     showCustomModal('Success', 'Admin login successful!', false);
                 } else {
                     // Not authorized, sign out
-                    await signOut(auth); // Use signOut with auth instance
+                    await signOut(auth);
                     showCustomModal('Authorization Failed', 'You are not authorized to access this dashboard. Please log in with a valid admin account.', false);
                 }
 
             } catch (error) {
-                showCustomModal('Login Failed', error.message, false);
+                let errorMessage = 'An unknown error occurred.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'Invalid email or password. Please try again.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'The email address is not valid.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Too many login attempts. Please try again later.';
+                }
+                showCustomModal('Login Failed', errorMessage, false);
+                console.error("Login error:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
         });
 
-        onAuthStateChanged(auth, async (user) => { // Use onAuthStateChanged with auth instance
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 showLoading('Verifying admin access...');
                 // Check for admin status on every state change
-                const adminDoc = await getDoc(doc(db, 'admins', user.email));
+                // Convert email to lowercase for consistent Firestore lookups
+                const adminDoc = await getDoc(doc(db, 'admins', user.email.toLowerCase()));
                 if (adminDoc.exists() && adminDoc.data().isAdmin) {
                     authWrapper.classList.add('hidden');
                     dashboardContainer.classList.remove('hidden');
-                    showAdminSection('dashboard'); // Default to dashboard view
+                    showAdminSection('dashboard'); // Default to dashboard view on successful admin login
                 } else {
-                    await signOut(auth); // Force sign out if not an admin
+                    // Not authorized, sign out and show message
+                    await signOut(auth);
                     authWrapper.classList.remove('hidden');
                     dashboardContainer.classList.add('hidden');
-                    showCustomModal('Authorization Failed', 'You are not authorized to access this dashboard. Logging you out.', false);
+                    // Display unauthorized message directly on the page instead of just a modal
+                    document.getElementById('authForm').innerHTML = `
+                        <h2 class="text-3xl font-bold text-red-700 mb-4 text-center">Access Denied</h2>
+                        <p class="text-gray-700 mb-6 text-center">You are not authorized to access this page.</p>
+                        <button onclick="window.location.reload();" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Back to Login</button>
+                    `;
                 }
             } else {
                 authWrapper.classList.remove('hidden');
                 dashboardContainer.classList.add('hidden');
+                // Ensure the login form is visible if not authenticated
+                if (document.getElementById('admin-login-form')) {
+                    document.getElementById('admin-login-form').classList.remove('hidden');
+                }
             }
             hideLoading();
         });
@@ -614,10 +635,11 @@
         function confirmLogout() {
             showCustomModal('Confirm Logout', 'Are you sure you want to log out?', true, () => {
                 showLoading('Logging out...');
-                signOut(auth).then(() => { // Use signOut with auth instance
+                signOut(auth).then(() => {
                     showCustomModal('Logged Out', 'You have been logged out successfully.', false);
                 }).catch((error) => {
                     showCustomModal('Error', error.message, false);
+                    console.error("Logout error:", error); // Log detailed error
                 }).finally(() => {
                     hideLoading();
                 });
@@ -631,53 +653,69 @@
 
         // Dashboard Navigation
         let currentSection = 'dashboardSection';
-        function showAdminSection(sectionId) {
+        async function showAdminSection(sectionId) {
             showLoading('Loading section...'); // Added loading indicator for section changes
+            
+            // Centralized permission check before loading any section that requires admin access
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                showCustomModal('Session Expired', 'Your session has expired. Please log in again.', false);
+                hideLoading();
+                return;
+            }
+            const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+            if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                showCustomModal('Permission Denied', 'You do not have administrative privileges to access this section.', false);
+                hideLoading();
+                return;
+            }
+
+            // Hide previous section
             document.getElementById(currentSection).classList.add('hidden');
             const newSection = document.getElementById(sectionId + 'Section');
             if (newSection) {
                 newSection.classList.remove('hidden');
                 currentSection = sectionId + 'Section';
-                // Close sidebar on mobile
+                // Close sidebar on mobile after navigating
                 sidebar.classList.remove('active');
                 
                 // Call specific data fetching functions for each section
                 switch(sectionId) {
                     case 'dashboard':
-                        fetchDashboardCounts();
+                        await fetchDashboardCounts();
                         break;
                     case 'students':
-                        fetchStudents();
+                        await fetchStudents();
                         break;
                     case 'courses':
-                        fetchCourses();
+                        await fetchCourses();
                         break;
                     case 'fees':
-                        // Search functionality handled separately
+                        // Clear previous fees search result and hide content on section change
                         document.getElementById('feesContent').classList.add('hidden');
                         document.getElementById('feesSearch').value = '';
-                        hideLoading(); // Hide loading if no immediate fetch
+                        hideLoading(); // Hide loading if no immediate fetch needed
                         break;
                     case 'grades':
-                        // Search functionality handled separately
+                        // Clear previous grades search result and hide content on section change
                         document.getElementById('gradesContent').classList.add('hidden');
                         document.getElementById('gradesSearch').value = '';
-                        hideLoading(); // Hide loading if no immediate fetch
+                        hideLoading(); // Hide loading if no immediate fetch needed
                         break;
                     case 'hostels':
-                        fetchHostels();
+                        await fetchHostels();
                         break;
                     case 'announcements':
-                        fetchAnnouncements();
+                        await fetchAnnouncements();
                         break;
                     case 'graduation':
-                        fetchGraduationRequests();
+                        await fetchGraduationRequests();
                         break;
                     case 'clearance':
-                        fetchClearanceRequests();
+                        await fetchClearanceRequests();
                         break;
                     case 'admins':
-                        fetchAdmins();
+                        await fetchAdmins();
                         break;
                     default:
                         hideLoading(); // Default hide for undefined sections
@@ -685,6 +723,7 @@
                 }
             } else {
                 hideLoading(); // Hide loading if section not found
+                console.error(`Section with ID ${sectionId}Section not found.`);
             }
         }
 
@@ -706,9 +745,9 @@
                     feesSnapshot
                 ] = await Promise.all([
                     getDocs(studentsRef),
+                    getDocs(query(gradRequestsRef, where('status', '==', 'Pending'))),
+                    getDocs(query(clearanceRequestsRef, where('status', '==', 'Pending'))),
                     getDocs(coursesRef),
-                    getDocs(query(gradRequestsRef, where('status', '==', 'Pending'))), // Use query and where
-                    getDocs(query(clearanceRequestsRef, where('status', '==', 'Pending'))), // Use query and where
                     getDocs(feesRef)
                 ]);
 
@@ -727,6 +766,7 @@
                 document.getElementById('outstanding-fees-count').innerText = `GHS ${totalOutstandingFees.toFixed(2)}`;
             } catch (error) {
                 showCustomModal('Error', 'Failed to load dashboard data: ' + error.message, false);
+                console.error("Error fetching dashboard counts:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -736,6 +776,11 @@
         function renderTable(tableId, data, columns, actions) {
             const tableBody = document.querySelector(`#${tableId} tbody`);
             tableBody.innerHTML = ''; // Clear existing data
+            if (!tableBody) {
+                console.error(`Table body for ID ${tableId} not found.`);
+                return;
+            }
+
             if (data.length === 0) {
                 const colCount = document.querySelectorAll(`#${tableId} thead th`).length;
                 tableBody.innerHTML = `<tr><td colspan="${colCount}" class="text-center py-4 text-gray-500">No data available.</td></tr>`;
@@ -750,7 +795,12 @@
                         cell.innerText = `GHS ${item[col].toFixed(2)}`;
                         cell.classList.add(item[col] > 0 ? 'text-red-600' : 'text-green-600');
                     } else if (col.includes('Date') && item[col]) { // Assuming date fields
-                        cell.innerText = new Date(item[col]).toLocaleDateString();
+                        try {
+                             cell.innerText = new Date(item[col]).toLocaleDateString();
+                        } catch (e) {
+                            cell.innerText = item[col]; // Fallback if date is invalid
+                            console.warn(`Invalid date format for ${col}: ${item[col]}`);
+                        }
                     }
                     else if (col === 'isAdmin') {
                         cell.innerText = item[col] ? 'Yes' : 'No';
@@ -784,6 +834,15 @@
         async function fetchStudents() {
             showLoading('Fetching student records...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#studentsTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to view student data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const studentsRef = collection(db, 'students');
                 const snapshot = await getDocs(studentsRef);
                 const students = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
@@ -797,6 +856,7 @@
                 renderTable('studentsTable', students, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch student records: ' + error.message, false);
+                console.error("Error fetching students:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -820,18 +880,27 @@
                     showCustomModal('Error', 'All fields are required.', false);
                     return;
                 }
-                await addStudent({ name, email, programme: program, year: parseInt(year), contact, createdAt: new Date().toISOString() });
+                await addStudent({ name, email: email.toLowerCase(), programme: program, year: parseInt(year), contact, createdAt: new Date().toISOString() });
             });
         }
         
         async function addStudent(studentData) {
             showLoading('Adding student...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to add student data.', false);
+                    hideLoading();
+                    return;
+                }
                 await setDoc(doc(db, 'students', studentData.email), studentData);
                 showCustomModal('Success', 'Student added successfully.', false);
                 fetchStudents();
             } catch (error) {
                 showCustomModal('Error', 'Failed to add student: ' + error.message, false);
+                console.error("Error adding student:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -861,11 +930,20 @@
         async function updateStudent(uid, studentData) {
             showLoading('Updating student...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update student data.', false);
+                    hideLoading();
+                    return;
+                }
                 await updateDoc(doc(db, 'students', uid), studentData);
                 showCustomModal('Success', 'Student updated successfully.', false);
                 fetchStudents();
             } catch (error) {
                 showCustomModal('Error', 'Failed to update student: ' + error.message, false);
+                console.error("Error updating student:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -875,11 +953,20 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this student record? This action cannot be undone.', true, async () => {
                 showLoading('Deleting student...');
                 try {
+                    // Permission check
+                    const currentUser = auth.currentUser;
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                        showCustomModal('Permission Denied', 'You do not have permission to delete student data.', false);
+                        hideLoading();
+                        return;
+                    }
                     await deleteDoc(doc(db, 'students', uid));
                     showCustomModal('Success', 'Student deleted successfully.', false);
                     fetchStudents();
                 } catch (error) {
                     showCustomModal('Error', 'Failed to delete student: ' + error.message, false);
+                    console.error("Error deleting student:", error); // Log detailed error
                 } finally {
                     hideLoading();
                 }
@@ -890,13 +977,22 @@
             const searchTerm = e.target.value.toLowerCase();
             showLoading('Searching students...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#studentsTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to search student data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const studentsRef = collection(db, 'students');
                 const snapshot = await getDocs(studentsRef);
                 const allStudents = snapshot.docs.map(d => ({ uid: d.id, ...d.data() }));
                 const filteredStudents = allStudents.filter(student => 
                     student.name.toLowerCase().includes(searchTerm) ||
                     student.email.toLowerCase().includes(searchTerm) ||
-                    (student.programme && student.programme.toLowerCase().includes(searchTerm)) || // Added null check
+                    (student.programme && student.programme.toLowerCase().includes(searchTerm)) ||
                     (student.contact && student.contact.toLowerCase().includes(searchTerm))
                 );
                 const columns = ['name', 'email', 'programme', 'year', 'contact'];
@@ -907,6 +1003,7 @@
                 renderTable('studentsTable', filteredStudents, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Error during student search: ' + error.message, false);
+                console.error("Error during student search:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -917,6 +1014,15 @@
         async function fetchCourses() {
             showLoading('Fetching course records...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#coursesTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to view course data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const coursesRef = collection(db, 'courses');
                 const snapshot = await getDocs(coursesRef);
                 const courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -930,6 +1036,7 @@
                 renderTable('coursesTable', courses, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch course records: ' + error.message, false);
+                console.error("Error fetching courses:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -960,11 +1067,20 @@
         async function addCourse(courseData) {
             showLoading('Adding course...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to add course data.', false);
+                    hideLoading();
+                    return;
+                }
                 await setDoc(doc(db, 'courses', courseData.courseCode), courseData);
                 showCustomModal('Success', 'Course added successfully.', false);
                 fetchCourses();
             } catch (error) {
                 showCustomModal('Error', 'Failed to add course: ' + error.message, false);
+                console.error("Error adding course:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -994,11 +1110,20 @@
         async function updateCourse(id, courseData) {
             showLoading('Updating course...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update course data.', false);
+                    hideLoading();
+                    return;
+                }
                 await updateDoc(doc(db, 'courses', id), courseData);
                 showCustomModal('Success', 'Course updated successfully.', false);
                 fetchCourses();
             } catch (error) {
                 showCustomModal('Error', 'Failed to update course: ' + error.message, false);
+                console.error("Error updating course:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1008,11 +1133,20 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this course record? This action cannot be undone.', true, async () => {
                 showLoading('Deleting course...');
                 try {
+                    // Permission check
+                    const currentUser = auth.currentUser;
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                        showCustomModal('Permission Denied', 'You do not have permission to delete course data.', false);
+                        hideLoading();
+                        return;
+                    }
                     await deleteDoc(doc(db, 'courses', id));
                     showCustomModal('Success', 'Course deleted successfully.', false);
                     fetchCourses();
                 } catch (error) {
                     showCustomModal('Error', 'Failed to delete course: ' + error.message, false);
+                    console.error("Error deleting course:", error); // Log detailed error
                 } finally {
                     hideLoading();
                 }
@@ -1023,6 +1157,15 @@
             const searchTerm = e.target.value.toLowerCase();
             showLoading('Searching courses...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#coursesTable tbody').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">You do not have permission to search course data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const coursesRef = collection(db, 'courses');
                 const snapshot = await getDocs(coursesRef);
                 const allCourses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1039,6 +1182,7 @@
                 renderTable('coursesTable', filteredCourses, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Error during course search: ' + error.message, false);
+                console.error("Error during course search:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1055,16 +1199,26 @@
             }
             showLoading(`Searching for ${email}'s fees...`);
             try {
-                const studentsRef = collection(db, 'students');
-                const studentQuery = await getDocs(query(studentsRef, where('email', '==', email))); // Use query and where
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.getElementById('feesContent').classList.add('hidden');
+                    document.querySelector('#feesTable tbody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">You do not have permission to view fees data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
 
-                if (studentQuery.empty) {
+                const studentsRef = collection(db, 'students');
+                const studentQuerySnapshot = await getDocs(query(studentsRef, where('email', '==', email)));
+
+                if (studentQuerySnapshot.empty) {
                     showCustomModal('Not Found', `No student found with email: ${email}`, false);
                     document.getElementById('feesContent').classList.add('hidden');
                     return;
                 }
 
-                const studentDoc = studentQuery.docs[0];
+                const studentDoc = studentQuerySnapshot.docs[0];
                 const studentData = studentDoc.data();
                 currentFeesStudentUid = studentDoc.id; // Store UID for later operations
                 document.getElementById('studentNameFees').innerText = studentData.name || email;
@@ -1072,8 +1226,7 @@
                 // Fetch fees for this student
                 const feesDoc = await getDoc(doc(db, 'fees', currentFeesStudentUid));
                 let feesHistory = [];
-                let totalFeesCharged = 0; // Track total charges
-                let totalPaymentsMade = 0; // Track total payments made
+                let totalFeesCharged = 0; 
 
                 if (feesDoc.exists()) {
                     const data = feesDoc.data();
@@ -1094,38 +1247,33 @@
                 // Sort payments by date to calculate running balance correctly
                 feesHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
 
-                // Start with the initial total fees charged (if any) as the beginning balance
-                let runningBalance = totalFeesCharged;
+                let runningBalance = totalFeesCharged; // Start with the total fees charged as the initial balance
 
                 // Add an initial entry for total fees if it's not zero and there are no previous transactions representing it
                 if (totalFeesCharged > 0 && feesHistory.length === 0) {
                     displayWithBalance.push({ date: new Date().toISOString(), description: "Initial Total Fees Due", amount: totalFeesCharged, balance: totalFeesCharged });
-                } else if (totalFeesCharged > 0) { // If there are payments, ensure initial fees are represented
-                    // Find the last "charge" type entry or assume totalFeesCharged is part of the initial state
-                    // This logic might need refinement based on how you track charges vs. payments in Firestore.
-                    // For now, we'll ensure the current balance reflects totalFeesCharged - sum of payments.
-                    const sumPayments = feesHistory.reduce((sum, p) => sum + p.amount, 0);
-                    runningBalance = totalFeesCharged - sumPayments; // Recalculate based on total fees and all payments
-
-                     // Add a summary of total fees charged if there are payments
-                    if (totalFeesCharged > 0 && feesHistory.length > 0 && displayWithBalance.length === 0) {
-                        displayWithBalance.push({ date: 'Start', description: 'Initial Fees Charged', amount: totalFeesCharged, balance: totalFeesCharged });
-                    }
+                } else if (totalFeesCharged > 0 && feesHistory.length > 0) {
+                    // Calculate current running balance from totalFeesCharged and all payments
+                    const sumPayments = feesHistory.filter(p => p.type === 'payment').reduce((sum, p) => sum + p.amount, 0);
+                    runningBalance = totalFeesCharged - sumPayments;
+                    // If there were charges, and payments exist, it means the initial "totalFees" was set before.
+                    // We don't need a separate "Initial Fees Charged" line if payments already reduce it.
                 }
                 
                 // Add sorted transactions and update running balance
                 feesHistory.forEach(payment => {
-                    if (payment.description === "Initial Total Fees Due" && displayWithBalance[0] && displayWithBalance[0].description === "Initial Total Fees Due") {
-                        // Skip if already added as initial entry
-                    } else {
-                        runningBalance += (payment.type === 'charge' ? payment.amount : -payment.amount); // Account for charges vs payments
-                        displayWithBalance.push({
-                            date: payment.date,
-                            description: payment.description,
-                            amount: payment.amount,
-                            balance: runningBalance // This is the balance *after* this transaction
-                        });
+                    // For display, charges increase balance, payments decrease.
+                    if (payment.type === 'charge') {
+                        runningBalance += payment.amount;
+                    } else if (payment.type === 'payment') {
+                        runningBalance -= payment.amount;
                     }
+                    displayWithBalance.push({
+                        date: payment.date,
+                        description: payment.description,
+                        amount: payment.amount,
+                        balance: runningBalance // This is the balance *after* this transaction
+                    });
                 });
 
                 const columns = ['date', 'description', 'amount', 'balance'];
@@ -1134,6 +1282,7 @@
 
             } catch (error) {
                 showCustomModal('Error', 'Failed to search fees: ' + error.message, false);
+                console.error("Error searching fees:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1167,15 +1316,24 @@
         async function addFeeTransaction(uid, amount, description, type) {
             showLoading('Updating fee record...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to modify fee records.', false);
+                    hideLoading();
+                    return;
+                }
+
                 const feesDocRef = doc(db, 'fees', uid);
                 const feesSnap = await getDoc(feesDocRef);
-                let currentFees = feesSnap.exists() ? feesSnap.data() : { totalFees: 0, balance: 0, payments: [] };
+                let currentFees = feesSnap.exists() ? feesSnap.data() : { studentId: uid, totalFees: 0, balance: 0, payments: [] };
 
                 const newTransaction = {
                     date: new Date().toISOString(),
                     description: description,
                     amount: amount,
-                    type: type // Added type to transaction
+                    type: type
                 };
 
                 currentFees.payments.push(newTransaction);
@@ -1186,10 +1344,9 @@
                 currentFees.payments.forEach(p => {
                     if (p.type === 'charge') {
                         calculatedTotalFees += p.amount;
-                        calculatedBalance += p.amount;
-                    } else if (p.type === 'payment') {
-                        calculatedBalance -= p.amount;
                     }
+                    // All payments contribute to balance change, regardless of 'totalFees'
+                    calculatedBalance += (p.type === 'charge' ? p.amount : -p.amount);
                 });
                 currentFees.totalFees = calculatedTotalFees;
                 currentFees.balance = calculatedBalance;
@@ -1199,6 +1356,7 @@
                 searchStudentForFees(); // Reload data for the current student
             } catch (error) {
                 showCustomModal('Error', 'Failed to update fee record: ' + error.message, false);
+                console.error("Error adding fee transaction:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1215,22 +1373,32 @@
             }
             showLoading(`Searching for ${email}'s grades...`);
             try {
-                const studentsRef = collection(db, 'students');
-                const studentQuery = await getDocs(query(studentsRef, where('email', '==', email))); // Use query and where
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.getElementById('gradesContent').classList.add('hidden');
+                    document.querySelector('#gradesTable tbody').innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">You do not have permission to view grades data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
 
-                if (studentQuery.empty) {
+                const studentsRef = collection(db, 'students');
+                const studentQuerySnapshot = await getDocs(query(studentsRef, where('email', '==', email)));
+
+                if (studentQuerySnapshot.empty) {
                     showCustomModal('Not Found', `No student found with email: ${email}`, false);
                     document.getElementById('gradesContent').classList.add('hidden');
                     return;
                 }
 
-                const studentDoc = studentQuery.docs[0];
+                const studentDoc = studentQuerySnapshot.docs[0];
                 const studentData = studentDoc.data();
                 currentGradesStudentUid = studentDoc.id;
                 document.getElementById('studentNameGrades').innerText = studentData.name || email;
 
-                const gradesQuery = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid))); // Use query and where
-                const grades = gradesQuery.docs.map(d => ({ id: d.id, ...d.data() }));
+                const gradesQuerySnapshot = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid)));
+                const grades = gradesQuerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 const columns = ['courseCode', 'courseName', 'grade'];
                 renderTable('gradesTable', grades, columns);
@@ -1238,6 +1406,7 @@
 
             } catch (error) {
                 showCustomModal('Error', 'Failed to search grades: ' + error.message, false);
+                console.error("Error searching grades:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1250,8 +1419,17 @@
             }
             showLoading('Fetching current grades for editing...');
             try {
-                const gradesQuery = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid))); // Use query and where
-                const grades = gradesQuery.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to edit grades.', false);
+                    hideLoading();
+                    return;
+                }
+
+                const gradesQuerySnapshot = await getDocs(query(collection(db, 'grades'), where('studentId', '==', currentGradesStudentUid)));
+                const grades = gradesQuerySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 let gradeInputsHtml = grades.map(grade => `
                     <div class="flex items-center mb-2">
@@ -1283,6 +1461,7 @@
                 });
             } catch (error) {
                 showCustomModal('Error', 'Failed to load grades for editing: ' + error.message, false);
+                console.error("Error editing grades modal:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1291,7 +1470,16 @@
         async function updateStudentGrades(gradesToUpdate) {
             showLoading('Updating grades...');
             try {
-                const batch = writeBatch(db); // Use writeBatch
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update grades.', false);
+                    hideLoading();
+                    return;
+                }
+
+                const batch = writeBatch(db);
                 gradesToUpdate.forEach(grade => {
                     const gradeRef = doc(db, 'grades', grade.id);
                     batch.update(gradeRef, { grade: grade.grade });
@@ -1301,6 +1489,7 @@
                 searchStudentForGrades(); // Reload for current student
             } catch (error) {
                 showCustomModal('Error', 'Failed to update grades: ' + error.message, false);
+                console.error("Error updating student grades:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1310,6 +1499,15 @@
         async function fetchHostels() {
             showLoading('Fetching hostel records...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#hostelsTable tbody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">You do not have permission to view hostel data.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const hostelsRef = collection(db, 'hostels');
                 const snapshot = await getDocs(hostelsRef);
                 const hostels = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1324,6 +1522,7 @@
                 updateToggleHostelAppButton();
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch hostel records: ' + error.message, false);
+                console.error("Error fetching hostels:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1350,11 +1549,20 @@
         async function addHostel(hostelData) {
             showLoading('Adding hostel...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to add hostel data.', false);
+                    hideLoading();
+                    return;
+                }
                 await setDoc(doc(db, 'hostels', hostelData.name), hostelData); // Using name as ID for simplicity
                 showCustomModal('Success', 'Hostel added successfully.', false);
                 fetchHostels();
             } catch (error) {
                 showCustomModal('Error', 'Failed to add hostel: ' + error.message, false);
+                console.error("Error adding hostel:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1381,11 +1589,20 @@
         async function updateHostel(id, hostelData) {
             showLoading('Updating hostel...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update hostel data.', false);
+                    hideLoading();
+                    return;
+                }
                 await updateDoc(doc(db, 'hostels', id), hostelData);
                 showCustomModal('Success', 'Hostel updated successfully.', false);
                 fetchHostels();
             } catch (error) {
                 showCustomModal('Error', 'Failed to update hostel: ' + error.message, false);
+                console.error("Error updating hostel:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1395,11 +1612,20 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this hostel record? This action cannot be undone.', true, async () => {
                 showLoading('Deleting hostel...');
                 try {
+                    // Permission check
+                    const currentUser = auth.currentUser;
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                        showCustomModal('Permission Denied', 'You do not have permission to delete hostel data.', false);
+                        hideLoading();
+                        return;
+                    }
                     await deleteDoc(doc(db, 'hostels', id));
                     showCustomModal('Success', 'Hostel deleted successfully.', false);
                     fetchHostels();
                 } catch (error) {
                     showCustomModal('Error', 'Failed to delete hostel: ' + error.message, false);
+                    console.error("Error deleting hostel:", error); // Log detailed error
                 } finally {
                     hideLoading();
                 }
@@ -1409,6 +1635,15 @@
         async function toggleHostelApplications() {
             showLoading('Toggling hostel applications...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to toggle hostel applications.', false);
+                    hideLoading();
+                    return;
+                }
+
                 const settingsDocRef = doc(db, 'settings', 'hostelApplications');
                 const settingsSnap = await getDoc(settingsDocRef);
                 let currentStatus = true; // Default to open if not set
@@ -1422,6 +1657,7 @@
                 updateToggleHostelAppButton();
             } catch (error) {
                 showCustomModal('Error', 'Failed to toggle hostel applications: ' + error.message, false);
+                console.error("Error toggling hostel applications:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1430,15 +1666,19 @@
         async function updateToggleHostelAppButton() {
             const btn = document.getElementById('toggleHostelAppBtn');
             if (btn) {
-                const settingsDocRef = doc(db, 'settings', 'hostelApplications');
-                const settingsSnap = await getDoc(settingsDocRef);
-                let isOpen = false;
-                if (settingsSnap.exists()) {
-                    isOpen = settingsSnap.data().isOpen;
+                try {
+                    const settingsDocRef = doc(db, 'settings', 'hostelApplications');
+                    const settingsSnap = await getDoc(settingsDocRef);
+                    let isOpen = false;
+                    if (settingsSnap.exists()) {
+                        isOpen = settingsSnap.data().isOpen;
+                    }
+                    btn.innerText = `Toggle Applications (${isOpen ? 'OPEN' : 'CLOSED'})`;
+                    btn.classList.remove('bg-yellow-600', 'bg-green-600', 'bg-red-600');
+                    btn.classList.add(isOpen ? 'bg-green-600' : 'bg-red-600');
+                } catch (error) {
+                    console.error("Error updating toggle button status:", error);
                 }
-                btn.innerText = `Toggle Applications (${isOpen ? 'OPEN' : 'CLOSED'})`;
-                btn.classList.remove('bg-yellow-600', 'bg-green-600', 'bg-red-600');
-                btn.classList.add(isOpen ? 'bg-green-600' : 'bg-red-600');
             }
         }
 
@@ -1447,8 +1687,17 @@
         async function fetchAnnouncements() {
             showLoading('Fetching announcements...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#announcementsTable tbody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">You do not have permission to view announcements.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const announcementsRef = collection(db, 'announcements');
-                const snapshot = await getDocs(query(announcementsRef, orderBy('date', 'desc'))); // Use query and orderBy
+                const snapshot = await getDocs(query(announcementsRef, orderBy('date', 'desc')));
                 const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 const columns = ['date', 'title', 'message'];
@@ -1460,6 +1709,7 @@
                 renderTable('announcementsTable', announcements, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch announcements: ' + error.message, false);
+                console.error("Error fetching announcements:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1484,11 +1734,20 @@
         async function addAnnouncement(announcementData) {
             showLoading('Adding announcement...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to add announcements.', false);
+                    hideLoading();
+                    return;
+                }
                 await setDoc(doc(db, 'announcements', new Date().getTime().toString()), announcementData); // Use timestamp as ID
                 showCustomModal('Success', 'Announcement added successfully.', false);
                 fetchAnnouncements();
             } catch (error) {
                 showCustomModal('Error', 'Failed to add announcement: ' + error.message, false);
+                console.error("Error adding announcement:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1513,11 +1772,20 @@
         async function updateAnnouncement(id, announcementData) {
             showLoading('Updating announcement...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update announcements.', false);
+                    hideLoading();
+                    return;
+                }
                 await updateDoc(doc(db, 'announcements', id), announcementData);
                 showCustomModal('Success', 'Announcement updated successfully.', false);
                 fetchAnnouncements();
             } catch (error) {
                 showCustomModal('Error', 'Failed to update announcement: ' + error.message, false);
+                console.error("Error updating announcement:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1527,11 +1795,20 @@
             showCustomModal('Confirm Deletion', 'Are you sure you want to delete this announcement? This action cannot be undone.', true, async () => {
                 showLoading('Deleting announcement...');
                 try {
+                    // Permission check
+                    const currentUser = auth.currentUser;
+                    const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                    if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                        showCustomModal('Permission Denied', 'You do not have permission to delete announcements.', false);
+                        hideLoading();
+                        return;
+                    }
                     await deleteDoc(doc(db, 'announcements', id));
                     showCustomModal('Success', 'Announcement deleted successfully.', false);
                     fetchAnnouncements();
                 } catch (error) {
                     showCustomModal('Error', 'Failed to delete announcement: ' + error.message, false);
+                    console.error("Error deleting announcement:", error); // Log detailed error
                 } finally {
                     hideLoading();
                 }
@@ -1543,6 +1820,15 @@
         async function fetchGraduationRequests() {
             showLoading('Fetching graduation requests...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#graduationRequestsTable tbody').innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">You do not have permission to view graduation requests.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const requestsRef = collection(db, 'graduationRequests');
                 const studentsRef = collection(db, 'students');
                 const snapshot = await getDocs(requestsRef);
@@ -1550,27 +1836,26 @@
 
                 for (const d of snapshot.docs) {
                     const data = d.data();
-                    // Ensure studentId exists before fetching student details
                     if (data.studentId) {
                         const studentDoc = await getDoc(doc(db, 'students', data.studentId));
                         const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
                         const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
                         requests.push({ id: d.id, studentName, studentEmail, ...data });
                     } else {
-                        // Handle cases where studentId might be missing or malformed
                         requests.push({ id: d.id, studentName: 'Missing Student ID', studentEmail: 'N/A', ...data });
                     }
                 }
 
                 const columns = ['studentName', 'studentEmail', 'date', 'status'];
                 const actions = [
-                    { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handler: (req) => updateGraduationRequestStatus(req.id, 'Approved'), condition: (req) => req.status !== 'Approved' }, // Only show if not already approved
-                    { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (req) => updateGraduationRequestStatus(req.id, 'Denied'), condition: (req) => req.status !== 'Denied' } // Only show if not already denied
+                    { text: 'Approve', class: 'bg-green-500 text-white px-2 py-1 rounded-lg mr-1', handler: (req) => updateGraduationRequestStatus(req.id, 'Approved'), condition: (req) => req.status !== 'Approved' },
+                    { text: 'Reject', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (req) => updateGraduationRequestStatus(req.id, 'Denied'), condition: (req) => req.status !== 'Denied' }
                 ];
 
                 renderTable('graduationRequestsTable', requests, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch graduation requests: ' + error.message, false);
+                console.error("Error fetching graduation requests:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1579,11 +1864,20 @@
         async function updateGraduationRequestStatus(id, status) {
             showLoading(`Updating request to ${status}...`);
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update graduation requests.', false);
+                    hideLoading();
+                    return;
+                }
                 await updateDoc(doc(db, 'graduationRequests', id), { status: status });
                 showCustomModal('Success', `Graduation request ${status} successfully.`, false);
                 fetchGraduationRequests();
             } catch (error) {
                 showCustomModal('Error', 'Failed to update request: ' + error.message, false);
+                console.error("Error updating graduation request status:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1593,6 +1887,15 @@
         async function fetchClearanceRequests() {
             showLoading('Fetching clearance requests...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#clearanceRequestsTable tbody').innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">You do not have permission to view clearance requests.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const requestsRef = collection(db, 'clearanceRequests');
                 const studentsRef = collection(db, 'students');
                 const snapshot = await getDocs(requestsRef);
@@ -1600,14 +1903,12 @@
 
                 for (const d of snapshot.docs) {
                     const data = d.data();
-                     // Ensure studentId exists before fetching student details
                     if (data.studentId) {
                         const studentDoc = await getDoc(doc(db, 'students', data.studentId));
                         const studentName = studentDoc.exists() ? studentDoc.data().name : 'Unknown Student';
                         const studentEmail = studentDoc.exists() ? studentDoc.data().email : 'N/A';
                         requests.push({ id: d.id, studentName, studentEmail, ...data });
                     } else {
-                        // Handle cases where studentId might be missing or malformed
                         requests.push({ id: d.id, studentName: 'Missing Student ID', studentEmail: 'N/A', ...data });
                     }
                 }
@@ -1621,6 +1922,7 @@
                 renderTable('clearanceRequestsTable', requests, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch clearance requests: ' + error.message, false);
+                console.error("Error fetching clearance requests:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1629,11 +1931,20 @@
         async function updateClearanceRequestStatus(id, status) {
             showLoading(`Updating request to ${status}...`);
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to update clearance requests.', false);
+                    hideLoading();
+                    return;
+                }
                 await updateDoc(doc(db, 'clearanceRequests', id), { status: status });
                 showCustomModal('Success', `Clearance request ${status} successfully.`, false);
                 fetchClearanceRequests();
             } catch (error) {
                 showCustomModal('Error', 'Failed to update request: ' + error.message, false);
+                console.error("Error updating clearance request status:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1643,21 +1954,31 @@
         async function fetchAdmins() {
             showLoading('Fetching admin users...');
             try {
+                // Permission check - only allow if current user is admin
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    document.querySelector('#adminsTable tbody').innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">You do not have permission to view admin users.</td></tr>`;
+                    hideLoading();
+                    return;
+                }
+
                 const adminsRef = collection(db, 'admins');
                 const snapshot = await getDocs(adminsRef);
                 const admins = snapshot.docs.map(d => ({ id: d.id, email: d.id, isAdmin: d.data().isAdmin }));
 
                 // Filter out the current logged-in admin from the list to prevent self-deletion
-                const filteredAdmins = admins.filter(admin => auth.currentUser && admin.email !== auth.currentUser.email);
+                const filteredAdmins = admins.filter(admin => currentUser && admin.email !== currentUser.email.toLowerCase());
 
                 const columns = ['email', 'isAdmin'];
                 const actions = [
-                    { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (admin) => removeAdmin(admin.id), condition: (admin) => admin.email !== auth.currentUser.email } // Condition to prevent removing self
+                    { text: 'Remove', class: 'bg-red-500 text-white px-2 py-1 rounded-lg', handler: (admin) => removeAdmin(admin.id), condition: (admin) => currentUser && admin.email !== currentUser.email.toLowerCase() } // Condition to prevent removing self
                 ];
 
                 renderTable('adminsTable', filteredAdmins, columns, actions);
             } catch (error) {
                 showCustomModal('Error', 'Failed to fetch admin users: ' + error.message, false);
+                console.error("Error fetching admin users:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1672,18 +1993,27 @@
                     showCustomModal('Error', 'Please enter an email address.', false);
                     return;
                 }
-                await addNewAdmin(email);
+                await addNewAdmin(email.toLowerCase()); // Convert email to lowercase
             });
         }
 
         async function addNewAdmin(email) {
             showLoading('Adding new admin...');
             try {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to add new admins.', false);
+                    hideLoading();
+                    return;
+                }
                 await setDoc(doc(db, 'admins', email), { isAdmin: true });
                 showCustomModal('Success', `${email} added as admin successfully.`, false);
                 fetchAdmins();
             } catch (error) {
                 showCustomModal('Error', 'Failed to add admin: ' + error.message, false);
+                console.error("Error adding new admin:", error); // Log detailed error
             } finally {
                 hideLoading();
             }
@@ -1691,7 +2021,16 @@
 
         async function removeAdmin(email) {
             showCustomModal('Confirm Removal', `Are you sure you want to remove ${email} as an admin?`, true, async () => {
-                if (auth.currentUser && email === auth.currentUser.email) {
+                // Permission check
+                const currentUser = auth.currentUser;
+                const adminDoc = await getDoc(doc(db, 'admins', currentUser.email.toLowerCase()));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomModal('Permission Denied', 'You do not have permission to remove admins.', false);
+                    hideLoading();
+                    return;
+                }
+
+                if (currentUser && email === currentUser.email.toLowerCase()) { // Compare lowercase emails
                     showCustomModal('Error', 'You cannot remove yourself as an admin.', false);
                     return;
                 }
@@ -1702,6 +2041,7 @@
                     fetchAdmins();
                 } catch (error) {
                     showCustomModal('Error', 'Failed to remove admin: ' + error.message, false);
+                    console.error("Error removing admin:", error); // Log detailed error
                 } finally {
                     hideLoading();
                 }
@@ -1710,78 +2050,93 @@
 
         // Export and Print Functions
         function exportTable(tableId, filename) {
-            const table = document.getElementById(tableId);
-            if (!table) {
-                showCustomModal('Error', 'Table not found for export.', false);
-                return;
+            showLoading('Exporting data...');
+            try {
+                const table = document.getElementById(tableId);
+                if (!table) {
+                    showCustomModal('Error', 'Table not found for export.', false);
+                    return;
+                }
+
+                const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
+                const allRows = Array.from(table.querySelectorAll('tbody tr'));
+                
+                const hasData = allRows.length > 0 && allRows[0].cells.length > 1 && !allRows[0].innerText.includes('No data available');
+
+                let data = [];
+                if (hasData || headers.length > 0) {
+                    data.push(headers.filter(header => header !== 'Actions')); // Exclude "Actions" header
+                }
+                
+                if (hasData) {
+                    allRows.forEach(tr => {
+                        const rowData = Array.from(tr.querySelectorAll('td'))
+                                         .map(td => td.innerText)
+                                         .filter((_, index, arr) => index !== arr.length - 1); // Exclude last column (Actions)
+                        data.push(rowData);
+                    });
+                }
+
+                if (data.length <= 1 && hasData === false) {
+                    showCustomModal('Info', 'No data to export.', false);
+                    return;
+                }
+
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, filename);
+
+                XLSX.writeFile(wb, `${filename}.xlsx`);
+                showCustomModal('Success', 'Data exported successfully as Excel/CSV.', false);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to export data: ' + error.message, false);
+                console.error("Error exporting table:", error); // Log detailed error
+            } finally {
+                hideLoading();
             }
-
-            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
-            // Get all rows, including 'No data available' row if present
-            const allRows = Array.from(table.querySelectorAll('tbody tr'));
-            
-            // Check if the table contains actual data or just the "No data available" message
-            const hasData = allRows.length > 0 && allRows[0].cells.length > 1;
-
-            let data = [];
-            // Only add headers if there's actual data to export, or if we want headers even for empty tables
-            if (hasData || headers.length > 0) {
-                data.push(headers.filter(header => header !== 'Actions')); // Exclude "Actions" header
-            }
-            
-            if (hasData) {
-                allRows.forEach(tr => {
-                    const rowData = Array.from(tr.querySelectorAll('td'))
-                                     .map(td => td.innerText)
-                                     .filter((_, index, arr) => index !== arr.length - 1); // Exclude last column (Actions)
-                    data.push(rowData);
-                });
-            }
-
-            if (data.length <= 1 && hasData === false) { // No data and only headers or empty array
-                showCustomModal('Info', 'No data to export.', false);
-                return;
-            }
-
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, filename);
-
-            XLSX.writeFile(wb, `${filename}.xlsx`);
         }
         
         function printTable(tableId, title) {
-            const table = document.getElementById(tableId);
-            if (!table) {
-                showCustomModal('Error', 'Table not found for printing.', false);
-                return;
-            }
-            
-            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
-            const allRows = Array.from(table.querySelectorAll('tbody tr'));
-            const hasData = allRows.length > 0 && allRows[0].cells.length > 1; // Check if it's not the "No data" row
+            showLoading('Preparing to print...');
+            try {
+                const table = document.getElementById(tableId);
+                if (!table) {
+                    showCustomModal('Error', 'Table not found for printing.', false);
+                    return;
+                }
+                
+                const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
+                const allRows = Array.from(table.querySelectorAll('tbody tr'));
+                const hasData = allRows.length > 0 && allRows[0].cells.length > 1 && !allRows[0].innerText.includes('No data available');
 
-            if (!hasData) {
-                showCustomModal('Info', 'No data to print.', false);
-                return;
-            }
+                if (!hasData) {
+                    showCustomModal('Info', 'No data to print.', false);
+                    return;
+                }
 
-            const rows = allRows.map(tr => 
-                Array.from(tr.querySelectorAll('td'))
-                     .map(td => td.innerText)
-                     .filter((_, index, arr) => index !== arr.length - 1) // Exclude last column (Actions)
-            );
-            
-            const doc = new jspdf.jsPDF();
-            doc.text(title, 14, 20);
-            doc.autoTable({
-                startY: 25,
-                head: [headers.filter(header => header !== 'Actions')], // Exclude "Actions"
-                body: rows, 
-                theme: 'striped',
-                headStyles: { fillColor: [26, 79, 50] }
-            });
-            doc.save(`${title}.pdf`);
+                const rows = allRows.map(tr => 
+                    Array.from(tr.querySelectorAll('td'))
+                         .map(td => td.innerText)
+                         .filter((_, index, arr) => index !== arr.length - 1) // Exclude last column (Actions)
+                );
+                
+                const doc = new jspdf.jsPDF();
+                doc.text(title, 14, 20);
+                doc.autoTable({
+                    startY: 25,
+                    head: [headers.filter(header => header !== 'Actions')], // Exclude "Actions"
+                    body: rows, 
+                    theme: 'striped',
+                    headStyles: { fillColor: [26, 79, 50] }
+                });
+                doc.save(`${title}.pdf`);
+                showCustomModal('Success', 'Document generated for printing (PDF).', false);
+            } catch (error) {
+                showCustomModal('Error', 'Failed to generate printable document: ' + error.message, false);
+                console.error("Error printing table:", error); // Log detailed error
+            } finally {
+                hideLoading();
+            }
         }
     </script>
 </body>
