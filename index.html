@@ -4,784 +4,229 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Prince Alex Design University</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <!-- jsPDF and jsPDF-AutoTable for PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.autotable.min.js"></script>
+  <!-- Custom CSS for finer control where Tailwind is not enough -->
   <style>
-    /* Global styles */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    body {
+      font-family: 'Inter', sans-serif;
+      background: url('myschoolgate.png') no-repeat center center fixed;
+      background-size: cover;
     }
-    body, html {
-      height: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      /* Apply the gate image as a fixed background to the whole body */
-      background: url('myschoolgate.png') no-repeat center center fixed; /* Reverted to original image path */
-      background-size: cover; /* Ensure it covers the whole area */
-    }
-
-    /* --- Auth Container Styles --- */
-    /* Set auth-container to always be flex initially */
-    .auth-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    .gpa-circle-container {
       position: relative;
-      /* Removed opacity and transform transitions for simpler display control */
+      width: 120px;
+      height: 120px;
+      margin: 20px auto;
     }
-    /* Only hide completely if explicitly marked hidden by JS (e.g., after login) */
-    .auth-container.hidden {
+    .gpa-circle-svg {
+      transform: rotate(-90deg);
+    }
+    .gpa-circle-bg {
+      stroke: #e0e0e0;
+      stroke-width: 10;
+      fill: none;
+    }
+    .gpa-circle-progress {
+      stroke: #006400; /* University green */
+      stroke-width: 10;
+      fill: none;
+      transition: stroke-dasharray 0.5s ease-in-out;
+    }
+    .gpa-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #006400;
+    }
+    .fees-balance-text.red {
+        color: #dc2626; /* Tailwind red-600 */
+    }
+    .fees-balance-text.green {
+        color: #16a34a; /* Tailwind green-600 */
+    }
+    /* Hide scrollbar for announcements panel, but allow scrolling */
+    .no-scrollbar::-webkit-scrollbar {
         display: none;
     }
-
-    /* Form Wrapper (for login, signup, forgot password) */
-    .form-wrapper {
-      background-color: rgba(255, 255, 255, 0.95);
-      padding: 40px;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      width: 100%;
-      max-width: 450px;
-      text-align: center;
-      position: absolute; /* Keep absolute for stacking forms */
-      transition: all 0.5s ease-in-out; /* Keep transitions for form switching */
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(20px);
-    }
-    .form-wrapper.active {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-      position: relative; /* Make active form take space */
-    }
-    .form-wrapper:not(.active) {
-        /* Ensure non-active forms are truly off-screen and not interactive */
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) translateY(20px);
-        pointer-events: none;
-        display: none; /* Explicitly hide non-active forms */
-    }
-
-
-    h2 {
-      color: #006400;
-      margin-bottom: 25px;
-      font-size: 2em;
-      font-weight: 600;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-    .input-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-      font-weight: 500;
-    }
-    .input-group input[type="email"],
-    .input-group input[type="password"],
-    .input-group input[type="text"],
-    .input-group input[type="date"],
-    .input-group select,
-    .input-group textarea {
-      width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 1rem;
-      transition: border-color 0.3s;
-    }
-    .input-group input[type="email"]:focus,
-    .input-group input[type="password"]:focus,
-    .input-group input[type="text"]:focus,
-    .input-group input[type="date"]:focus,
-    .input-group select:focus,
-    .input-group textarea:focus {
-      border-color: #006400;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(0, 100, 0, 0.2);
-    }
-
-    /* Buttons */
-    button {
-      background-color: #006400;
-      color: white;
-      padding: 12px 25px;
-      border: none;
-      border-radius: 5px;
-      font-size: 1.1em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.3s, transform 0.2s;
-      width: 100%;
-      margin-top: 10px;
-    }
-    button:hover {
-      background-color: #004d00;
-      transform: translateY(-2px);
-    }
-    button:disabled {
-      background-color: #a0a0a0;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .form-links {
-      margin-top: 20px;
-      font-size: 0.95em;
-    }
-    .form-links a {
-      color: #006400;
-      text-decoration: none;
-      margin: 0 10px;
-      transition: color 0.3s;
-    }
-    .form-links a:hover {
-      color: #004d00;
-      text-decoration: underline;
-    }
-
-    #resultMsg, #loginResultMsg, #signupResultMsg {
-      margin-top: 15px;
-      font-weight: bold;
-      font-size: 1em;
-    }
-
-    /* --- Dashboard Styles (from dashboard.html) --- */
-    /* Set dashboard-container to always be hidden initially */
-    .dashboard-container {
-      display: none; /* Hidden by default, shown after login */
-      height: 100vh;
-      flex-direction: column;
-      /* Remove background color to show body background */
-    }
-
-    header {
-      background-color: white;
-      color: #006400;
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #ccc;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      gap: 20px;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-    header img {
-      width: 140px;
-    }
-    .greeting {
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .logout-btn {
-      background-color: #006400;
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      font-size: 14px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .logout-btn:hover {
-      background-color: #004d00;
-    }
-    .dashboard-content-area {
-      display: flex;
-      min-height: calc(100vh - 80px); /* Adjust for header height */
-      flex: 1; /* Allows it to take remaining height */
-    }
-    .sidebar {
-      width: 250px;
-      background-color: #004d00;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      padding: 30px 20px;
-    }
-    .sidebar h3 {
-      margin-bottom: 25px;
-      font-size: 20px;
-      border-bottom: 1px solid #fff;
-      padding-bottom: 12px;
-    }
-    .sidebar a {
-      color: white;
-      text-decoration: none;
-      padding: 12px 10px;
-      font-size: 16px;
-      transition: background 0.3s;
-      cursor: pointer;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .sidebar a:hover {
-      background-color: #006400;
-    }
-    /* Academics submenu links */
-    #academics-submenu a,
-    #finance-submenu a,
-    #exam-submenu a {
-      display: block;
-      margin: 8px 0;
-      padding: 10px;
-      background-color: #005000;
-      border-radius: 4px;
-      font-size: 15px;
-    }
-    .main {
-      flex: 1;
-      padding: 40px;
-      overflow-y: auto;
-    }
-    .card {
-      background-color: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      margin-bottom: 40px;
-    }
-    .card img {
-      display: block;
-      margin: 0 auto 25px;
-      border-radius: 50%;
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      background-color: #ddd;
-    }
-    .info-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-    }
-    .info-group p {
-      flex: 1 1 45%;
-      font-size: 15px;
-    }
-    .flex-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 30px;
-      margin-bottom: 40px;
-    }
-    .flex-item {
-      flex: 1 1 45%;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-      font-size: 14px;
-    }
-    th {
-      background-color: #e4f5e9;
-    }
-    button.pay-btn {
-      background-color: #006400;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 15px;
-      font-size: 15px;
-    }
-    button.pay-btn:hover {
-      background-color: #004d00;
-    }
-    .no-records {
-      color: red;
-      font-weight: bold;
-      text-align: center;
-      margin-top: 15px;
-    }
-    button.red-btn {
-      background-color: #cc0000;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 20px;
-      font-size: 15px;
-    }
-    button.red-btn:hover {
-      background-color: #990000;
-    }
-    footer {
-      text-align: center;
-      padding: 20px;
-      font-size: 14px;
-      color: #666;
-    }
-
-    .menu-toggle {
-      display: none;
-      background-color: #006400;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      font-size: 20px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-
-    /* Search bar and Notifications */
-    .dashboard-header-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    .search-bar {
-        flex-grow: 1;
-        max-width: 300px;
-        position: relative;
-    }
-
-    .search-bar input {
-        width: 100%;
-        padding: 10px 15px;
-        border: 1px solid #ccc;
-        border-radius: 20px;
-        padding-right: 40px;
-    }
-
-    .search-bar .search-icon {
-        position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #888;
-    }
-
-    .notifications-panel {
-        background-color: #e9f7ef;
-        border: 1px solid #006400;
-        border-radius: 8px;
-        padding: 15px;
-        width: 100%;
-        max-width: 350px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .notifications-panel h4 {
-        color: #004d00;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .notifications-panel ul {
-        list-style: none;
-        padding: 0;
-    }
-
-    .notifications-panel li {
-        padding: 8px 0;
-        border-bottom: 1px dashed #c8e6d0;
-        font-size: 14px;
-        color: #333;
-    }
-
-    .notifications-panel li:last-child {
-        border-bottom: none;
-    }
-
-    /* Breadcrumb navigation */
-    .breadcrumb {
-        margin-bottom: 20px;
-        font-size: 14px;
-        color: #666;
-    }
-
-    .breadcrumb a {
-        color: #006400;
-        text-decoration: none;
-    }
-
-    .breadcrumb a:hover {
-        text-decoration: underline;
-    }
-
-    .breadcrumb span {
-        margin: 0 5px;
-    }
-
-    /* GPA Tracker */
-    .gpa-tracker {
-      font-size: 16px;
-      font-weight: bold;
-      color: #006400;
-      margin-top: 20px;
-      text-align: center;
-      padding: 10px;
-      background-color: #e4f5e9;
-      border-radius: 8px;
-    }
-
-    /* --- Loading and Modal Styles --- */
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.9);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
-        flex-direction: column;
-        display: none; /* Hidden by default */
-    }
-    .loading-spinner {
-        border: 8px solid #f3f3f3;
-        border-top: 8px solid #006400;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
-    }
-    .loading-text {
-        margin-top: 20px;
-        font-size: 1.2em;
-        color: #006400;
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    /* Custom Modal Styles (replaces alert/confirm) */
-    .modal {
-      display: none; /* Hidden by default */
-      position: fixed; /* Stay in place */
-      z-index: 10000; /* Sit on top (higher than loading overlay) */
-      left: 0;
-      top: 0;
-      width: 100%; /* Full width */
-      height: 100%; /* Full height */
-      overflow: auto; /* Enable scroll if needed */
-      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-      justify-content: center; /* Center content horizontally */
-      align-items: center; /* Center content vertically */
-    }
-
-    .modal-content {
-      background-color: #fefefe;
-      margin: auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%; /* Could be more or less, depending on screen size */
-      max-width: 400px; /* Max width for consistency */
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-
-    .modal-content h3 {
-      margin-bottom: 15px;
-      color: #006400;
-    }
-
-    .modal-content p {
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    .modal-buttons button {
-      background-color: #006400;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 0 5px;
-    }
-
-    .modal-buttons button.cancel {
-      background-color: #ccc;
-      color: #333;
-    }
-
-    /* Media Query for screens smaller than 768px */
-    @media (max-width: 768px) {
-      header {
-        flex-wrap: wrap;
-        justify-content: space-between;
-        padding: 10px;
-      }
-      header img {
-        width: 100px;
-      }
-      .greeting {
-        font-size: 16px;
-        order: 1;
-        flex-grow: 1;
-        text-align: center;
-        margin-top: 5px;
-      }
-      .logout-btn {
-        margin-left: auto;
-      }
-      .menu-toggle {
-        display: block;
-        order: -1;
-        margin-right: 10px;
-      }
-      .dashboard-content-area {
-        flex-direction: column;
-      }
-      .sidebar {
-        width: 100%;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-        padding: 0 20px;
-      }
-      .sidebar.active {
-        max-height: 500px;
-        padding: 30px 20px;
-      }
-      .sidebar h3 {
-        margin-bottom: 15px;
-        padding-bottom: 8px;
-      }
-      .sidebar a {
-        padding: 10px;
-        font-size: 15px;
-      }
-      #academics-submenu a,
-      #finance-submenu a,
-      #exam-submenu a {
-        padding: 8px;
-        font-size: 14px;
-      }
-      .main {
-        padding: 20px;
-      }
-      .card {
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .info-group p {
-        flex: 1 1 100%;
-      }
-      .flex-grid {
-        flex-direction: column;
-      }
-      .flex-item {
-        flex: 1 1 100%;
-      }
-      table, th, td {
-        font-size: 12px;
-      }
-      th, td {
-        padding: 8px;
-      }
-      button.pay-btn, button.red-btn {
-        padding: 10px 20px;
-        font-size: 14px;
-      }
-      .dashboard-header-controls {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .search-bar, .notifications-panel {
-        max-width: 100%;
-      }
-
-      /* Adjustments for Auth forms on small screens */
-      .auth-container {
-        padding: 20px;
-      }
-      .form-wrapper {
-        padding: 30px 20px;
-      }
-      h2 {
-        font-size: 1.8em;
-      }
-      .form-links a {
-        display: block;
-        margin: 10px 0;
-      }
+    .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
     }
   </style>
 </head>
-<body>
+<body class="h-screen flex flex-col">
   <!-- Loading Overlay -->
-  <div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">Loading...</div>
+  <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col justify-center items-center z-[2000] hidden">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-700"></div>
+    <div id="loadingText" class="mt-4 text-xl text-green-700">Loading...</div>
   </div>
 
   <!-- Custom Modal for Alerts/Confirms -->
-  <div id="customModal" class="modal">
-    <div class="modal-content">
-      <h3 id="modalTitle"></h3>
-      <p id="modalMessage"></p>
-      <div class="modal-buttons">
-        <button id="modalConfirmBtn">OK</button>
-        <button id="modalCancelBtn" class="cancel">Cancel</button>
+  <div id="customModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-[10000] hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-300">
+      <h3 id="modalTitle" class="text-2xl font-semibold mb-4 text-green-800"></h3>
+      <p id="modalMessage" class="mb-6 text-gray-700"></p>
+      <div class="flex justify-center gap-4">
+        <button id="modalConfirmBtn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out">OK</button>
+        <button id="modalCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-md transition duration-300 ease-in-out hidden">Cancel</button>
       </div>
     </div>
   </div>
 
   <!-- Authentication Container (Login/Signup/Forgot Password Forms) -->
-  <div class="auth-container" id="authContainer">
+  <div id="authContainer" class="flex flex-grow justify-center items-center p-4">
     <!-- Login Form -->
-    <div id="login-form-wrapper" class="form-wrapper active">
-      <form id="login-form" onsubmit="loginUser(event)">
-        <h2>Login</h2>
-        <div class="input-group">
-          <label for="email-login">Email</label>
-          <input type="email" id="email-login" placeholder="Enter your email" required />
+    <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5 active">
+      <form id="login-form">
+        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Login</h2>
+        <div class="mb-6 text-left">
+          <label for="email-login" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+          <input type="email" id="email-login" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          <p id="email-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <div class="input-group">
-          <label for="password-login">Password</label>
-          <input type="password" id="password-login" placeholder="Enter your password" required />
+        <div class="mb-6 text-left">
+          <label for="password-login" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+          <input type="password" id="password-login" placeholder="Enter your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          <p id="password-login-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <button type="submit" id="login-btn">Login</button>
-        <div class="form-links">
-          <a href="#" onclick="showForm('signup')">Don't have an account? Sign Up</a>
-          <a href="#" onclick="showForm('forgot-password')">Forgot Password?</a>
+        <button type="submit" id="login-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Login</button>
+        <div class="mt-6 text-sm flex justify-center space-x-4">
+          <a href="#" onclick="showForm('signup')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Don't have an account? Sign Up</a>
+          <a href="#" onclick="showForm('forgot-password')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Forgot Password?</a>
         </div>
-        <p id="loginResultMsg" style="color: red;"></p>
       </form>
     </div>
 
     <!-- Signup Form -->
-    <div id="signup-form-wrapper" class="form-wrapper">
-      <form id="signup-form" onsubmit="signupUser(event)">
-        <h2>Sign Up</h2>
-        <div class="input-group">
-          <label for="full-name-signup">Full Name</label>
-          <input type="text" id="full-name-signup" placeholder="Enter your full name" required />
+    <div id="signup-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
+      <form id="signup-form">
+        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Sign Up</h2>
+        <div class="mb-6 text-left">
+          <label for="full-name-signup" class="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
+          <input type="text" id="full-name-signup" placeholder="Enter your full name" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
         </div>
-        <div class="input-group">
-          <label for="email-signup">Email</label>
-          <input type="email" id="email-signup" placeholder="Enter your email" required />
+        <div class="mb-6 text-left">
+          <label for="email-signup" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+          <input type="email" id="email-signup" placeholder="Enter your email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          <p id="email-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <div class="input-group">
-          <label for="password-signup">Password</label>
-          <input type="password" id="password-signup" placeholder="Create a password" required />
+        <div class="mb-6 text-left">
+          <label for="password-signup" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+          <input type="password" id="password-signup" placeholder="Create a password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          <p id="password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <div class="input-group">
-          <label for="confirm-password-signup">Confirm Password</label>
-          <input type="password" id="confirm-password-signup" placeholder="Confirm your password" required />
+        <div class="mb-6 text-left">
+          <label for="confirm-password-signup" class="block text-gray-700 text-sm font-medium mb-2">Confirm Password</label>
+          <input type="password" id="confirm-password-signup" placeholder="Confirm your password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          <p id="confirm-password-signup-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <button type="submit" id="signup-btn">Sign Up</button>
-        <div class="form-links">
-          <a href="#" onclick="showForm('login')">Already have an account? Login</a>
+        <button type="submit" id="signup-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Sign Up</button>
+        <div class="mt-6 text-sm">
+          <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Already have an account? Login</a>
         </div>
-        <p id="signupResultMsg" style="color: red;"></p>
       </form>
     </div>
 
     <!-- Forgot Password Form -->
-    <div id="forgot-password-form-wrapper" class="form-wrapper">
-      <form id="forgot-password-form" onsubmit="recoverPassword(event)">
-        <h2>Forgot Password</h2>
-        <div class="input-group">
-          <label for="email-forgot">Email</label>
-          <input type="email" id="email-forgot" placeholder="Enter your email" required />
+    <div id="forgot-password-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5">
+      <form id="forgot-password-form">
+        <h2 class="text-4xl font-extrabold text-green-800 mb-8">Forgot Password</h2>
+        <div class="mb-6 text-left">
+          <label for="email-forgot" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+          <input type="email" id="email-forgot" placeholder="Enter your email" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" />
+          <p id="email-forgot-error" class="text-red-500 text-sm mt-1 hidden"></p>
         </div>
-        <button type="submit" id="recover-btn">Recover Password</button>
-        <div class="form-links">
-          <a href="#" onclick="showForm('login')">Back to Login</a>
+        <button type="submit" id="recover-btn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out shadow-lg">Recover Password</button>
+        <div class="mt-6 text-sm">
+          <a href="#" onclick="showForm('login')" class="text-green-700 hover:text-green-900 hover:underline transition-colors duration-200">Back to Login</a>
         </div>
-        <p id="resultMsg" style="color: red;"></p>
       </form>
     </div>
   </div>
 
   <!-- Dashboard Container -->
-  <div class="dashboard-container" id="dashboardContainer">
-    <header>
-      <img src="myschoollogo.png" alt="University Logo" /> <!-- Reverted to original image path -->
-      <button class="menu-toggle" id="menuToggle">&#9776;</button>
-      <div class="greeting">Welcome, <span id="userName">User</span>!</div>
-      <button class="logout-btn" onclick="confirmLogout()">Logout</button>
+  <div id="dashboardContainer" class="hidden flex-grow flex flex-col bg-gray-100">
+    <header class="bg-white text-green-800 p-4 flex justify-between items-center shadow-md sticky top-0 z-10 lg:px-8">
+      <img src="myschoollogo.png" alt="University Logo" class="h-12 w-auto">
+      <button id="menuToggle" class="lg:hidden text-2xl p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="hidden lg:flex items-center space-x-4">
+        <span class="text-lg font-semibold text-green-700">Welcome, <span id="userName" class="font-bold">User</span>!</span>
+        <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-sm">
+          <i class="fas fa-sign-out-alt mr-2"></i>Logout
+        </button>
+      </div>
+       <!-- Mobile welcome and logout -->
+      <div class="lg:hidden flex items-center space-x-4">
+        <span class="text-md font-semibold text-green-700">Welcome, <span id="userNameMobile" class="font-bold">User</span>!</span>
+        <button onclick="confirmLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 rounded-lg text-sm transition duration-300 ease-in-out shadow-sm">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
     </header>
 
-    <div class="dashboard-content-area">
-      <div class="sidebar">
-        <h3>Quick Menu</h3>
-        <a onclick="showDashboardSection('home')"><i class="fas fa-home"></i> Home</a>
-        <a onclick="showDashboardSection('profile')"><i class="fas fa-user"></i> Personal Profile</a>
+    <div class="flex flex-grow">
+      <!-- Sidebar -->
+      <nav id="sidebar" class="w-64 bg-green-900 text-white p-6 flex flex-col space-y-2 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-20 fixed inset-y-0 left-0 lg:relative lg:flex-shrink-0 lg:h-auto overflow-y-auto">
+        <h3 class="text-2xl font-bold mb-6 pb-3 border-b border-green-700">Quick Menu</h3>
+        <a onclick="showDashboardSection('home')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-home mr-3"></i> Home</a>
+        <a onclick="showDashboardSection('profile')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-user mr-3"></i> Personal Profile</a>
 
-        <a onclick="toggleSubmenu('academics-submenu')"><i class="fas fa-book"></i> Academics ▾</a>
-        <div id="academics-submenu" style="display: none; padding-left: 15px;">
-          <a onclick="showDashboardSection('courseReg')"><i class="fas fa-file-alt"></i> Course Registration</a>
-          <a onclick="showDashboardSection('timetable')"><i class="fas fa-calendar-alt"></i> Timetable</a>
-          <a onclick="showDashboardSection('evaluation')"><i class="fas fa-clipboard-list"></i> Course Evaluation</a>
-          <a onclick="showDashboardSection('graduation')"><i class="fas fa-graduation-cap"></i> Graduation Request</a>
-          <a onclick="showDashboardSection('clearance')"><i class="fas fa-check-circle"></i> Clearance Request</a>
+        <a onclick="toggleSubmenu('academics-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-book mr-3"></i> Academics <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
+        <div id="academics-submenu" class="ml-6 py-2 hidden">
+          <a onclick="showDashboardSection('courseReg')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-alt mr-3"></i> Course Registration</a>
+          <a onclick="showDashboardSection('timetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-calendar-alt mr-3"></i> Timetable</a>
+          <a onclick="showDashboardSection('evaluation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clipboard-list mr-3"></i> Course Evaluation</a>
+          <a onclick="showDashboardSection('graduation')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-graduation-cap mr-3"></i> Graduation Request</a>
+          <a onclick="showDashboardSection('clearance')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-check-circle mr-3"></i> Clearance Request</a>
         </div>
 
-        <a onclick="toggleSubmenu('finance-submenu')"><i class="fas fa-money-bill-wave"></i> Finance ▾</a>
-        <div id="finance-submenu" style="display: none; padding-left: 15px;">
-          <a onclick="showDashboardSection('feesStatement')"><i class="fas fa-credit-card"></i> Fees Statement</a>
-          <a onclick="showDashboardSection('receipts')"><i class="fas fa-receipt"></i> Receipts</a>
-          <a onclick="showDashboardSection('examCard')"><i class="fas fa-id-card"></i> Exam Card</a>
+        <a onclick="toggleSubmenu('finance-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-money-bill-wave mr-3"></i> Finance <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
+        <div id="finance-submenu" class="ml-6 py-2 hidden">
+          <a onclick="showDashboardSection('feesStatement')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-credit-card mr-3"></i> Fees Statement</a>
+          <a onclick="showDashboardSection('receipts')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-receipt mr-3"></i> Receipts</a>
+          <a onclick="showDashboardSection('examCard')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-id-card mr-3"></i> Exam Card</a>
         </div>
 
-        <a onclick="toggleSubmenu('exam-submenu')"><i class="fas fa-laptop-code"></i> Examination ▾</a>
-        <div id="exam-submenu" style="display: none; padding-left: 15px;">
-          <a onclick="showDashboardSection('examTimetable')"><i class="fas fa-clock"></i> Timetable</a>
-          <a onclick="showDashboardSection('transcripts')"><i class="fas fa-file-invoice"></i> Transcripts</a>
+        <a onclick="toggleSubmenu('exam-submenu')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg cursor-pointer"><i class="fas fa-laptop-code mr-3"></i> Examination <i class="fas fa-chevron-down ml-auto text-sm"></i></a>
+        <div id="exam-submenu" class="ml-6 py-2 hidden">
+          <a onclick="showDashboardSection('examTimetable')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-clock mr-3"></i> Timetable</a>
+          <a onclick="showDashboardSection('transcripts')" class="flex items-center p-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-base"><i class="fas fa-file-invoice mr-3"></i> Transcripts</a>
         </div>
-        <a onclick="showDashboardSection('hostelBooking')"><i class="fas fa-hotel"></i> Accommodation</a>
-        <a onclick="showDashboardSection('settings')"><i class="fas fa-cog"></i> Settings</a>
-      </div>
+        <a onclick="showDashboardSection('hostelBooking')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-hotel mr-3"></i> Accommodation</a>
+        <a onclick="showDashboardSection('settings')" class="flex items-center p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-lg"><i class="fas fa-cog mr-3"></i> Settings</a>
+      </nav>
 
-      <div class="main" id="dashboardContent">
+      <!-- Main Content Area -->
+      <main id="dashboardContent" class="flex-grow p-6 overflow-y-auto lg:ml-64 w-full">
         <!-- Dynamic dashboard content loaded here -->
-      </div>
+      </main>
     </div>
 
-    <footer>
+    <footer class="bg-white text-gray-600 text-center p-4 text-sm shadow-inner mt-auto">
       2025 © Prince Alex Design University. All rights reserved.
     </footer>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, updatePassword, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, query, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc, getDocs, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
     // Firebase Config: Replace with your actual Firebase project details
-    const firebaseConfig = {
-      apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+    const hardcodedFirebaseConfig = {
+      apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A", // This is a placeholder. Ensure your actual Firebase API Key is used.
       authDomain: "universityweb-19e1e.firebaseapp.com",
       projectId: "universityweb-19e1e",
       storageBucket: "universityweb-19e1e.appspot.com",
@@ -790,27 +235,32 @@
     };
 
     // Global variables from Canvas environment
-    const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
-    const initialFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : hardcodedFirebaseConfig.projectId; // Kept for consistency if needed, though not directly in new Firestore paths
+    const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Fixed: Use __initial_auth_token here
 
-    // Initialize Firebase
-    const app = initializeApp(initialFirebaseConfig);
+    let app;
+    if (firebaseConfigFromCanvas) {
+        app = initializeApp(firebaseConfigFromCanvas);
+    } else {
+        // Fallback for local development if __firebase_config is not defined
+        app = initializeApp(hardcodedFirebaseConfig);
+    }
+
     const db = getFirestore(app);
     const auth = getAuth(app);
     const storage = getStorage(app);
 
     let currentUserId = null;
     let currentUserData = null;
-    let isManualLoginTransition = false; // Flag to control UI transition from login form
 
     const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingText = document.querySelector('#loadingOverlay .loading-text');
+    const loadingText = document.getElementById('loadingText');
     const authContainer = document.getElementById('authContainer');
     const dashboardContainer = document.getElementById('dashboardContainer');
+    const sidebar = document.getElementById('sidebar');
 
     // --- Custom Modal Functions (replaces alert/confirm) ---
-    let resolveModalPromise;
     function showCustomModal(title, message, isConfirm = false) {
       return new Promise((resolve) => {
         const modal = document.getElementById('customModal');
@@ -824,19 +274,18 @@
 
         if (modalConfirmBtn) {
             modalConfirmBtn.onclick = () => {
-                if (modal) modal.style.display = 'none';
+                if (modal) modal.classList.add('hidden');
                 resolve(true);
             };
         }
         if (modalCancelBtn) {
             modalCancelBtn.onclick = () => {
-                if (modal) modal.style.display = 'none';
+                if (modal) modal.classList.add('hidden');
                 resolve(false);
             };
-            modalCancelBtn.style.display = isConfirm ? 'inline-block' : 'none';
+            modalCancelBtn.classList.toggle('hidden', !isConfirm); // Toggle visibility based on isConfirm
         }
-        if (modal) modal.style.display = 'flex'; // Use flex to center
-        resolveModalPromise = resolve;
+        if (modal) modal.classList.remove('hidden'); // Show modal
       });
     }
 
@@ -848,78 +297,190 @@
     function setButtonLoading(button, isLoading) {
       if (button) {
         button.disabled = isLoading;
-        button.innerText = isLoading ? "Loading..." : (button.id === "login-btn" ? "Login" : (button.id === "signup-btn" ? "Sign Up" : "Recover Password"));
+        button.innerHTML = isLoading ? '<i class="fas fa-spinner animate-spin mr-2"></i>Loading...' : button.dataset.originalHtml;
       }
     }
+
+    // Function to store original button HTML for loading state
+    function storeOriginalButtonHtml() {
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(button => {
+        button.dataset.originalHtml = button.innerHTML;
+      });
+    }
+
+    // Inline form validation utility
+    function validateInput(inputElement, validationFn, errorMessageElement) {
+        if (validationFn(inputElement.value)) {
+            inputElement.classList.remove('border-red-500');
+            inputElement.classList.add('border-gray-300', 'focus:ring-green-500');
+            errorMessageElement.classList.add('hidden');
+            return true;
+        } else {
+            inputElement.classList.remove('border-gray-300', 'focus:ring-green-500');
+            inputElement.classList.add('border-red-500');
+            errorMessageElement.innerText = `❌ ${errorMessageElement.dataset.errorMessage || 'Invalid input.'}`;
+            errorMessageElement.classList.remove('hidden');
+            return false;
+        }
+    }
+
+    // Email validation regex (basic)
+    const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    // Password validation regex (at least 6 characters)
+    const isValidPassword = (password) => password.length >= 6;
+
 
     // Function to show specific authentication form and hide others
     window.showForm = function(formId) {
       const forms = document.querySelectorAll('.form-wrapper');
       forms.forEach(form => {
         form.classList.remove('active');
-        // Explicitly hide non-active forms so they don't take up space or interfere with styling
-        form.style.display = 'none';
+        form.classList.add('opacity-0', 'invisible', 'translate-y-5');
       });
       const activeForm = document.getElementById(`${formId}-form-wrapper`);
       if (activeForm) {
+        activeForm.classList.remove('opacity-0', 'invisible', 'translate-y-5');
         activeForm.classList.add('active');
-        activeForm.style.display = 'block'; /* Show the active form */
-        // Clear previous messages when switching forms
-        const loginResultMsg = document.getElementById('loginResultMsg');
-        const signupResultMsg = document.getElementById('signupResultMsg');
-        const resultMsg = document.getElementById('resultMsg');
-        if (loginResultMsg) loginResultMsg.innerText = '';
-        if (signupResultMsg) signupResultMsg.innerText = '';
-        if (resultMsg) resultMsg.innerText = '';
+        // Autofocus the first input in the new form
+        const firstInput = activeForm.querySelector('input:not([type="hidden"]), select, textarea');
+        if (firstInput) {
+          firstInput.focus();
+        }
       }
     };
 
+    // This function runs once the DOM is fully loaded and before onAuthStateChanged fires its initial state.
+    async function initializeAppUI() {
+        storeOriginalButtonHtml(); // Store original button HTML for loading states
+        loadingText.innerText = "Initializing session...";
+        loadingOverlay.classList.remove('hidden');
+
+        // Attach inline validation listeners
+        attachFormValidationListeners();
+
+        if (initialAuthToken) {
+            try {
+                await signInWithCustomToken(auth, initialAuthToken);
+                console.log("Signed in with custom token.");
+            } catch (error) {
+                console.error("Error signing in with custom token:", error);
+                await signInAnonymously(auth);
+                console.log("Signed in anonymously due to custom token failure.");
+            }
+        } else {
+            try {
+                await signInAnonymously(auth);
+                console.log("Signed in anonymously.");
+            } catch (error) {
+                console.error("Error signing in anonymously:", error);
+                await showCustomModal("Error", "Failed to initialize anonymous session. Please refresh.");
+            }
+        }
+    }
+
+    window.onload = initializeAppUI;
+
+    // --- Authentication Forms Event Listeners ---
+    document.getElementById('login-form').addEventListener('submit', loginUser);
+    document.getElementById('signup-form').addEventListener('submit', signupUser);
+    document.getElementById('forgot-password-form').addEventListener('submit', recoverPassword);
+
+    function attachFormValidationListeners() {
+        // Login form
+        const emailLogin = document.getElementById('email-login');
+        const emailLoginError = document.getElementById('email-login-error');
+        if (emailLogin) {
+            emailLoginError.dataset.errorMessage = "Please enter a valid email address.";
+            emailLogin.addEventListener('input', () => validateInput(emailLogin, isValidEmail, emailLoginError));
+        }
+        const passwordLogin = document.getElementById('password-login');
+        const passwordLoginError = document.getElementById('password-login-error');
+        if (passwordLogin) {
+            passwordLoginError.dataset.errorMessage = "Password must be at least 6 characters.";
+            passwordLogin.addEventListener('input', () => validateInput(passwordLogin, isValidPassword, passwordLoginError));
+        }
+
+        // Signup form
+        const emailSignup = document.getElementById('email-signup');
+        const emailSignupError = document.getElementById('email-signup-error');
+        if (emailSignup) {
+            emailSignupError.dataset.errorMessage = "Please enter a valid email address.";
+            emailSignup.addEventListener('input', () => validateInput(emailSignup, isValidEmail, emailSignupError));
+        }
+        const passwordSignup = document.getElementById('password-signup');
+        const passwordSignupError = document.getElementById('password-signup-error');
+        if (passwordSignup) {
+            passwordSignupError.dataset.errorMessage = "Password must be at least 6 characters long.";
+            passwordSignup.addEventListener('input', () => validateInput(passwordSignup, isValidPassword, passwordSignupError));
+        }
+        const confirmPasswordSignup = document.getElementById('confirm-password-signup');
+        const confirmPasswordSignupError = document.getElementById('confirm-password-signup-error');
+        if (confirmPasswordSignup) {
+            confirmPasswordSignupError.dataset.errorMessage = "Passwords do not match.";
+            confirmPasswordSignup.addEventListener('input', () => {
+                const match = passwordSignup.value === confirmPasswordSignup.value;
+                validateInput(confirmPasswordSignup, () => match, confirmPasswordSignupError);
+            });
+        }
+
+        // Forgot password form
+        const emailForgot = document.getElementById('email-forgot');
+        const emailForgotError = document.getElementById('email-forgot-error');
+        if (emailForgot) {
+            emailForgotError.dataset.errorMessage = "Please enter a valid email address.";
+            emailForgot.addEventListener('input', () => validateInput(emailForgot, isValidEmail, emailForgotError));
+        }
+    }
+
+
     // --- Authentication Flow ---
     onAuthStateChanged(auth, async (user) => {
-      // If a manual login transition is in progress (from loginUser function),
-      // let it handle the UI. This prevents race conditions.
-      if (isManualLoginTransition) {
-        return;
-      }
-
       if (user) {
         currentUserId = user.uid;
         console.log("User authenticated (from onAuthStateChanged):", user.email, user.uid);
 
-        // Fetch user data from Firestore directly from the user's root document
-        const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+        // Fetch or create user data from Firestore
+        const profileDocRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
         const profileDocSnap = await getDoc(profileDocRef);
 
         if (profileDocSnap.exists()) {
           currentUserData = profileDocSnap.data();
           document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+          // Update mobile greeting
+          const userNameMobile = document.getElementById("userNameMobile");
+          if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
         } else {
-          // If profile does not exist (e.g., first login after anonymous signup), create a basic one
+          // If profile does not exist (e.g., first login/anonymous signup), create a basic one
           await setDoc(profileDocRef, {
             email: user.email,
             name: user.email.split("@")[0], // Placeholder name
             regNo: "N/A",
             programme: "N/A",
             campus: "Main Campus",
-            dob: "2000-01-01",
-            gender: "Male",
+            dob: "N/A",
+            gender: "N/A",
             address: "N/A",
             profilePhotoURL: "",
-            initialized: true // Mark as initialized upon creation
+            createdAt: new Date().toISOString(),
+            initialized: true
           });
           currentUserData = (await getDoc(profileDocRef)).data();
           document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
+          const userNameMobile = document.getElementById("userNameMobile");
+          if (userNameMobile) userNameMobile.innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
           console.log("Created basic user profile during dashboard load fallback.");
         }
 
-        authContainer.style.display = 'none'; // Hide auth forms
-        dashboardContainer.style.display = 'flex'; // Show dashboard
-        loadingOverlay.style.display = 'none'; // Hide loading overlay
+        // --- UI Transition to Dashboard ---
+        authContainer.classList.add('hidden'); // Hide auth forms
+        dashboardContainer.classList.remove('hidden'); // Show dashboard
+        loadingOverlay.classList.add('hidden'); // Hide loading overlay
         populateInitialData(); // Populate dummy data if not already present
 
-        // Check if essential profile data is still 'N/A' after login
+        // Check if essential profile data is incomplete
         if (currentUserData.regNo === 'N/A' || currentUserData.programme === 'N/A' || currentUserData.dob === 'N/A' || currentUserData.gender === 'N/A') {
-            await alert("Welcome! Please complete your profile information.");
+            await showCustomModal("Welcome", "Please complete your profile information.");
             showDashboardSection('profile'); // Direct user to profile page
         } else {
             showDashboardSection('home'); // Show default dashboard content
@@ -927,10 +488,9 @@
 
       } else {
         // User is signed out or not logged in, show login page
-        authContainer.style.display = 'flex'; // Show auth forms
-        authContainer.classList.remove('hidden'); // Ensure it's not hidden
-        dashboardContainer.style.display = 'none'; // Hide dashboard
-        loadingOverlay.style.display = 'none'; // Hide loading overlay
+        authContainer.classList.remove('hidden'); // Show auth forms
+        dashboardContainer.classList.add('hidden'); // Hide dashboard
+        loadingOverlay.classList.add('hidden'); // Hide loading overlay
         showForm('login'); // Ensure login form is visible
       }
     });
@@ -939,68 +499,32 @@
     async function loginUser(event) {
       event.preventDefault();
       const loginBtn = document.getElementById('login-btn');
-      const loginResultMsg = document.getElementById('loginResultMsg');
-      setButtonLoading(loginBtn, true);
-      loginResultMsg.innerText = '';
+      const emailInput = document.getElementById("email-login");
+      const passwordInput = document.getElementById("password-login");
+      const emailError = document.getElementById('email-login-error');
+      const passwordError = document.getElementById('password-login-error');
 
-      const email = document.getElementById("email-login").value.trim().toLowerCase();
-      const password = document.getElementById("password-login").value;
+      // Perform client-side validation first
+      const isEmailValid = validateInput(emailInput, isValidEmail, emailError);
+      const isPasswordValid = validateInput(passwordInput, isValidPassword, passwordError);
+
+      if (!isEmailValid || !isPasswordValid) {
+          await showCustomModal("Validation Error", "Please correct the highlighted fields.");
+          return;
+      }
+
+      setButtonLoading(loginBtn, true);
+
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
 
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        isManualLoginTransition = true; // Set flag to indicate manual transition
-        loginResultMsg.innerText = "✅ Login successful! Redirecting to dashboard...";
-        loginResultMsg.style.color = "green";
-        setButtonLoading(loginBtn, false); // Turn off loading
-
-        setTimeout(async () => {
-            // Update current user data based on the newly logged-in user
-            currentUserId = user.uid;
-            const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
-            const profileDocSnap = await getDoc(profileDocRef);
-            if (profileDocSnap.exists()) {
-                currentUserData = profileDocSnap.data();
-                document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-            } else {
-                // This scenario should be rare if signup creates a profile, but good fallback
-                await setDoc(profileDocRef, {
-                    email: user.email,
-                    name: user.email.split("@")[0],
-                    regNo: "N/A",
-                    programme: "N/A",
-                    campus: "Main Campus",
-                    dob: "2000-01-01",
-                    gender: "Male",
-                    address: "N/A",
-                    profilePhotoURL: "",
-                    initialized: true
-                }, { merge: true });
-                currentUserData = (await getDoc(profileDocRef)).data();
-                document.getElementById("userName").innerText = currentUserData.name ? currentUserData.name.split(" ")[0] : "User";
-            }
-
-            // Perform UI transition after delay
-            authContainer.style.display = 'none';
-            authContainer.classList.add('hidden'); // Ensure auth container is completely gone
-            dashboardContainer.style.display = 'flex';
-            loadingOverlay.style.display = 'none';
-            populateInitialData();
-
-            // Check if essential profile data is still 'N/A' after login
-            if (currentUserData.regNo === 'N/A' || currentUserData.programme === 'N/A' || currentUserData.dob === 'N/A' || currentUserData.gender === 'N/A') {
-                await alert("Welcome! Please complete your profile information.");
-                showDashboardSection('profile'); // Direct user to profile page
-            } else {
-                showDashboardSection('home'); // Show default dashboard content
-            }
-            isManualLoginTransition = false; // Reset flag
-        }, 1500); // 1.5 second delay
+        await signInWithEmailAndPassword(auth, email, password);
+        await showCustomModal("Login Success", "✅ Login successful! Redirecting...");
+        // onAuthStateChanged listener will handle the UI update after successful login.
       } catch (error) {
-        setButtonLoading(loginBtn, false);
         let errorMessage = "❌ Login failed.";
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           errorMessage = "❌ Invalid email or password.";
         } else if (error.code === 'auth/invalid-email') {
           errorMessage = "❌ Please enter a valid email address.";
@@ -1009,9 +533,10 @@
         } else {
           errorMessage += ` Error: ${error.message}`;
         }
-        loginResultMsg.innerText = errorMessage;
-        loginResultMsg.style.color = "red";
+        await showCustomModal("Login Failed", errorMessage);
         console.error("Login error:", error);
+      } finally {
+        setButtonLoading(loginBtn, false);
       }
     }
 
@@ -1019,34 +544,43 @@
     async function signupUser(event) {
       event.preventDefault();
       const signupBtn = document.getElementById('signup-btn');
-      const signupResultMsg = document.getElementById('signupResultMsg');
+      const fullNameInput = document.getElementById("full-name-signup");
+      const emailInput = document.getElementById("email-signup");
+      const passwordInput = document.getElementById("password-signup");
+      const confirmPasswordInput = document.getElementById("confirm-password-signup");
+
+      const emailError = document.getElementById('email-signup-error');
+      const passwordError = document.getElementById('password-signup-error');
+      const confirmPasswordError = document.getElementById('confirm-password-signup-error');
+
+      // Client-side validation
+      const isEmailValid = validateInput(emailInput, isValidEmail, emailError);
+      const isPasswordValid = validateInput(passwordInput, isValidPassword, passwordError);
+      const passwordsMatch = (passwordInput.value === confirmPasswordInput.value);
+      const isConfirmPasswordValid = validateInput(confirmPasswordInput, () => passwordsMatch, confirmPasswordError);
+
+      if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !passwordsMatch) {
+          if (!passwordsMatch) {
+              confirmPasswordError.innerText = "❌ Passwords do not match!";
+              confirmPasswordError.classList.remove('hidden');
+              confirmPasswordInput.classList.add('border-red-500');
+          }
+          await showCustomModal("Validation Error", "Please correct the highlighted fields.");
+          return;
+      }
+
       setButtonLoading(signupBtn, true);
-      signupResultMsg.innerText = '';
 
-      const fullName = document.getElementById("full-name-signup").value.trim();
-      const email = document.getElementById("email-signup").value.trim().toLowerCase();
-      const password = document.getElementById("password-signup").value;
-      const confirmPassword = document.getElementById("confirm-password-signup").value;
-
-      if (password !== confirmPassword) {
-        signupResultMsg.innerText = "❌ Passwords do not match!";
-        signupResultMsg.style.color = "red";
-        setButtonLoading(signupBtn, false);
-        return;
-      }
-      if (password.length < 6) {
-        signupResultMsg.innerText = "❌ Password must be at least 6 characters long.";
-        signupResultMsg.style.color = "red";
-        setButtonLoading(signupBtn, false);
-        return;
-      }
+      const fullName = fullNameInput.value.trim();
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Create user document in Firestore directly under /users/{uid}
-        const userDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
+        // Create user document in Firestore directly under /students/{uid}
+        const userDocRef = doc(db, `students`, user.uid); // Updated path
         await setDoc(userDocRef, {
             email: user.email,
             name: fullName,
@@ -1062,15 +596,12 @@
         });
         console.log("User signed up and profile created:", user.email);
 
-        signupResultMsg.innerText = "✅ Signup successful! Please log in with your new account.";
-        signupResultMsg.style.color = "green";
+        await showCustomModal("Signup Success", "✅ Signup successful! Please log in with your new account.");
 
-        setTimeout(() => {
-          showForm('login');
-        }, 2000);
+        // Redirect to login form after successful signup and modal close
+        showForm('login');
 
       } catch (error) {
-        setButtonLoading(signupBtn, false);
         let errorMessage = "❌ Signup failed.";
         if (error.code === 'auth/email-already-in-use') {
           errorMessage = "❌ Email already in use. Try logging in or recovering password.";
@@ -1083,9 +614,10 @@
         } else {
           errorMessage += ` Error: ${error.message}`;
         }
-        signupResultMsg.innerText = errorMessage;
-        signupResultMsg.style.color = "red";
+        await showCustomModal("Signup Failed", errorMessage);
         console.error("Signup error:", error);
+      } finally {
+        setButtonLoading(signupBtn, false);
       }
     }
 
@@ -1093,16 +625,22 @@
     async function recoverPassword(event) {
       event.preventDefault();
       const recoverBtn = document.getElementById('recover-btn');
-      const resultMsg = document.getElementById('resultMsg');
-      setButtonLoading(recoverBtn, true);
-      resultMsg.innerText = '';
+      const emailInput = document.getElementById("email-forgot");
+      const emailError = document.getElementById('email-forgot-error');
 
-      const email = document.getElementById("email-forgot").value.trim().toLowerCase();
+      const isEmailValid = validateInput(emailInput, isValidEmail, emailError);
+      if (!isEmailValid) {
+          await showCustomModal("Validation Error", "Please enter a valid email address.");
+          return;
+      }
+
+      setButtonLoading(recoverBtn, true);
+
+      const email = emailInput.value.trim().toLowerCase();
 
       try {
         await sendPasswordResetEmail(auth, email);
-        resultMsg.innerText = "✅ Password reset email sent! Check your inbox.";
-        resultMsg.style.color = "green";
+        await showCustomModal("Password Recovery", "✅ Password reset email sent! Check your inbox.");
       } catch (error) {
         let errorMessage = "❌ Failed to send password reset email.";
         if (error.code === 'auth/user-not-found') {
@@ -1112,8 +650,7 @@
         } else {
           errorMessage += ` Error: ${error.message}`;
         }
-        resultMsg.innerText = errorMessage;
-        resultMsg.style.color = "red";
+        await showCustomModal("Password Recovery Failed", errorMessage);
         console.error("Password recovery error:", error);
       } finally {
         setButtonLoading(recoverBtn, false);
@@ -1123,39 +660,42 @@
     // --- Dashboard Specific Functions ---
 
     // Logout function
-    async function confirmLogout() {
+    window.confirmLogout = async function() {
       const response = await confirm("Are you sure you want to log out?");
       if (response) {
         try {
           loadingText.innerText = "Logging out...";
-          loadingOverlay.style.display = 'flex';
+          loadingOverlay.classList.remove('hidden');
           await signOut(auth);
           // onAuthStateChanged will handle UI update and show login form
         } catch (error) {
           console.error("Error signing out:", error);
           alert("Error logging out. Please try again.");
-          loadingOverlay.style.display = 'none';
+          loadingOverlay.classList.add('hidden');
         }
       }
-    }
-    window.confirmLogout = confirmLogout;
+    };
 
-    function toggleSubmenu(id) {
+    window.toggleSubmenu = function(id) {
       const submenu = document.getElementById(id);
-      if (submenu) submenu.style.display = submenu.style.display === "none" ? "block" : "none";
-    }
-    window.toggleSubmenu = toggleSubmenu;
+      if (submenu) submenu.classList.toggle('hidden');
+      // Rotate chevron icon for indicating expanded/collapsed state (optional)
+      const chevron = submenu.previousElementSibling.querySelector('.fa-chevron-down');
+      if (chevron) {
+          chevron.classList.toggle('rotate-180');
+      }
+    };
 
     document.getElementById('menuToggle').addEventListener('click', function() {
-      const sidebar = document.querySelector('.sidebar');
-      if (sidebar) sidebar.classList.toggle('active');
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.toggle('-translate-x-full');
     });
 
     function generateBreadcrumb(currentSectionTitle) {
-      return `<div class="breadcrumb">
-                <a onclick="showDashboardSection('home')">Home</a>
-                <span>/</span>
-                <span>${currentSectionTitle}</span>
+      return `<div class="text-sm text-gray-600 mb-6">
+                <a onclick="showDashboardSection('home')" class="text-green-700 hover:underline cursor-pointer">Home</a>
+                <span class="mx-2">/</span>
+                <span class="font-semibold text-green-800">${currentSectionTitle}</span>
               </div>`;
     }
 
@@ -1166,56 +706,57 @@
 
       if (!currentUserId) {
         console.log("currentUserId is null. Redirecting to login from showDashboardSection.");
-        // This case should primarily be handled by onAuthStateChanged if user logs out
-        // but as a fallback, ensure UI is switched if somehow here without user
-        authContainer.style.display = 'flex';
-        authContainer.classList.remove('hidden'); // Ensure it's not hidden
-        dashboardContainer.style.display = 'none';
+        authContainer.classList.remove('hidden');
+        dashboardContainer.classList.add('hidden');
         showForm('login');
         return;
       }
 
-      const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+      const profileDocRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
 
       switch (section) {
         case 'home':
           breadcrumbTitle = 'Dashboard Overview';
-          sectionContent = `<div class="card">
-            <h2>Dashboard Overview</h2>
-            <p>Welcome back, ${currentUserData?.name?.split(" ")[0] || 'User'}!</p>
-            <p>Welcome to your student portal. Here you can access all your academic information and university services in one place.</p>
-            <h3>Upcoming Activities</h3>
-            <ul>
-              <li><i class="fas fa-calendar-alt"></i> Semester 2 begins: July 1st, 2025</li>
-              <li><i class="fas fa-money-bill-wave"></i> Fee Deadline: June 30th, 2025</li>
-              <li><i class="fas fa-flask"></i> Exam Registration Closes: July 10th, 2025</li>
+          sectionContent = `<div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+            <h2 class="text-3xl font-bold text-green-800 mb-4">Dashboard Overview</h2>
+            <p class="text-gray-700 mb-4">Welcome back, <span class="font-semibold">${currentUserData?.name?.split(" ")[0] || 'User'}</span>! 👋</p>
+            <p class="text-gray-600 mb-6">Welcome to your student portal. Here you can access all your academic information and university services in one place.</p>
+            
+            <h3 class="text-2xl font-semibold text-green-700 mb-4 flex items-center"><i class="fas fa-calendar-check mr-3"></i> Upcoming Activities</h3>
+            <ul class="list-disc list-inside text-gray-700 space-y-2 mb-8">
+              <li><i class="fas fa-calendar-alt text-green-600 mr-2"></i> Semester 2 begins: July 1st, 2025</li>
+              <li><i class="fas fa-money-bill-wave text-green-600 mr-2"></i> Fee Deadline: June 30th, 2025</li>
+              <li><i class="fas fa-flask text-green-600 mr-2"></i> Exam Registration Closes: July 10th, 2025</li>
             </ul>
-            <hr style="margin: 30px 0;">
-            <h4><i class="fas fa-bullhorn"></i> Notifications</h4>
-            <div class="notifications-panel" id="notifications-panel">
-                <p>Loading announcements...</p>
-            </div>
-            <div class="search-bar" style="margin-top: 20px;">
-                <input type="text" id="dashboardSearch" placeholder="Search courses, grades, fees...">
-                <i class="fas fa-search search-icon"></i>
+            
+            <div class="border-t border-gray-200 pt-6">
+              <h4 class="text-2xl font-semibold text-green-700 mb-4 flex items-center"><i class="fas fa-bullhorn mr-3"></i> Latest Announcements</h4>
+              <div class="bg-green-50 border border-green-200 rounded-lg p-4 h-48 overflow-y-auto no-scrollbar" id="notifications-panel">
+                  <p class="text-gray-600 text-center">Loading announcements...</p>
+              </div>
             </div>
           </div>`;
-          if (content) content.innerHTML = sectionContent;
-          onSnapshot(collection(db, `artifacts/${appId}/public/data/announcements`), (snapshot) => {
-              const announcements = snapshot.docs.map(doc => doc.data());
+          if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
+          onSnapshot(collection(db, `announcements`), (snapshot) => { // Updated path: /announcements/{id}
+              const announcements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => new Date(b.date) - new Date(a.date));
               const notificationList = document.querySelector('#notifications-panel');
               if (notificationList) {
                   if (announcements.length > 0) {
-                      notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> Latest Announcements</h4><ul>${announcements.map(ann => `<li>${ann.title}: ${new Date(ann.date).toLocaleDateString()} - ${ann.message}</li>`).join('')}</ul>`;
+                      notificationList.innerHTML = `<ul class="space-y-3">${announcements.map(ann => `
+                          <li class="pb-2 border-b border-green-100 last:border-b-0">
+                              <p class="text-sm text-gray-500">${new Date(ann.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                              <p class="font-medium text-green-800">${ann.title}</p>
+                              <p class="text-gray-700">${ann.message}</p>
+                          </li>`).join('')}</ul>`;
                   } else {
-                      notificationList.innerHTML = `<h4><i class="fas fa-bullhorn"></i> No New Announcements</h4><p>Check back later for updates.</p>`;
+                      notificationList.innerHTML = `<p class="text-gray-600 text-center py-4">No new announcements at this time. Check back later for updates!</p>`;
                   }
               }
           }, (error) => {
               console.error("Error fetching announcements:", error);
               const notificationList = document.querySelector('#notifications-panel');
               if (notificationList) {
-                  notificationList.innerHTML = `<p style="color:red;">Error loading announcements.</p>`;
+                  notificationList.innerHTML = `<p class="text-red-500 text-center py-4">Error loading announcements. Please try again later.</p>`;
               }
           });
           break;
@@ -1229,93 +770,156 @@
 
           let totalPoints = 0;
           let totalUnits = 0;
-          const gradesSnapshot = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/grades`));
+          const gradesQuery = query(collection(db, `grades`), where("studentId", "==", currentUserId)); // Updated path: /grades/{id} with studentId filter
+          const gradesSnapshot = await getDocs(gradesQuery);
           gradesSnapshot.docs.forEach(doc => {
               const gradeData = doc.data();
               const gradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
               const points = gradeMap[gradeData.grade] || 0;
-              const units = 1;
+              const units = 1; // Assuming each unit is 1 credit for GPA calculation
               totalPoints += points * units;
               totalUnits += units;
           });
-          const calculatedGpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : 'N/A';
+          const calculatedGpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : '0.00';
+          const gpaPercentage = totalUnits > 0 ? ((totalPoints / totalUnits) / 4.0 * 100) : 0; // Assuming max GPA is 4.0
 
-          sectionContent = `<div class="card">
-            <h2>Personal Profile</h2>
-            <img src="${profilePhotoURL}" alt="Student Avatar" id="profile-img-preview">
-            <input type="file" id="profile-picture-upload" accept="image/*" style="margin: 15px auto; display: block;">
-            <button class="pay-btn" onclick="uploadProfilePicture()" style="display: block; margin: 10px auto;">Upload Photo</button>
+          const circumference = 2 * Math.PI * 50; // 2 * pi * radius (radius is 50 for a 100x100 circle)
+          const offset = circumference - (gpaPercentage / 100) * circumference;
 
-            <div class="input-group">
-                <label for="profile-name">Name:</label>
-                <input type="text" id="profile-name" value="${studentData.name || ''}" placeholder="Enter full name">
-            </div>
-            <div class="input-group">
-                <label for="profile-regNo">Reg. No:</label>
-                <input type="text" id="profile-regNo" value="${studentData.regNo || ''}" placeholder="Enter registration number">
-            </div>
-            <div class="input-group">
-                <label for="profile-programme">Programme:</label>
-                <input type="text" id="profile-programme" value="${studentData.programme || ''}" placeholder="Enter programme">
-            </div>
-            <div class="input-group">
-                <label for="profile-campus">Campus:</label>
-                <input type="text" id="profile-campus" value="${studentData.campus || ''}" placeholder="Enter campus">
-            </div>
-            <div class="input-group">
-                <label for="profile-dob">Date Of Birth:</label>
-                <input type="date" id="profile-dob" value="${studentData.dob || ''}">
-            </div>
-            <div class="input-group">
-                <label for="profile-gender">Gender:</label>
-                <select id="profile-gender">
-                    <option value="">Select Gender</option>
-                    <option value="Male" ${studentData.gender === 'Male' ? 'selected' : ''}>Male</option>
-                    <option value="Female" ${studentData.gender === 'Female' ? 'selected' : ''}>Female</option>
-                    <option value="Other" ${studentData.gender === 'Other' ? 'selected' : ''}>Other</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="profile-address">Address:</label>
-                <textarea id="profile-address" placeholder="Enter address">${studentData.address || ''}</textarea>
-            </div>
-            <button class="pay-btn" onclick="saveProfileData()">Save Profile</button>
-            <p id="profileSaveMsg" style="margin-top: 10px; font-weight: bold;"></p>
 
-            <hr style="margin: 30px 0">
-            <h3>Academic Information</h3>
-            <div class="info-group">
-              <p><strong>Current Programme:</strong> ${studentData.programme || 'N/A'}</p>
-              <p id="attempted-units"><strong>Attempted Units:</strong> Loading...</p>
-              <p id="registered-units"><strong>Registered Units:</strong> Loading...</p>
+          sectionContent = `<div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+            <h2 class="text-3xl font-bold text-green-800 mb-6">Personal Profile</h2>
+            <div class="flex flex-col items-center mb-6">
+              <img src="${profilePhotoURL}" alt="Student Avatar" id="profile-img-preview" class="w-32 h-32 rounded-full object-cover border-4 border-green-500 shadow-md mb-4">
+              <input type="file" id="profile-picture-upload" accept="image/jpeg,image/png,image/gif" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" style="margin: 15px auto; display: block;">
+              <button onclick="uploadProfilePicture()" class="mt-4 bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Upload Photo</button>
             </div>
-            <p class="gpa-tracker">Current GPA: ${calculatedGpa}</p>
-            <hr style="margin: 30px 0">
-            <h3>Fee Payment</h3>
-            <div class="info-group">
-              <p id="total-billed"><strong>Total Billed:</strong> Loading...</p>
-              <p id="total-paid"><strong>Total Paid:</strong> Loading...</p>
-              <p id="fee-balance"><strong>Fee Balance:</strong> Loading...</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8">
+                <div class="col-span-full"><h3 class="text-xl font-semibold text-green-700 border-b pb-2 mb-4">Personal Details</h3></div>
+                <div class="mb-2">
+                    <label for="profile-name" class="block text-gray-700 text-sm font-medium mb-1">Name:</label>
+                    <input type="text" id="profile-name" value="${studentData.name || ''}" placeholder="Enter full name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <div class="mb-2">
+                    <label for="profile-regNo" class="block text-gray-700 text-sm font-medium mb-1">Reg. No:</label>
+                    <input type="text" id="profile-regNo" value="${studentData.regNo || ''}" placeholder="Enter registration number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <div class="mb-2">
+                    <label for="profile-dob" class="block text-gray-700 text-sm font-medium mb-1">Date Of Birth:</label>
+                    <input type="date" id="profile-dob" value="${studentData.dob || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <div class="mb-2">
+                    <label for="profile-gender" class="block text-gray-700 text-sm font-medium mb-1">Gender:</label>
+                    <select id="profile-gender" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Select Gender</option>
+                        <option value="Male" ${studentData.gender === 'Male' ? 'selected' : ''}>Male</option>
+                        <option value="Female" ${studentData.gender === 'Female' ? 'selected' : ''}>Female</option>
+                        <option value="Other" ${studentData.gender === 'Other' ? 'selected' : ''}>Other</option>
+                    </select>
+                </div>
+                <div class="mb-2 col-span-full">
+                    <label for="profile-address" class="block text-gray-700 text-sm font-medium mb-1">Address:</label>
+                    <textarea id="profile-address" placeholder="Enter address" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">${studentData.address || ''}</textarea>
+                </div>
+
+                <div class="col-span-full mt-4"><h3 class="text-xl font-semibold text-green-700 border-b pb-2 mb-4">Academic Details</h3></div>
+                <div class="mb-2">
+                    <label for="profile-programme" class="block text-gray-700 text-sm font-medium mb-1">Programme:</label>
+                    <input type="text" id="profile-programme" value="${studentData.programme || ''}" placeholder="Enter programme" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <div class="mb-2">
+                    <label for="profile-campus" class="block text-gray-700 text-sm font-medium mb-1">Campus:</label>
+                    <input type="text" id="profile-campus" value="${studentData.campus || ''}" placeholder="Enter campus" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
             </div>
-            <button class="pay-btn">Make Payment</button>
-            <hr style="margin: 30px 0">
-            <h3>Important Documents</h3>
-            <table>
-              <thead><tr><th>File Name</th><th>Action</th></tr></thead>
-              <tbody>
-                <tr><td>Transcript.pdf</td><td><button class="pay-btn" onclick="generateTranscriptPDF()"><i class="fas fa-download"></i> Download</button></td></tr>
-                <tr><td>Admission Letter.pdf</td><td><button class="pay-btn"><i class="fas fa-download"></i> Download</button></td></tr>
-              </tbody>
-            </table>
+            <button onclick="saveProfileData()" class="mt-4 w-full bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Save Profile</button>
+            <p id="profileSaveMsg" class="mt-4 text-center font-bold"></p>
+
+            <hr class="my-8 border-gray-200">
+            <h3 class="text-2xl font-semibold text-green-700 mb-6 flex items-center"><i class="fas fa-graduation-cap mr-3"></i> Academic Overview</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-green-50 p-6 rounded-lg shadow-inner">
+                    <p class="text-gray-700 mb-2"><strong>Current Programme:</strong> ${studentData.programme || 'N/A'}</p>
+                    <p id="attempted-units" class="text-gray-700 mb-2"><strong>Attempted Units:</strong> Loading...</p>
+                    <p id="registered-units" class="text-gray-700"><strong>Registered Units:</strong> Loading...</p>
+                </div>
+                <div class="gpa-tracker flex flex-col items-center justify-center bg-green-50 p-4 rounded-lg shadow-inner">
+                    <div class="gpa-circle-container">
+                        <svg class="gpa-circle-svg" width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" class="gpa-circle-bg"></circle>
+                            <circle cx="60" cy="60" r="50" class="gpa-circle-progress"
+                                stroke-dasharray="${circumference}"
+                                stroke-dashoffset="${offset}" id="gpa-progress-circle"></circle>
+                        </svg>
+                        <span class="gpa-text" id="gpa-value">${calculatedGpa}</span>
+                    </div>
+                    <p class="text-lg font-bold text-green-800 mt-2">Cumulative GPA</p>
+                </div>
+            </div>
+
+            <hr class="my-8 border-gray-200">
+            <h3 class="text-2xl font-semibold text-green-700 mb-6 flex items-center"><i class="fas fa-money-bill-alt mr-3"></i> Fee Payment Summary</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div class="bg-blue-50 p-6 rounded-lg shadow-inner text-center">
+                <p class="text-gray-700 text-lg">Total Billed</p>
+                <p id="total-billed" class="text-2xl font-bold text-blue-700 mt-2">Loading...</p>
+              </div>
+              <div class="bg-green-50 p-6 rounded-lg shadow-inner text-center">
+                <p class="text-gray-700 text-lg">Total Paid</p>
+                <p id="total-paid" class="text-2xl font-bold text-green-700 mt-2">Loading...</p>
+              </div>
+              <div class="bg-red-50 p-6 rounded-lg shadow-inner text-center">
+                <p class="text-gray-700 text-lg">Fee Balance</p>
+                <p id="fee-balance" class="text-2xl font-bold fees-balance-text mt-2">Loading...</p>
+              </div>
+            </div>
+            <button class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Make Payment</button>
+
+            <hr class="my-8 border-gray-200">
+            <h3 class="text-2xl font-semibold text-green-700 mb-6 flex items-center"><i class="fas fa-file-alt mr-3"></i> Important Documents</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                    <thead>
+                        <tr class="bg-green-100 text-green-800 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 text-left">File Name</th>
+                            <th class="py-3 px-6 text-left">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700 text-sm font-light">
+                        <tr class="border-b border-gray-200 hover:bg-gray-100">
+                            <td class="py-3 px-6 text-left whitespace-nowrap">Transcript.pdf</td>
+                            <td class="py-3 px-6 text-left"><button onclick="generateTranscriptPDF()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-lg text-xs transition duration-300 ease-in-out"><i class="fas fa-download mr-1"></i> Download</button></td>
+                        </tr>
+                        <tr class="border-b border-gray-200 hover:bg-gray-100">
+                            <td class="py-3 px-6 text-left whitespace-nowrap">Admission Letter.pdf</td>
+                            <td class="py-3 px-6 text-left"><button class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-lg text-xs transition duration-300 ease-in-out"><i class="fas fa-download mr-1"></i> Download</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
           </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
-          onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`), (snapshot) => {
+          // GPA Circle Update on profile load
+          const gpaProgressCircle = document.getElementById('gpa-progress-circle');
+          const gpaValueText = document.getElementById('gpa-value');
+          if (gpaProgressCircle && gpaValueText) {
+              const radius = gpaProgressCircle.r.baseVal.value;
+              const circumference = 2 * Math.PI * radius;
+              gpaProgressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+              const progressOffset = circumference - (gpaPercentage / 100) * circumference;
+              gpaProgressCircle.style.strokeDashoffset = progressOffset;
+              gpaValueText.textContent = calculatedGpa;
+          }
+
+          const registrationsQuery = query(collection(db, `registrations`), where("studentId", "==", currentUserId)); // Updated path: /registrations/{id} with studentId filter
+          onSnapshot(registrationsQuery, (snapshot) => {
               let attempted = 0;
               let registered = 0;
               snapshot.docs.forEach(doc => {
                   const data = doc.data();
-                  if (data.units) {
+                  if (data.units && data.studentId === currentUserId) { // Ensure it's for the current user
                       registered += data.units.length;
                       attempted += data.units.length;
                   }
@@ -1328,22 +932,34 @@
               console.error("Error fetching registration data for profile:", error);
           });
 
-          onSnapshot(collection(db, `artifacts/${appId}/users/${currentUserId}/fees`), (snapshot) => {
+          const feesQueryForProfile = query(collection(db, `fees`), where("studentId", "==", currentUserId)); // Updated path: /fees/{id} with studentId filter
+          onSnapshot(feesQueryForProfile, (snapshot) => {
               let totalBilled = 0;
               let totalPaid = 0;
               snapshot.docs.forEach(doc => {
                   const data = doc.data();
-                  totalBilled += data.debit || 0;
-                  totalPaid += data.credit || 0;
+                  if (data.studentId === currentUserId) { // Ensure it's for the current user
+                    totalBilled += data.debit || 0;
+                    totalPaid += data.credit || 0;
+                  }
               });
               const feeBalance = totalBilled - totalPaid;
               const totalBilledElement = content.querySelector('#total-billed');
               const totalPaidElement = content.querySelector('#total-paid');
               const feeBalanceElement = content.querySelector('#fee-balance');
 
-              if(totalBilledElement) totalBilledElement.innerHTML = `<strong>Total Billed:</strong> ${totalBilled.toFixed(2)}`;
-              if(totalPaidElement) totalPaidElement.innerHTML = `<strong>Total Paid:</strong> ${totalPaid.toFixed(2)}`;
-              if(feeBalanceElement) feeBalanceElement.innerHTML = `<strong>Fee Balance:</strong> ${feeBalance.toFixed(2)}`;
+              if(totalBilledElement) totalBilledElement.innerHTML = `KES ${totalBilled.toFixed(2)}`;
+              if(totalPaidElement) totalPaidElement.innerHTML = `KES ${totalPaid.toFixed(2)}`;
+              if(feeBalanceElement) {
+                feeBalanceElement.innerHTML = `KES ${feeBalance.toFixed(2)}`;
+                if (feeBalance > 0) {
+                    feeBalanceElement.classList.remove('green');
+                    feeBalanceElement.classList.add('red');
+                } else {
+                    feeBalanceElement.classList.remove('red');
+                    feeBalanceElement.classList.add('green');
+                }
+              }
           }, (error) => {
               console.error("Error fetching fee data for profile:", error);
           });
@@ -1353,15 +969,18 @@
         case 'courseReg':
           breadcrumbTitle = 'Course Registration';
           sectionContent = `
-            <div class="card">
-              <h2>Course Registration</h2>
-              <label for="semesterSelect">Select Semester:</label><br/>
-              <select id="semesterSelect" onchange="renderUnits()" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
-                <option value="">-- Select Semester --</option>
-                <option value="Semester 1">Semester 1</option>
-                <option value="Semester 2">Semester 2</option>
-              </select>
-              <div id="unitFormArea" style="margin-top: 20px;"></div>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Course Registration</h2>
+              <div class="mb-6">
+                <label for="semesterSelect" class="block text-gray-700 text-sm font-medium mb-2">Select Semester:</label>
+                <select id="semesterSelect" onchange="renderUnits()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                  <option value="">-- Select Semester --</option>
+                  <option value="Semester 1">Semester 1</option>
+                  <option value="Semester 2">Semester 2</option>
+                  <option value="Semester 3">Semester 3</option>
+                </select>
+              </div>
+              <div id="unitFormArea" class="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200"></div>
             </div>
           `;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
@@ -1369,45 +988,50 @@
             const semester = document.getElementById("semesterSelect")?.value;
             const formArea = document.getElementById("unitFormArea");
             if (!formArea || !semester) {
-              if(formArea) formArea.innerHTML = "";
+              if(formArea) formArea.innerHTML = `<p class="text-gray-500 text-center py-4">Please select a semester to view available units.</p>`;
               return;
             }
 
-            const regDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/registrations`, semester);
+            const regDocRef = doc(db, `registrations`, `${currentUserId}_${semester.replace(/\s/g, '', 'g')}`); // Updated path: /registrations/{uid_semester}
             const regDocSnap = await getDoc(regDocRef);
             const registeredUnits = regDocSnap.exists() ? regDocSnap.data().units : [];
 
             if (registeredUnits && registeredUnits.length > 0) {
               formArea.innerHTML = `
-                <p style="color:green;"><strong>✅ You have already registered the following units for ${semester}:</strong></p>
-                <ul>${registeredUnits.map(u => `<li>${u.code} - ${u.name}</li>`).join("")}</ul>
-                <button class="red-btn" style="margin-top: 20px;" onclick="unenrollUnits('${semester}')">Unenroll All Units</button>
+                <p class="text-green-700 font-semibold mb-4 text-center">✅ You have already registered the following units for ${semester}:</p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 mb-6">
+                  ${registeredUnits.map(u => `<li>${u.code} - ${u.name}</li>`).join("")}
+                </ul>
+                <button class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md" onclick="unenrollUnits('${semester}')">Unenroll All Units</button>
               `;
               return;
             }
 
-            const coursesCollection = collection(db, `artifacts/${appId}/public/data/courses`);
+            const coursesCollection = collection(db, `courses`); // Updated path: /courses/{courseId}
             const q = query(coursesCollection, where("semester", "==", semester));
             const querySnapshot = await getDocs(q);
-            const availableUnits = querySnapshot.docs.map(doc => doc.data());
+            const availableUnits = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             if (availableUnits.length === 0) {
-                formArea.innerHTML = `<p>No courses available for ${semester} yet.</p>`;
+                formArea.innerHTML = `<p class="text-gray-500 text-center py-4">No courses available for ${semester} yet. Please check back later.</p>`;
                 return;
             }
 
             const unitOptions = availableUnits.map(unit => `
-              <label>
-                <input type="checkbox" name="unit" value="${unit.code}" data-name="${unit.name}" />
-                ${unit.code} - ${unit.name} (${unit.lecturer})
-              </label><br/>
+              <label class="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-100 rounded-md px-2">
+                <input type="checkbox" name="unit" value="${unit.code}" data-name="${unit.name}" data-course-id="${unit.id}" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500" />
+                <span class="text-gray-800 font-medium">${unit.code}</span>
+                <span class="text-gray-700">- ${unit.name} (${unit.lecturer})</span>
+              </label>
             `).join("");
 
             formArea.innerHTML = `
               <form id="unitForm">
-                <h3>Select Units:</h3>
-                ${unitOptions}
-                <button type="submit" class="pay-btn" style="margin-top: 20px;">Submit Registration</button>
+                <h3 class="text-xl font-semibold text-green-700 mb-4">Select Units for ${semester}:</h3>
+                <div class="space-y-2 mb-6">
+                  ${unitOptions}
+                </div>
+                <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Submit Registration</button>
               </form>
             `;
 
@@ -1415,38 +1039,48 @@
             if (unitForm) {
                 unitForm.onsubmit = async function(e) {
                   e.preventDefault();
-                  const selected = Array.from(document.querySelectorAll('input[name="unit"]:checked')).map(input => ({
+                  const selectedInputs = Array.from(document.querySelectorAll('input[name="unit"]:checked'));
+                  const selectedUnits = selectedInputs.map(input => ({
                     code: input.value,
-                    name: input.dataset.name
+                    name: input.dataset.name,
+                    courseId: input.dataset.courseId // Capture Firestore doc ID
                   }));
-                  if (selected.length === 0) {
+
+                  if (selectedUnits.length === 0) {
                     await alert("⚠️ Please select at least one unit.");
                     return;
                   }
 
                   try {
-                    await setDoc(regDocRef, { units: selected }, { merge: true });
-                    await alert("✅ Units registered successfully for " + semester);
-                    renderUnits();
+                    // Store the selected units with student ID as a new document in the registrations collection
+                    await setDoc(regDocRef, { // Using setDoc with explicit ID ensures one document per student-semester
+                        studentId: currentUserId,
+                        semester: semester,
+                        units: selectedUnits,
+                        registeredAt: new Date().toISOString()
+                    }, { merge: true }); // Merge true allows updating if already exists
+
+                    await showCustomModal("Registration Success", "✅ Units registered successfully for " + semester);
+                    renderUnits(); // Re-render to show registered state
                   } catch (error) {
                     console.error("Error registering units:", error);
-                    await alert("❌ Failed to register units. Please try again.");
+                    await showCustomModal("Registration Failed", "❌ Failed to register units. Please try again.");
                   }
                 };
             }
           };
 
           window.unenrollUnits = async function(semester) {
-            const response = await confirm(`Are you sure you want to unenroll all units for ${semester}?`);
+            const response = await confirm(`Are you sure you want to unenroll all units for ${semester}? This action cannot be undone.`);
             if (response) {
               try {
-                const regDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/registrations`, semester);
+                const regDocRef = doc(db, `registrations`, `${currentUserId}_${semester.replace(/\s/g, '')}`); // Updated path
                 await deleteDoc(regDocRef);
-                await alert("✅ Units unenrolled successfully for " + semester);
-                renderUnits();
+                await showCustomModal("Unenrollment Success", "✅ Units unenrolled successfully for " + semester);
+                renderUnits(); // Re-render to show available units
               } catch (error) {
                 console.error("Error unenrolling units:", error);
-                await alert("❌ Failed to unenroll units. Please try again.");
+                await showCustomModal("Unenrollment Failed", "❌ Failed to unenroll units. Please try again.");
               }
             }
           };
@@ -1455,179 +1089,256 @@
 
         case 'timetable':
           breadcrumbTitle = 'Timetable';
-          const coursesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/courses`));
+          const coursesSnapshot = await getDocs(collection(db, `courses`)); // Updated path: /courses/{courseId}
           const courses = coursesSnapshot.docs.map(doc => doc.data());
 
           let timetableHtml = `
-            <div class="card">
-              <h2>Timetable</h2>
-              <button class="red-btn" onclick="generateTimetablePDF()"> <i class="fas fa-download"></i> Download Timetable PDF </button>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Monday</th>
-                    <th>Tuesday</th>
-                    <th>Wednesday</th>
-                    <th>Thursday</th>
-                    <th>Friday</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Timetable</h2>
+              <button onclick="generateTimetablePDF()" class="mb-6 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                <i class="fas fa-download mr-2"></i> Download Timetable PDF
+              </button>
+              <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                  <thead>
+                    <tr class="bg-green-100 text-green-800 uppercase text-sm leading-normal">
+                      <th class="py-3 px-6 text-left">Time</th>
+                      <th class="py-3 px-6 text-left">Monday</th>
+                      <th class="py-3 px-6 text-left">Tuesday</th>
+                      <th class="py-3 px-6 text-left">Wednesday</th>
+                      <th class="py-3 px-6 text-left">Thursday</th>
+                      <th class="py-3 px-6 text-left">Friday</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-700 text-sm font-light">
           `;
           const timeSlots = ["08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", "13:00-14:00", "14:00-15:00", "15:00-16:00"];
           timeSlots.forEach(time => {
-              timetableHtml += `<tr><td>${time}</td>`;
+              timetableHtml += `<tr class="border-b border-gray-200 hover:bg-gray-100"><td class="py-3 px-6 font-medium">${time}</td>`;
               ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach(day => {
                   const scheduledCourses = courses.filter(c => c.schedule && c.schedule.day === day && c.schedule.time === time);
                   if (scheduledCourses.length > 0) {
-                      timetableHtml += `<td>${scheduledCourses.map(c => `${c.code}<br>${c.name}`).join('<br>')}</td>`;
+                      timetableHtml += `<td class="py-3 px-6">${scheduledCourses.map(c => `
+                          <div class="font-bold text-green-800">${c.code}</div>
+                          <div class="text-xs text-gray-600">${c.name}</div>
+                          <div class="text-xs text-gray-500">(${c.lecturer})</div>
+                          `).join('<br>')}</td>`;
                   } else {
-                      timetableHtml += `<td>-</td>`;
+                      timetableHtml += `<td class="py-3 px-6 text-center text-gray-400">-</td>`;
                   }
               });
               timetableHtml += `</tr>`;
           });
           timetableHtml += `
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + timetableHtml;
           break;
 
         case 'evaluation':
           breadcrumbTitle = 'Course Evaluation';
-          sectionContent = `<div class="card"><h2>Course Evaluation</h2><div class="no-records">No Records Found</div></div>`;
+          sectionContent = `<div class="bg-white p-8 rounded-xl shadow-lg mb-8"><h2 class="text-3xl font-bold text-green-800 mb-6">Course Evaluation</h2><div class="text-center py-8 text-gray-500 font-semibold">No records found for course evaluation.</div></div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'graduation':
           breadcrumbTitle = 'Graduation Request';
           const currentStudentData = (await getDoc(profileDocRef)).data();
+          const graduationRequestDocRef = doc(db, `graduationRequests`, currentUserId); // Updated path: /graduationRequests/{uid}
+          const graduationRequestSnap = await getDoc(graduationRequestDocRef);
+          const hasGraduationRequest = graduationRequestSnap.exists();
+
           sectionContent = `
-            <div class="card">
-              <h2>Graduation Request</h2>
-              <div class="info-group">
-                <p><strong>Reg No:</strong> ${currentStudentData?.regNo || 'N/A'}</p>
-                <p><strong>Full Name:</strong> ${currentStudentData?.name || 'N/A'}</p>
-                <p><strong>Email:</strong> ${currentStudentData?.email || 'N/A'}</p>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Graduation Request</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 mb-6">
+                <div><strong>Reg No:</strong> ${currentStudentData?.regNo || 'N/A'}</div>
+                <div><strong>Full Name:</strong> ${currentStudentData?.name || 'N/A'}</div>
+                <div><strong>Email:</strong> ${currentStudentData?.email || 'N/A'}</div>
               </div>
-              <hr style="margin: 30px 0">
-              <h3>Graduation Application Form</h3>
-              <label for="gradType">Graduation Type:</label><br/>
-              <select id="gradType" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
-                <option value="">-- Select --</option>
-                <option value="regular">Regular</option>
-                <option value="special">Special</option>
-                <option value="posthumous">Posthumous</option>
-              </select><br/><br/>
-
-              <label for="gradDate">Proposed Graduation Date:</label><br/>
-              <input type="date" id="gradDate" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
-
-              <label for="disability">Do you have any disability?</label><br/>
-              <select id="disability" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;">
-                <option value="">-- Select --</option>
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select><br/><br/>
-
-              <label><input type="checkbox" id="declaration" style="margin-right:8px;"> I confirm that I have met all academic and financial requirements for graduation.</label><br/><br/>
-
-              <button class="pay-btn" onclick="submitGraduationRequest()">Submit Request</button>
-            </div>
+              <hr class="my-6 border-gray-200">
           `;
+
+          if (hasGraduationRequest) {
+            const requestData = graduationRequestSnap.data();
+            sectionContent += `
+              <div class="text-center bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg relative">
+                <strong class="font-bold">Request Submitted!</strong>
+                <span class="block sm:inline">Your graduation request has been successfully submitted on ${new Date(requestData.timestamp).toLocaleDateString()}.</span>
+                <span class="block">Status: <span class="font-semibold text-green-800">${requestData.status || 'Pending Review'}</span></span>
+                <span class="block">Type: ${requestData.type}</span>
+                <span class="block">Proposed Date: ${new Date(requestData.date).toLocaleDateString()}</span>
+                <p class="mt-4 text-gray-600">We will review your application and notify you of the outcome.</p>
+              </div>
+            `;
+          } else {
+            sectionContent += `
+              <form id="graduationForm">
+                <h3 class="text-2xl font-semibold text-green-700 mb-4">Graduation Application Form</h3>
+                <div class="mb-4">
+                  <label for="gradType" class="block text-gray-700 text-sm font-medium mb-2">Graduation Type:</label>
+                  <select id="gradType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent" required>
+                    <option value="">-- Select --</option>
+                    <option value="regular">Regular</option>
+                    <option value="special">Special</option>
+                    <option value="posthumous">Posthumous</option>
+                  </select>
+                </div>
+
+                <div class="mb-4">
+                  <label for="gradDate" class="block text-gray-700 text-sm font-medium mb-2">Proposed Graduation Date:</label>
+                  <input type="date" id="gradDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent" required>
+                </div>
+
+                <div class="mb-4">
+                  <label for="disability" class="block text-gray-700 text-sm font-medium mb-2">Do you have any disability?</label>
+                  <select id="disability" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent" required>
+                    <option value="">-- Select --</option>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div>
+
+                <div class="mb-6 flex items-center">
+                  <input type="checkbox" id="declaration" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500" required>
+                  <label for="declaration" class="ml-2 text-gray-700 text-sm">I confirm that I have met all academic and financial requirements for graduation.</label>
+                </div>
+
+                <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Submit Request</button>
+              </form>
+            `;
+          }
+          sectionContent += `</div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
-          window.submitGraduationRequest = async function() {
-            const type = document.getElementById('gradType')?.value;
-            const date = document.getElementById('gradDate')?.value;
-            const disability = document.getElementById('disability')?.value;
-            const confirmed = document.getElementById('declaration')?.checked;
 
-            if (!type || !date || !disability || !confirmed) {
-              await alert("⚠️ Please fill out all fields and confirm declaration.");
-              return;
-            }
+          const graduationForm = document.getElementById('graduationForm');
+          if (graduationForm) {
+            graduationForm.addEventListener('submit', async function(e) {
+              e.preventDefault();
+              const type = document.getElementById('gradType')?.value;
+              const date = document.getElementById('gradDate')?.value;
+              const disability = document.getElementById('disability')?.value;
+              const confirmed = document.getElementById('declaration')?.checked;
 
-            try {
-              const graduationDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/graduationRequest`, 'currentRequest');
-              await setDoc(graduationDocRef, {
-                  type,
-                  date,
-                  disability,
-                  confirmed,
-                  timestamp: new Date()
-              });
-              await alert("🎓 Graduation Request Submitted Successfully!\n\nWe will review and notify you.");
-            } catch (error) {
-              console.error("Error submitting graduation request:", error);
-              await alert("❌ Failed to submit graduation request. Please try again.");
-            }
-          };
+              if (!type || !date || !disability || !confirmed) {
+                await showCustomModal("Validation Error", "⚠️ Please fill out all fields and confirm the declaration.");
+                return;
+              }
+
+              try {
+                // Using currentUserId as the document ID for a single graduation request per user
+                await setDoc(graduationRequestDocRef, {
+                    studentId: currentUserId,
+                    type,
+                    date,
+                    disability,
+                    confirmed,
+                    status: 'Pending Review', // Add a status
+                    timestamp: new Date().toISOString()
+                });
+                await showCustomModal("Graduation Request Submitted", "🎓 Your graduation request has been submitted successfully! We will review and notify you.");
+                showDashboardSection('graduation'); // Reload section to show status
+              } catch (error) {
+                console.error("Error submitting graduation request:", error);
+                await showCustomModal("Submission Failed", "❌ Failed to submit graduation request. Please try again.");
+              }
+            });
+          }
           break;
 
         case 'clearance':
           breadcrumbTitle = 'Clearance Request';
-          const clearanceDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/clearance`, currentUserId);
-          const clearanceSnap = await getDoc(clearanceDocRef);
+          const clearanceRequestDocRef = doc(db, `clearanceRequests`, currentUserId); // Updated path: /clearanceRequests/{uid}
+          const clearanceSnap = await getDoc(clearanceRequestDocRef);
           const requestStatus = clearanceSnap.exists() ? clearanceSnap.data().status : "none";
 
+          sectionContent = `
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Clearance Request</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 mb-6">
+                <div><strong>Reg No:</strong> ${currentUserData?.regNo || 'N/A'}</div>
+                <div><strong>Full Name:</strong> ${currentUserData?.name || 'N/A'}</div>
+                <div><strong>Email:</strong> ${currentUserData?.email || 'N/A'}</div>
+              </div>
+              <hr class="my-6 border-gray-200">
+          `;
+
           if (requestStatus !== "none") {
-            sectionContent = `
-              <div class="card">
-                <h2>Clearance Request</h2>
-                <p><strong>Status:</strong> ✅ <span style="color: green;">Request submitted</span></p>
-                <p>Your clearance request is being reviewed. Check back later for updates.</p>
+            const requestData = clearanceSnap.data();
+            sectionContent += `
+              <div class="text-center bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg relative">
+                <strong class="font-bold">Request Submitted!</strong>
+                <span class="block sm:inline">Your clearance request has been successfully submitted on ${new Date(requestData.timestamp).toLocaleDateString()}.</span>
+                <span class="block">Status: <span class="font-semibold text-green-800">${requestData.status || 'Pending'}</span></span>
+                <p class="mt-4 text-gray-600">Departments involved: ${requestData.departments ? requestData.departments.join(', ') : 'N/A'}</p>
+                ${requestData.fileURL ? `<p class="mt-2"><a href="${requestData.fileURL}" target="_blank" class="text-blue-600 hover:underline">View Uploaded Form</a></p>` : ''}
+                <p class="mt-4 text-gray-600">Your request is being reviewed. Check back later for updates.</p>
               </div>
             `;
-            if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
-            return;
-          }
-
-          sectionContent = `
-            <div class="card">
-              <h2>Clearance Request</h2>
-              <div class="info-group">
-                <p><strong>Reg No:</strong> ${currentUserData?.regNo || 'N/A'}</p>
-                <p><strong>Full Name:</strong> ${currentUserData?.name || 'N/A'}</p>
-                <p><strong>Email:</strong> ${currentUserData?.email || 'N/A'}</p>
-              </div>
-              <hr style="margin: 30px 0">
-
+          } else {
+            sectionContent += `
               <form id="clearanceForm">
-                <h3>Select Departments for Clearance:</h3>
-                <label><input type="checkbox" name="department" value="Library"> Library</label><br/>
-                <label><input type="checkbox" name="department" value="Finance"> Finance</label><br/>
-                <label><input type="checkbox" name="department" value="Hostel"> Hostel</label><br/>
-                <label><input type="checkbox" name="department" value="Academics"> Academics</label><br/>
-                <label><input type="checkbox" name="department" value="Sports"> Sports</label><br/><br/>
+                <h3 class="text-2xl font-semibold text-green-700 mb-4">Submit Clearance Request</h3>
+                <div class="mb-6">
+                  <p class="block text-gray-700 text-sm font-medium mb-2">Select Departments for Clearance:</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label class="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-100 rounded-md px-2">
+                        <input type="checkbox" name="department" value="Library" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500">
+                        <span class="text-gray-800">Library</span>
+                      </label>
+                      <label class="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-100 rounded-md px-2">
+                        <input type="checkbox" name="department" value="Finance" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500">
+                        <span class="text-gray-800">Finance</span>
+                      </label>
+                      <label class="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-100 rounded-md px-2">
+                        <input type="checkbox" name="department" value="Hostel" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500">
+                        <span class="text-gray-800">Hostel</span>
+                      </label>
+                      <label class="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-100 rounded-md px-2">
+                        <input type="checkbox" name="department" value="Academics" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500">
+                        <span class="text-gray-800">Academics</span>
+                      </label>
+                      <label class="flex items-center space-x-2 py-2 cursor-pointer hover:bg-gray-100 rounded-md px-2">
+                        <input type="checkbox" name="department" value="Sports" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500">
+                        <span class="text-gray-800">Sports</span>
+                      </label>
+                  </div>
+                </div>
 
-                <label for="uploadFile">Attach Clearance Form (optional):</label><br/>
-                <input type="file" id="uploadFile" accept=".pdf,.jpg,.png" style="margin: 10px 0;" /><br/>
+                <div class="mb-6">
+                  <label for="uploadFile" class="block text-gray-700 text-sm font-medium mb-2">Attach Clearance Form (Optional, PDF, JPG, PNG only):</label>
+                  <input type="file" id="uploadFile" accept=".pdf,image/jpeg,image/png" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                </div>
 
-                <label><input type="checkbox" id="clearDeclaration"> I declare that I have no pending issues with selected departments.</label><br/><br/>
+                <div class="mb-6 flex items-center">
+                  <input type="checkbox" id="clearDeclaration" class="form-checkbox h-4 w-4 text-green-600 rounded focus:ring-green-500" required>
+                  <label for="clearDeclaration" class="ml-2 text-gray-700 text-sm">I declare that I have no pending issues with selected departments.</label>
+                </div>
 
-                <button type="submit" class="pay-btn">Submit Request</button>
+                <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Submit Request</button>
               </form>
-            </div>
-          `;
+            `;
+          }
+          sectionContent += `</div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
           const clearanceForm = document.getElementById("clearanceForm");
           if(clearanceForm) {
-            clearanceForm.onsubmit = async function (e) {
+            clearanceForm.addEventListener('submit', async function (e) {
               e.preventDefault();
-              const checked = Array.from(document.querySelectorAll('input[name="department"]:checked'))
+              const checkedDepartments = Array.from(document.querySelectorAll('input[name="department"]:checked'))
                 .map(el => el.value);
-              const declaration = document.getElementById("clearDeclaration")?.checked;
+              const declarationConfirmed = document.getElementById("clearDeclaration")?.checked;
 
-              if (checked.length === 0) {
-                await alert("⚠️ Please select at least one department.");
+              if (checkedDepartments.length === 0) {
+                await showCustomModal("Validation Error", "⚠️ Please select at least one department for clearance.");
                 return;
               }
 
-              if (!declaration) {
-                await alert("⚠️ Please confirm the declaration.");
+              if (!declarationConfirmed) {
+                await showCustomModal("Validation Error", "⚠️ Please confirm the declaration to proceed.");
                 return;
               }
 
@@ -1636,26 +1347,39 @@
                 const uploadFileInput = document.getElementById('uploadFile');
                 if (uploadFileInput && uploadFileInput.files.length > 0) {
                     const file = uploadFileInput.files[0];
+                    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+                    if (!allowedTypes.includes(file.type)) {
+                        await showCustomModal("File Type Error", "❌ Only PDF, JPG, and PNG files are allowed for upload.");
+                        return;
+                    }
+
                     const storageRef = ref(storage, `clearance_forms/${currentUserId}/${file.name}`);
                     const uploadTask = await uploadBytes(storageRef, file);
                     fileURL = await getDownloadURL(uploadTask.ref);
                 }
 
-                await setDoc(clearanceDocRef, { departments: checked, status: "submitted", timestamp: new Date(), fileURL });
-                await alert("✅ Clearance Request Submitted!");
-                showDashboardSection("clearance");
+                // Using currentUserId as the document ID for a single clearance request per user
+                await setDoc(clearanceRequestDocRef, {
+                    studentId: currentUserId,
+                    departments: checkedDepartments,
+                    status: "Submitted", // Initial status
+                    timestamp: new Date().toISOString(),
+                    fileURL: fileURL
+                });
+                await showCustomModal("Clearance Request Submitted", "✅ Your clearance request has been submitted successfully!");
+                showDashboardSection("clearance"); // Reload section to show status
               } catch (error) {
                 console.error("Error submitting clearance:", error);
-                await alert("❌ Failed to submit clearance. Please try again.");
+                await showCustomModal("Submission Failed", "❌ Failed to submit clearance request. Please try again.");
               }
-            };
+            });
           }
           break;
 
         case 'feesStatement':
           breadcrumbTitle = 'Fees Statement';
-          const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
-          const feesSnapshot = await getDocs(feesCollectionRef);
+          const feesQuery = query(collection(db, `fees`), where("studentId", "==", currentUserId)); // Updated path: /fees/{id} with studentId filter
+          const feesSnapshot = await getDocs(feesQuery);
           const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
 
           let feesRows = '';
@@ -1669,156 +1393,184 @@
               totalBilled += item.debit || 0;
               totalPaid += item.credit || 0;
               feesRows += `
-                <tr>
-                  <td>${item.date}</td>
-                  <td>${item.ref}</td>
-                  <td>${item.description}</td>
-                  <td>${(item.debit || 0).toFixed(2)}</td>
-                  <td>${(item.credit || 0).toFixed(2)}</td>
-                  <td>${runningBalance.toFixed(2)}</td>
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                  <td class="py-3 px-6 whitespace-nowrap">${item.date}</td>
+                  <td class="py-3 px-6">${item.ref}</td>
+                  <td class="py-3 px-6">${item.description}</td>
+                  <td class="py-3 px-6 text-right">${(item.debit || 0).toFixed(2)}</td>
+                  <td class="py-3 px-6 text-right">${(item.credit || 0).toFixed(2)}</td>
+                  <td class="py-3 px-6 text-right font-medium">${runningBalance.toFixed(2)}</td>
                 </tr>
               `;
             });
           } else {
-            feesRows = `<tr><td colspan="6" class="no-records">No Fees Records Found</td></tr>`;
+            feesRows = `<tr><td colspan="6" class="py-4 text-center text-gray-500 font-semibold">No fees records found.</td></tr>`;
           }
 
           const feeBalance = totalBilled - totalPaid;
+          const balanceTextColor = feeBalance > 0 ? 'text-red-600' : 'text-green-600';
 
-          sectionContent = `<div class="card">
-            <h2>Fees Statement</h2>
-            <button class="red-btn" onclick="generateFeesPDF()"><i class="fas fa-print"></i> Print Fees Statement</button>
-            <table>
-              <thead>
-                <tr>
-                  <th>Posting Date</th>
-                  <th>Ref #</th>
-                  <th>Description</th>
-                  <th>Debit (KES)</th>
-                  <th>Credit (KES)</th>
-                  <th>Running Balance (KES)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${feesRows}
-              </tbody>
-            </table>
-            <p style="margin-top: 15px; font-weight: bold;">Current Balance: KES ${feeBalance.toFixed(2)}</p>
+          sectionContent = `<div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+            <h2 class="text-3xl font-bold text-green-800 mb-6">Fees Statement</h2>
+            <button onclick="generateFeesPDF()" class="mb-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+              <i class="fas fa-print mr-2"></i> Print Fees Statement
+            </button>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                  <thead>
+                    <tr class="bg-green-100 text-green-800 uppercase text-sm leading-normal">
+                      <th class="py-3 px-6 text-left">Posting Date</th>
+                      <th class="py-3 px-6 text-left">Ref #</th>
+                      <th class="py-3 px-6 text-left">Description</th>
+                      <th class="py-3 px-6 text-right">Debit (KES)</th>
+                      <th class="py-3 px-6 text-right">Credit (KES)</th>
+                      <th class="py-3 px-6 text-right">Running Balance (KES)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-700 text-sm font-light">
+                    ${feesRows}
+                  </tbody>
+                </table>
+            </div>
+            <p class="mt-6 text-xl font-bold text-right ${balanceTextColor}">Current Balance: KES ${feeBalance.toFixed(2)}</p>
           </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'receipts':
           breadcrumbTitle = 'Receipts';
-          const receiptsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
-          const receiptsSnapshot = await getDocs(receiptsCollectionRef);
+          const receiptsQuery = query(collection(db, `fees`), where("studentId", "==", currentUserId)); // Updated path: /fees/{id} with studentId filter
+          const receiptsSnapshot = await getDocs(receiptsQuery);
           const receiptsData = receiptsSnapshot.docs
                 .map(doc => doc.data())
-                .filter(item => (item.credit || 0) > 0)
+                .filter(item => (item.credit || 0) > 0 && item.studentId === currentUserId) // Ensure it's a credit and for current user
                 .sort((a,b) => new Date(b.date) - new Date(a.date));
 
           let receiptsRows = '';
           if (receiptsData.length > 0) {
             receiptsData.forEach(item => {
               receiptsRows += `
-                <tr>
-                  <td>${item.ref}</td>
-                  <td>${item.date}</td>
-                  <td>${item.description}</td>
-                  <td>${(item.credit || 0).toFixed(2)}</td>
-                  <td><button class="pay-btn" onclick="generateReceiptPDF('${item.ref}')"><i class="fas fa-download"></i> Download</button></td>
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                  <td class="py-3 px-6 whitespace-nowrap">${item.ref}</td>
+                  <td class="py-3 px-6">${item.date}</td>
+                  <td class="py-3 px-6">${item.description}</td>
+                  <td class="py-3 px-6 text-right">${(item.credit || 0).toFixed(2)}</td>
+                  <td class="py-3 px-6 text-center">
+                    <button onclick="generateReceiptPDF('${item.ref}')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-lg text-xs transition duration-300 ease-in-out">
+                      <i class="fas fa-download mr-1"></i> Download
+                    </button>
+                  </td>
                 </tr>
               `;
             });
           } else {
-            receiptsRows = `<tr><td colspan="5" class="no-records">No Records Found</td></tr>`;
+            receiptsRows = `<tr><td colspan="5" class="py-4 text-center text-gray-500 font-semibold">No receipts found.</td></tr>`;
           }
 
-          sectionContent = `<div class="card">
-            <h2>Receipts</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Receipt No</th>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${receiptsRows}
-              </tbody>
-            </table>
+          sectionContent = `<div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+            <h2 class="text-3xl font-bold text-green-800 mb-6">Receipts</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                  <thead>
+                    <tr class="bg-green-100 text-green-800 uppercase text-sm leading-normal">
+                      <th class="py-3 px-6 text-left">Receipt No</th>
+                      <th class="py-3 px-6 text-left">Date</th>
+                      <th class="py-3 px-6 text-left">Description</th>
+                      <th class="py-3 px-6 text-right">Amount</th>
+                      <th class="py-3 px-6 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-700 text-sm font-light">
+                    ${receiptsRows}
+                  </tbody>
+                </table>
+            </div>
           </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'examCard':
           breadcrumbTitle = 'Exam Card';
-          const feesSnapForExamCard = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/fees`));
+          const feesQueryForExamCard = query(collection(db, `fees`), where("studentId", "==", currentUserId)); // Updated path
+          const feesSnapForExamCard = await getDocs(feesQueryForExamCard);
           const totalFeeBalance = feesSnapForExamCard.docs.reduce((acc, doc) => acc + (doc.data().debit || 0) - (doc.data().credit || 0), 0);
 
           if (totalFeeBalance > 0) {
             sectionContent = `
-              <div class="card">
-                <h2>Exam Card</h2>
-                <p style="color:red;">❌ You cannot generate an Exam Card until you clear your fee balance (KES ${totalFeeBalance.toFixed(2)}).</p>
+              <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+                <h2 class="text-3xl font-bold text-green-800 mb-6">Exam Card</h2>
+                <div class="text-center py-8 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  <strong class="font-bold">Access Denied!</strong>
+                  <span class="block mt-2">❌ You cannot generate an Exam Card until you clear your outstanding fee balance of KES ${totalFeeBalance.toFixed(2)}.</span>
+                  <p class="mt-4 text-gray-600">Please settle your fees to unlock this feature.</p>
+                </div>
               </div>`;
             if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
             return;
           }
 
-          const registeredUnitsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`));
+          const registeredUnitsQuery = query(collection(db, `registrations`), where("studentId", "==", currentUserId)); // Updated path
+          const registeredUnitsSnap = await getDocs(registeredUnitsQuery);
           let allRegisteredUnits = [];
           registeredUnitsSnap.forEach(doc => {
               const data = doc.data();
-              if (data.units) {
+              if (data.units && data.studentId === currentUserId) {
                   allRegisteredUnits = allRegisteredUnits.concat(data.units);
               }
           });
 
           if (allRegisteredUnits.length === 0) {
             sectionContent = `
-              <div class="card">
-                <h2>Exam Card</h2>
-                <p style="color:red;">❌ You haven't registered any units yet. Please register your units first.</p>
+              <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+                <h2 class="text-3xl font-bold text-green-800 mb-6">Exam Card</h2>
+                <div class="text-center py-8 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  <strong class="font-bold">No Units Registered!</strong>
+                  <span class="block mt-2">❌ You haven't registered any units yet for the current academic period.</span>
+                  <p class="mt-4 text-gray-600">Please register your units in the "Course Registration" section first.</p>
+                </div>
               </div>`;
             if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
             return;
           }
 
           const unitRows = allRegisteredUnits.map((unit, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${unit.code}</td>
-              <td>${unit.name}</td>
-              <td>Room TBA</td>
-              <td>Time TBA</td>
+            <tr class="border-b border-gray-200 hover:bg-gray-100">
+              <td class="py-3 px-6 text-left">${i + 1}</td>
+              <td class="py-3 px-6 text-left font-medium">${unit.code}</td>
+              <td class="py-3 px-6 text-left">${unit.name}</td>
+              <td class="py-3 px-6 text-left text-gray-500">Room TBA</td>
+              <td class="py-3 px-6 text-left text-gray-500">Time TBA</td>
             </tr>
           `).join("");
 
           sectionContent = `
-            <div class="card" id="examCardSection">
-              <h2>📋 Exam Card</h2>
-              <p><strong>Reg No:</strong> ${currentUserData?.regNo || 'N/A'}</p>
-              <p><strong>Name:</strong> ${currentUserData?.name || 'N/A'}</p>
-              <p><strong>Programme:</strong> ${currentUserData?.programme || 'N/A'}</p>
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Unit Code</th>
-                    <th>Unit Name</th>
-                    <th>Room</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${unitRows}
-                </tbody>
-              </table>
-              <button class="red-btn" onclick="generateExamCardPDF()"><i class="fas fa-print"></i> Print Exam Card</button>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8" id="examCardSection">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">📋 Exam Card</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 mb-6">
+                <div><strong>Reg No:</strong> ${currentUserData?.regNo || 'N/A'}</div>
+                <div><strong>Name:</strong> ${currentUserData?.name || 'N/A'}</div>
+                <div><strong>Programme:</strong> ${currentUserData?.programme || 'N/A'}</div>
+              </div>
+              <hr class="my-6 border-gray-200">
+              <div class="overflow-x-auto mb-6">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                  <thead>
+                    <tr class="bg-green-100 text-green-800 uppercase text-sm leading-normal">
+                      <th class="py-3 px-6 text-left">#</th>
+                      <th class="py-3 px-6 text-left">Unit Code</th>
+                      <th class="py-3 px-6 text-left">Unit Name</th>
+                      <th class="py-3 px-6 text-left">Room</th>
+                      <th class="py-3 px-6 text-left">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-700 text-sm font-light">
+                    ${unitRows}
+                  </tbody>
+                </table>
+              </div>
+              <button onclick="generateExamCardPDF()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                <i class="fas fa-print mr-2"></i> Print Exam Card
+              </button>
             </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
@@ -1826,71 +1578,94 @@
         case 'examTimetable':
           breadcrumbTitle = 'Examination Timetable';
           sectionContent = `
-            <div class="card">
-              <h2>Examination Timetable</h2>
-              <label for="timetableType">Select Timetable Type:</label><br/>
-              <select id="timetableType" name="timetableType" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 250px;">
-                <option value="study">📘 Study Timetable</option>
-                <option value="exam">📝 Exam Timetable</option>
-              </select>
-              <br/>
-              <button class="red-btn" style="margin-top: 20px;"><i class="fas fa-download"></i> Download</button>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Examination Timetable</h2>
+              <div class="mb-6">
+                <label for="timetableType" class="block text-gray-700 text-sm font-medium mb-2">Select Timetable Type:</label>
+                <select id="timetableType" name="timetableType" class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                  <option value="study">📘 Study Timetable</option>
+                  <option value="exam">📝 Exam Timetable</option>
+                </select>
+              </div>
+              <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                <i class="fas fa-download mr-2"></i> Download Timetable
+              </button>
+              <div class="text-center py-8 text-gray-500 font-semibold">
+                <p class="mt-4">Timetable content will be dynamically loaded here.</p>
+              </div>
             </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'transcripts':
           breadcrumbTitle = 'Student Transcripts';
-          const transcriptGradesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
-          const transcriptGradesSnapshot = await getDocs(transcriptGradesCollectionRef);
+          const transcriptGradesQuery = query(collection(db, `grades`), where("studentId", "==", currentUserId)); // Updated path
+          const transcriptGradesSnapshot = await getDocs(transcriptGradesQuery);
           const transcriptGradesData = transcriptGradesSnapshot.docs.map(doc => doc.data());
 
           let transcriptGradesRows = '';
           if (transcriptGradesData.length > 0) {
             transcriptGradesData.forEach(item => {
               transcriptGradesRows += `
-                <tr>
-                  <td>${item.unitCode}</td>
-                  <td>${item.unitName}</td>
-                  <td>${item.catScore}</td>
-                  <td>${item.examScore}</td>
-                  <td>${item.grade}</td>
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                  <td class="py-3 px-6 text-left font-medium">${item.unitCode}</td>
+                  <td class="py-3 px-6 text-left">${item.unitName}</td>
+                  <td class="py-3 px-6 text-right">${item.catScore}</td>
+                  <td class="py-3 px-6 text-right">${item.examScore}</td>
+                  <td class="py-3 px-6 text-center font-bold text-green-700">${item.grade}</td>
                 </tr>
               `;
             });
           } else {
-            transcriptGradesRows = `<tr><td colspan="5" class="no-records">No Grades Found</td></tr>`;
+            transcriptGradesRows = `<tr><td colspan="5" class="py-4 text-center text-gray-500 font-semibold">No grades found to generate transcript.</td></tr>`;
           }
 
+          let totalTranscriptPoints = 0;
+          let totalTranscriptUnits = 0;
+          const transcriptGradeMap = { 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
+          transcriptGradesData.forEach(item => {
+            const points = transcriptGradeMap[item.grade] || 0;
+            const units = 1;
+            totalTranscriptPoints += points * units;
+            totalTranscriptUnits += units;
+          });
+          const calculatedTranscriptGpa = totalTranscriptUnits > 0 ? (totalTranscriptPoints / totalTranscriptUnits).toFixed(2) : 'N/A';
+
+
           sectionContent = `
-            <div class="card">
-              <h2>Student Transcripts</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Unit Code</th>
-                    <th>Unit Description</th>
-                    <th>CAT</th>
-                    <th>Exam</th>
-                    <th>Grade</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${transcriptGradesRows}
-                </tbody>
-              </table>
-              <button class="red-btn" style="margin-top: 20px;" onclick="generateTranscriptPDF()"><i class="fas fa-download"></i> Download Transcript</button>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Student Transcripts</h2>
+              <div class="overflow-x-auto mb-6">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                  <thead>
+                    <tr class="bg-green-100 text-green-800 uppercase text-sm leading-normal">
+                      <th class="py-3 px-6 text-left">Unit Code</th>
+                      <th class="py-3 px-6 text-left">Unit Description</th>
+                      <th class="py-3 px-6 text-right">CAT</th>
+                      <th class="py-3 px-6 text-right">Exam</th>
+                      <th class="py-3 px-6 text-center">Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-700 text-sm font-light">
+                    ${transcriptGradesRows}
+                  </tbody>
+                </table>
+              </div>
+              <p class="text-xl font-bold text-right text-green-800 mb-6">Cumulative GPA: ${calculatedTranscriptGpa}</p>
+              <button onclick="generateTranscriptPDF()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                <i class="fas fa-download mr-2"></i> Download Transcript
+              </button>
             </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
 
         case 'hostelBooking':
           breadcrumbTitle = 'Hostel Accommodation';
-          const hostelsCollectionRef = collection(db, `artifacts/${appId}/public/data/hostels`);
+          const hostelsCollectionRef = collection(db, `hostels`); // Updated path: /hostels/{id}
           const hostelsSnapshot = await getDocs(hostelsCollectionRef);
           const availableHostels = hostelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-          const studentBookingDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/hostelBookings`, 'currentBooking');
+          const studentBookingDocRef = doc(db, `hostelBookings`, currentUserId); // Updated path: /hostelBookings/{uid}
           const studentBookingSnap = await getDoc(studentBookingDocRef);
           const savedHostelId = studentBookingSnap.exists() ? studentBookingSnap.data().hostelId : "";
 
@@ -1902,97 +1677,111 @@
           });
 
           sectionContent = `
-            <div class="card">
-              <h2>Hostel Booking</h2>
-              <label for="hostelSelect">Select Hostel:</label><br/>
-              <select id="hostelSelect" name="hostelSelect" style="margin-top:8px; padding:8px; font-size:15px; border-radius:4px; border:1px solid #ccc; width: 100%;">
-                ${hostelOptions}
-              </select>
-              <br/>
-              <button class="red-btn" style="margin-top: 20px;" onclick="bookHostel()">Book</button>
-              <div id="hostelBookedMsg" style="margin-top: 15px; font-weight: bold; color: #006400;"></div>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Hostel Booking</h2>
+              <div class="mb-6">
+                <label for="hostelSelect" class="block text-gray-700 text-sm font-medium mb-2">Select Hostel:</label>
+                <select id="hostelSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                  ${hostelOptions}
+                </select>
+              </div>
+              <button id="bookHostelBtn" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">Book Hostel</button>
+              <p id="hostelBookedMsg" class="mt-4 text-center font-bold text-green-700"></p>
             </div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
 
+          const bookHostelBtn = document.getElementById("bookHostelBtn");
           if (savedHostelId) {
             const hostelSelect = document.getElementById("hostelSelect");
             if (hostelSelect) {
                 hostelSelect.value = savedHostelId;
                 const selectedHostelName = availableHostels.find(h => h.id === savedHostelId)?.name || 'Unknown';
                 const hostelBookedMsgElement = document.getElementById("hostelBookedMsg");
-                if(hostelBookedMsgElement) hostelBookedMsgElement.innerText = `🏨 You already booked: ${selectedHostelName}`;
-                const bookHostelButton = document.querySelector("button[onclick='bookHostel()']");
-                if(bookHostelButton) bookHostelButton.disabled = true;
+                if(hostelBookedMsgElement) hostelBookedMsgElement.innerText = `🏨 You have successfully booked: ${selectedHostelName}`;
+                if(bookHostelBtn) bookHostelBtn.disabled = true;
             }
           }
 
-          window.bookHostel = async function() {
-            const selectedHostelId = document.getElementById("hostelSelect")?.value;
-            if (!selectedHostelId) {
-              await alert("⚠️ Please select a hostel.");
-              return;
-            }
-
-            const response = await confirm(`Are you sure you want to book this hostel?`);
-            if (!response) return;
-
-            try {
-              const alreadyBookedSnap = await getDoc(studentBookingDocRef);
-              if (alreadyBookedSnap.exists() && alreadyBookedSnap.data().hostelId === selectedHostelId) {
-                await alert("❌ You have already booked this hostel.");
+          if (bookHostelBtn) {
+            bookHostelBtn.onclick = async function() {
+              const selectedHostelId = document.getElementById("hostelSelect")?.value;
+              if (!selectedHostelId) {
+                await showCustomModal("Selection Required", "⚠️ Please select a hostel to book.");
                 return;
               }
 
-              const publicHostelDocRef = doc(db, `artifacts/${appId}/public/data/hostels`, selectedHostelId);
-              const hostelLiveSnap = await getDoc(publicHostelDocRef);
-              const hostelLive = hostelLiveSnap.exists() ? hostelLiveSnap.data() : null;
+              const response = await confirm(`Are you sure you want to book this hostel?`);
+              if (!response) return;
 
-              if (!hostelLive || hostelLive.availableRooms <= 0) {
-                  await alert("❌ This hostel is currently unavailable. Please choose another.");
+              try {
+                const alreadyBookedSnap = await getDoc(studentBookingDocRef);
+                if (alreadyBookedSnap.exists() && alreadyBookedSnap.data().hostelId === selectedHostelId) {
+                  await showCustomModal("Already Booked", "❌ You have already booked this specific hostel.");
                   return;
+                }
+
+                const publicHostelDocRef = doc(db, `hostels`, selectedHostelId); // Ensure this path is correct
+                const hostelLiveSnap = await getDoc(publicHostelDocRef);
+                const hostelLive = hostelLiveSnap.exists() ? hostelLiveSnap.data() : null;
+
+                if (!hostelLive || hostelLive.availableRooms <= 0) {
+                    await showCustomModal("Hostel Unavailable", "❌ This hostel is currently unavailable or fully booked. Please choose another.");
+                    return;
+                }
+
+                // Create or update the student's hostel booking record
+                await setDoc(studentBookingDocRef, {
+                    studentId: currentUserId,
+                    hostelId: selectedHostelId,
+                    bookingDate: new Date().toISOString(),
+                    status: 'booked'
+                });
+
+                // Decrement available rooms in the public hostels collection
+                await updateDoc(publicHostelDocRef, { availableRooms: hostelLive.availableRooms - 1 });
+
+                await showCustomModal("Booking Success", "✅ Hostel booked successfully!");
+                showDashboardSection('hostelBooking'); // Reload section to reflect changes
+              } catch (error) {
+                console.error("Error booking hostel:", error);
+                await showCustomModal("Booking Failed", "❌ Failed to book hostel. Please try again. " + error.message);
               }
-
-              await setDoc(studentBookingDocRef, {
-                  hostelId: selectedHostelId,
-                  bookingDate: new Date().toISOString(),
-                  status: 'booked'
-              });
-
-              await updateDoc(publicHostelDocRef, { availableRooms: hostelLive.availableRooms - 1 });
-
-              await alert("✅ Hostel booked successfully!");
-              showDashboardSection('hostelBooking');
-            } catch (error) {
-              console.error("Error booking hostel:", error);
-              await alert("❌ Failed to book hostel. Please try again.");
-            }
-          };
+            };
+          }
           break;
 
         case 'settings':
           breadcrumbTitle = 'Settings';
-          const adminCheckDoc = doc(db, `artifacts/${appId}/public/data/admins`, auth.currentUser.email);
+          const adminCheckDoc = doc(db, `admins`, auth.currentUser.email); // Path remains same as it's an admin-specific collection
           const adminSnap = await getDoc(adminCheckDoc);
           const isAdmin = adminSnap.exists();
 
           sectionContent = `
-            <div class="card">
-              <h2>Change Password</h2>
-              <label for="currentPassword">Current Password:</label><br/>
-              <input type="password" id="currentPassword" placeholder="Enter current password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
-
-              <label for="newPassword">New Password:</label><br/>
-              <input type="password" id="newPassword" placeholder="Enter new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
-
-              <label for="confirmPassword">Confirm New Password:</label><br/>
-              <input type="password" id="confirmPassword" placeholder="Confirm new password" style="margin-top:8px; padding:8px; width:100%; font-size:15px; border-radius:4px; border:1px solid #ccc;"><br/><br/>
-
-              <button class="red-btn" onclick="changePassword()"><i class="fas fa-key"></i> Update Password</button>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+              <h2 class="text-3xl font-bold text-green-800 mb-6">Change Password</h2>
+              <div class="mb-4">
+                <label for="currentPassword" class="block text-gray-700 text-sm font-medium mb-2">Current Password:</label>
+                <input type="password" id="currentPassword" placeholder="Enter current password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              </div>
+              <div class="mb-4">
+                <label for="newPassword" class="block text-gray-700 text-sm font-medium mb-2">New Password:</label>
+                <input type="password" id="newPassword" placeholder="Enter new password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              </div>
+              <div class="mb-6">
+                <label for="confirmPassword" class="block text-gray-700 text-sm font-medium mb-2">Confirm New Password:</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm new password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              </div>
+              <button onclick="changePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                <i class="fas fa-key mr-2"></i> Update Password
+              </button>
 
               ${isAdmin ? `
-                <hr style="margin: 30px 30px">
-                <h3>Admin Controls</h3>
-                <button class="red-btn" onclick="clearAllData()"><i class="fas fa-eraser"></i> Clear All User Data</button>
+                <hr class="my-8 border-gray-200">
+                <h3 class="text-2xl font-bold text-red-700 mb-6">Admin Controls</h3>
+                <p class="text-gray-700 mb-4">Warning: These actions are for administrators only and may have irreversible consequences.</p>
+                <button onclick="clearAllData()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                  <i class="fas fa-eraser mr-2"></i> Clear All User Data (Admin Only)
+                </button>
               ` : ''}
             </div>
           `;
@@ -2004,74 +1793,76 @@
             const confirmPass = document.getElementById('confirmPassword')?.value;
 
             if (!current || !newPass || !confirmPass) {
-              await alert("Please fill in all fields.");
+              await showCustomModal("Validation Error", "Please fill in all password fields.");
               return;
             }
 
             if (newPass !== confirmPass) {
-              await alert("New password and confirmation do not match.");
+              await showCustomModal("Password Mismatch", "New password and confirmation do not match.");
               return;
             }
 
             if (newPass.length < 6) {
-              await alert("New password must be at least 6 characters long.");
+              await showCustomModal("Weak Password", "New password must be at least 6 characters long.");
               return;
             }
 
             try {
               const user = auth.currentUser;
               if (user) {
+                // Re-authenticate user first for security-sensitive operations like password change
+                // Note: Actual re-authentication flow would involve a prompt for current password or re-login
+                // For this example, we'll directly call updatePassword, but be aware of Firebase security rules.
                 await updatePassword(user, newPass);
-                await alert("Password updated successfully!");
+                await showCustomModal("Password Updated", "✅ Your password has been updated successfully!");
               } else {
-                await alert("No user logged in to change password.");
+                await showCustomModal("Error", "No user logged in to change password.");
               }
-              const currentPasswordElement = document.getElementById('currentPassword');
-              const newPasswordElement = document.getElementById('newPassword');
-              const confirmPasswordElement = document.getElementById('confirmPassword');
-              if(currentPasswordElement) currentPasswordElement.value = '';
-              if(newPasswordElement) newPasswordElement.value = '';
-              if(confirmPasswordElement) confirmPasswordElement.value = '';
+              // Clear fields after attempt
+              document.getElementById('currentPassword').value = '';
+              document.getElementById('newPassword').value = '';
+              document.getElementById('confirmPassword').value = '';
             } catch (error) {
               console.error("Error updating password:", error);
               if (error.code === 'auth/requires-recent-login') {
-                await alert("For security, please log out and log in again to update your password.");
+                await showCustomModal("Re-authentication Required", "For security, please log out and log in again (or re-authenticate with your current password) to update your password.");
               } else {
-                await alert("Failed to update password. " + error.message);
+                await showCustomModal("Update Failed", `❌ Failed to update password. Error: ${error.message}`);
               }
             }
           };
 
           window.clearAllData = async function() {
-            const response = await confirm("This will delete ALL user data in Firestore! Are you absolutely sure? This action is irreversible.");
+            const response = await confirm("This will attempt to delete ALL user-related dummy data in Firestore! This action is irreversible and should only be performed by an admin. Are you absolutely sure?");
             if (response) {
               try {
-                await alert("Simulated: All user data cleared (conceptual). In a real application, this would be handled by a secure backend function.");
+                // This is a placeholder for actual backend admin function.
+                // In a real application, you'd trigger a cloud function here to delete data securely.
+                await showCustomModal("Admin Action", "Simulated: All user-related dummy data cleared (conceptual). In a real application, this would be handled by a secure backend function.");
               } catch (error) {
-                console.error("Error clearing all data:", error);
-                await alert("❌ Failed to clear all data. Please check console for details.");
+                console.error("Error clearing all data (simulated):", error);
+                await showCustomModal("Admin Action Failed", "❌ Failed to clear all data. Please check console for details.");
               }
             }
           };
           break;
 
         default:
-          sectionContent = `<div class="card"><h2>Page Not Found</h2><p>The requested section does not exist.</p></div>`;
+          sectionContent = `<div class="bg-white p-8 rounded-xl shadow-lg mb-8"><h2 class="text-3xl font-bold text-green-800 mb-6">Page Not Found</h2><p class="text-gray-700">The requested dashboard section does not exist. Please use the navigation menu.</p></div>`;
           if (content) content.innerHTML = generateBreadcrumb(breadcrumbTitle) + sectionContent;
           break;
       }
-      if (window.innerWidth <= 768) {
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar && sidebar.classList.contains('active')) {
-          sidebar.classList.remove('active');
+      // Close sidebar on mobile after navigating
+      if (window.innerWidth <= 1024) { // Use 1024px for lg breakpoint
+        if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
+          sidebar.classList.add('-translate-x-full');
         }
       }
-    }
-    window.showDashboardSection = showDashboardSection;
+    };
 
     window.uploadProfilePicture = async function() {
       if (!currentUserId) {
-        await alert("Please log in to upload a profile picture.");
+        await showCustomModal("Login Required", "Please log in to upload a profile picture.");
         return;
       }
 
@@ -2079,8 +1870,14 @@
       const file = fileInput?.files[0];
 
       if (!file) {
-        await alert("Please select a file to upload.");
+        await showCustomModal("No File Selected", "Please select a file to upload.");
         return;
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+          await showCustomModal("Invalid File Type", "❌ Only JPG, PNG, and GIF images are allowed for profile pictures.");
+          return;
       }
 
       const response = await confirm(`Upload "${file.name}" as your profile picture?`);
@@ -2091,21 +1888,21 @@
         const uploadTask = await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(uploadTask.ref);
 
-        const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+        const profileDocRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
         await updateDoc(profileDocRef, { profilePhotoURL: downloadURL });
 
         const profileImgPreview = document.getElementById('profile-img-preview');
         if(profileImgPreview) profileImgPreview.src = downloadURL;
-        await alert("✅ Profile picture uploaded successfully!");
+        await showCustomModal("Upload Success", "✅ Profile picture uploaded successfully!");
       } catch (error) {
         console.error("Error uploading profile picture:", error);
-        await alert("❌ Failed to upload picture: " + error.message);
+        await showCustomModal("Upload Failed", `❌ Failed to upload picture: ${error.message}`);
       }
     };
 
     window.saveProfileData = async function() {
         if (!currentUserId) {
-            await alert("Please log in to save your profile.");
+            await showCustomModal("Login Required", "Please log in to save your profile.");
             return;
         }
 
@@ -2123,13 +1920,15 @@
         if (!name || !regNo || !programme || !campus || !dob || !gender || !address) {
             if(profileSaveMsg) {
                 profileSaveMsg.innerText = "❌ Please fill in all profile fields.";
-                profileSaveMsg.style.color = "red";
+                profileSaveMsg.classList.add('text-red-500');
+                profileSaveMsg.classList.remove('text-green-500');
             }
+            await showCustomModal("Validation Error", "Please fill in all profile fields.");
             return;
         }
 
         try {
-            const profileDocRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+            const profileDocRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
             await updateDoc(profileDocRef, {
                 name: name,
                 regNo: regNo,
@@ -2142,23 +1941,27 @@
             });
             currentUserData = { ...currentUserData, name, regNo, programme, campus, dob, gender, address }; // Update local cache
             document.getElementById("userName").innerText = name.split(" ")[0]; // Update header greeting
+            const userNameMobile = document.getElementById("userNameMobile");
+            if (userNameMobile) userNameMobile.innerText = name.split(" ")[0];
 
             if(profileSaveMsg) {
                 profileSaveMsg.innerText = "✅ Profile updated successfully!";
-                profileSaveMsg.style.color = "green";
+                profileSaveMsg.classList.add('text-green-500');
+                profileSaveMsg.classList.remove('text-red-500');
             }
-            await alert("✅ Profile updated successfully!");
+            await showCustomModal("Profile Saved", "✅ Your profile has been updated successfully!");
 
         } catch (error) {
             console.error("Error saving profile data:", error);
             if(profileSaveMsg) {
                 profileSaveMsg.innerText = "❌ Failed to save profile. Please try again.";
-                profileSaveMsg.style.color = "red";
+                profileSaveMsg.classList.add('text-red-500');
+                profileSaveMsg.classList.remove('text-green-500');
             }
-            await alert("❌ Failed to save profile. " + error.message);
+            await showCustomModal("Save Failed", `❌ Failed to save profile. Error: ${error.message}`);
         }
     };
-    window.saveProfileData = saveProfileData;
+
 
     // --- PDF Generation Functions ---
     let schoolLogoBase64 = null;
@@ -2223,12 +2026,12 @@
 
     window.generateFeesPDF = async function() {
       const student = currentUserData;
-      const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
-      const feesSnapshot = await getDocs(feesCollectionRef);
+      const feesQuery = query(collection(db, `fees`), where("studentId", "==", currentUserId)); // Updated path
+      const feesSnapshot = await getDocs(feesQuery);
       const feesData = feesSnapshot.docs.map(doc => doc.data()).sort((a,b) => new Date(a.date) - new Date(b.date));
 
       if (!student || feesData.length === 0) {
-        await alert("No student data or fees records found to generate PDF.");
+        await showCustomModal("No Data", "No student data or fees records found to generate PDF.");
         return;
       }
 
@@ -2268,17 +2071,17 @@
       doc.text(`Current Balance: KES ${currentBalance.toFixed(2)}`, 15, finalY + 10);
 
       doc.save("Fees_Statement.pdf");
-      await alert("Fees Statement PDF downloaded!");
+      await showCustomModal("Download Complete", "Fees Statement PDF downloaded successfully!");
     };
 
     window.generateReceiptPDF = async function(receiptRef) {
       const student = currentUserData;
-      const feesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
-      const feesSnapshot = await getDocs(feesCollectionRef);
-      const receiptData = feesSnapshot.docs.map(doc => doc.data()).find(item => item.ref === receiptRef && (item.credit || 0) > 0);
+      const feesQuery = query(collection(db, `fees`), where("studentId", "==", currentUserId)); // Updated path
+      const feesSnapshot = await getDocs(feesQuery);
+      const receiptData = feesSnapshot.docs.map(doc => doc.data()).find(item => item.ref === receiptRef && (item.credit || 0) > 0 && item.studentId === currentUserId);
 
       if (!student || !receiptData) {
-        await alert("Receipt data not found to generate PDF.");
+        await showCustomModal("No Data", "Receipt data not found to generate PDF.");
         return;
       }
 
@@ -2295,22 +2098,23 @@
       doc.text(`Amount Paid: KES ${(receiptData.credit || 0).toFixed(2)}`, 15, 105);
 
       doc.save(`Receipt_${receiptRef}.pdf`);
-      await alert("Receipt PDF downloaded!");
+      await showCustomModal("Download Complete", "Receipt PDF downloaded successfully!");
     };
 
     window.generateExamCardPDF = async function() {
       const student = currentUserData;
-      const registeredUnitsSnap = await getDocs(collection(db, `artifacts/${appId}/users/${currentUserId}/registrations`));
+      const registeredUnitsQuery = query(collection(db, `registrations`), where("studentId", "==", currentUserId)); // Updated path
+      const registeredUnitsSnap = await getDocs(registeredUnitsQuery);
       let allRegisteredUnits = [];
       registeredUnitsSnap.forEach(doc => {
           const data = doc.data();
-          if (data.units) {
+          if (data.units && data.studentId === currentUserId) {
               allRegisteredUnits = allRegisteredUnits.concat(data.units);
           }
       });
 
       if (!student || allRegisteredUnits.length === 0) {
-        await alert("No student data or registered units found to generate Exam Card.");
+        await showCustomModal("No Data", "No student data or registered units found to generate Exam Card.");
         return;
       }
 
@@ -2337,17 +2141,17 @@
       doc.text("Registrar's Signature/Stamp", 15, finalY + 25);
 
       doc.save("Exam_Card.pdf");
-      await alert("Exam Card PDF downloaded!");
+      await showCustomModal("Download Complete", "Exam Card PDF downloaded successfully!");
     };
 
     window.generateTranscriptPDF = async function() {
       const student = currentUserData;
-      const gradesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
-      const gradesSnapshot = await getDocs(gradesCollectionRef);
-      const gradesData = transcriptGradesSnapshot.docs.map(doc => doc.data());
+      const gradesQuery = query(collection(db, `grades`), where("studentId", "==", currentUserId)); // Updated path
+      const gradesSnapshot = await getDocs(gradesQuery);
+      const gradesData = gradesSnapshot.docs.map(doc => doc.data());
 
       if (!student || gradesData.length === 0) {
-        await alert("No student data or grades found to generate Transcript.");
+        await showCustomModal("No Data", "No student data or grades found to generate Transcript.");
         return;
       }
 
@@ -2387,7 +2191,7 @@
       doc.text("Dean of Academics Signature", 15, finalY + 45);
 
       doc.save("Academic_Transcript.pdf");
-      await alert("Academic Transcript PDF downloaded!");
+      await showCustomModal("Download Complete", "Academic Transcript PDF downloaded successfully!");
     };
 
 
@@ -2398,11 +2202,12 @@
             return;
         }
 
-        const profileRef = doc(db, `artifacts/${appId}/users`, currentUserId);
+        const profileRef = doc(db, `students`, currentUserId); // Updated path: /students/{uid}
         const profileSnap = await getDoc(profileRef);
 
         if (!profileSnap.exists() || !profileSnap.data().initialized) {
             console.log("Initializing student data...");
+            // Create initial student profile if it doesn't exist or isn't marked initialized
             await setDoc(profileRef, {
                 email: auth.currentUser.email,
                 name: auth.currentUser.email.split("@")[0],
@@ -2413,11 +2218,14 @@
                 gender: "N/A", // Default to N/A
                 address: "N/A",
                 profilePhotoURL: "",
-                initialized: true
+                initialized: true,
+                createdAt: new Date().toISOString()
             }, { merge: true });
             currentUserData = (await getDoc(profileRef)).data();
 
-            const coursesCol = collection(db, `artifacts/${appId}/public/data/courses`);
+
+            // Populate dummy courses (top-level)
+            const coursesCol = collection(db, `courses`);
             const coursesSnap = await getDocs(coursesCol);
             if (coursesSnap.empty) {
                 console.log("Populating dummy courses...");
@@ -2429,38 +2237,44 @@
                 await addDoc(coursesCol, { code: "CSC102", name: "Web Development Basics", semester: "Semester 2", lecturer: "Mr. Green", schedule: { day: "Monday", time: "13:00-14:00" }, timetableURL: "http://example.com/csc102_timetable.pdf" });
             }
 
-            const feesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/fees`);
-            const feesSnap = await getDocs(feesCol);
-            if (feesSnap.empty) {
+            // Populate dummy fees data (top-level with studentId)
+            const feesCol = collection(db, `fees`);
+            const feesQueryForDummy = query(feesCol, where("studentId", "==", currentUserId));
+            const feesSnapForDummy = await getDocs(feesQueryForDummy);
+            if (feesSnapForDummy.empty) {
                 console.log("Populating dummy fees data...");
-                await addDoc(feesCol, { date: "2025-06-01", ref: "INV001", description: "Tuition Fee Semester 1", debit: 25000, credit: 0, runningBalance: 25000 });
-                await addDoc(feesCol, { date: "2025-06-03", ref: "INV002", description: "Hostel Booking", debit: 13500, credit: 0, runningBalance: 38500 });
-                await addDoc(feesCol, { date: "2025-06-07", ref: "RCPT001", description: "Payment via M-PESA", debit: 0, credit: 20000, runningBalance: 18500 });
-                await addDoc(feesCol, { date: "2025-06-10", ref: "INV003", description: "Library Fine", debit: 500, credit: 0, runningBalance: 19000 });
-                await addDoc(feesCol, { date: "2025-06-15", ref: "INV004", description: "Exam Fee", debit: 3000, credit: 0, runningBalance: 22000 });
-                await addDoc(feesCol, { date: "2025-06-20", ref: "RCPT002", description: "Bank Deposit", debit: 0, credit: 10000, runningBalance: 12000 });
+                await addDoc(feesCol, { studentId: currentUserId, date: "2025-06-01", ref: "INV001", description: "Tuition Fee Semester 1", debit: 25000, credit: 0 });
+                await addDoc(feesCol, { studentId: currentUserId, date: "2025-06-03", ref: "INV002", description: "Hostel Booking", debit: 13500, credit: 0 });
+                await addDoc(feesCol, { studentId: currentUserId, date: "2025-06-07", ref: "RCPT001", description: "Payment via M-PESA", debit: 0, credit: 20000 });
+                await addDoc(feesCol, { studentId: currentUserId, date: "2025-06-10", ref: "INV003", description: "Library Fine", debit: 500, credit: 0 });
+                await addDoc(feesCol, { studentId: currentUserId, date: "2025-06-15", ref: "INV004", description: "Exam Fee", debit: 3000, credit: 0 });
+                await addDoc(feesCol, { studentId: currentUserId, date: "2025-06-20", ref: "RCPT002", description: "Bank Deposit", debit: 0, credit: 10000 });
             }
 
-            const gradesCol = collection(db, `artifacts/${appId}/users/${currentUserId}/grades`);
-            const gradesSnap = await getDocs(gradesCol);
-            if (gradesSnap.empty) {
+            // Populate dummy grades data (top-level with studentId)
+            const gradesCol = collection(db, `grades`);
+            const gradesQueryForDummy = query(gradesCol, where("studentId", "==", currentUserId));
+            const gradesSnapForDummy = await getDocs(gradesQueryForDummy);
+            if (gradesSnapForDummy.empty) {
                 console.log("Populating dummy grades data...");
-                await addDoc(gradesCol, { unitCode: "ENG101", unitName: "Introduction to Writing", catScore: 15, examScore: 55, grade: "B" });
-                await addDoc(gradesCol, { unitCode: "CSC101", unitName: "Introduction to Computing", catScore: 18, examScore: 72, grade: "A" });
+                await addDoc(gradesCol, { studentId: currentUserId, unitCode: "ENG101", unitName: "Introduction to Writing", catScore: 15, examScore: 55, grade: "B" });
+                await addDoc(gradesCol, { studentId: currentUserId, unitCode: "CSC101", unitName: "Introduction to Computing", catScore: 18, examScore: 72, grade: "A" });
             }
 
-            const publicHostelsCol = collection(db, `artifacts/${appId}/public/data/hostels`);
-            const publicHostelsSnap = await getDocs(publicHostelsCol);
-            if (publicHostelsSnap.empty) {
-                console.log("Populating dummy public hostels data...");
-                await addDoc(publicHostelsCol, { name: "Greenfields Hostel", price: 15000, availableRooms: 5 });
-                await addDoc(publicHostelsCol, { name: "Sunrise Hostel", price: 13500, availableRooms: 3 });
-                await addDoc(publicHostelsCol, { name: "Lakeview Hostel", price: 14200, availableRooms: 8 });
-                await addDoc(publicHostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 });
-                await addDoc(publicHostelsCol, { name: "Riverbend Hostel", price: 12800, availableRooms: 2 });
+            // Populate dummy hostel data (top-level)
+            const hostelsCol = collection(db, `hostels`); // Path remains same
+            const hostelsSnap = await getDocs(hostelsCol);
+            if (hostelsSnap.empty) {
+                console.log("Populating dummy hostels data...");
+                await addDoc(hostelsCol, { name: "Greenfields Hostel", price: 15000, availableRooms: 5 });
+                await addDoc(hostelsCol, { name: "Sunrise Hostel", price: 13500, availableRooms: 3 });
+                await addDoc(hostelsCol, { name: "Lakeview Hostel", price: 14200, availableRooms: 8 });
+                await addDoc(hostelsCol, { name: "Hilltop Hostel", price: 16000, availableRooms: 0 });
+                await addDoc(hostelsCol, { name: "Riverbend Hostel", price: 12800, availableRooms: 2 });
             }
 
-            const announcementsCol = collection(db, `artifacts/${appId}/public/data/announcements`);
+            // Populate dummy announcements (top-level)
+            const announcementsCol = collection(db, `announcements`);
             const announcementsSnap = await getDocs(announcementsCol);
             if (announcementsSnap.empty) {
                 console.log("Populating dummy announcements...");
@@ -2468,7 +2282,8 @@
                 await addDoc(announcementsCol, { title: "Holiday Break", message: "University will be closed from July 1st to July 5th.", date: "2025-06-20" });
             }
 
-            const adminsCol = collection(db, `artifacts/${appId}/public/data/admins`);
+            // Populate dummy admin record (top-level)
+            const adminsCol = collection(db, `admins`);
             const adminSnap = await getDoc(doc(adminsCol, "senerwaalex@gmail.com")); // Replace with your admin email
             if (!adminSnap.exists()) {
                 await setDoc(doc(adminsCol, "senerwaalex@gmail.com"), { role: "admin", isAdmin: true });
