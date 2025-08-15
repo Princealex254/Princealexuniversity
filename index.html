@@ -125,7 +125,7 @@
   </div>
 
   <!-- Authentication Forms Container -->
-  <div id="authContainer" class="hidden">
+  <div id="authContainer">
     <!-- Login Form Wrapper -->
     <div class="auth-wrapper">
       <div id="login-form-wrapper" class="form-wrapper bg-white bg-opacity-95 p-8 rounded-xl shadow-2xl w-full max-w-[420px] text-center transform transition-all duration-500 ease-in-out opacity-0 invisible translate-y-5 active">
@@ -283,7 +283,8 @@
     // Global variables from Canvas environment
     const appId = typeof __app_id !== 'undefined' ? __app_id : hardcodedFirebaseConfig.projectId; // Kept for consistency if needed, though not directly in new Firestore paths
     const firebaseConfigFromCanvas = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Fixed typo: use initialAuthToken directly
+    // Corrected the typo here: use __initial_auth_token directly
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
 
     let app;
     if (firebaseConfigFromCanvas) {
@@ -405,29 +406,29 @@
     // This function runs once the DOM is fully loaded and before onAuthStateChanged fires its initial state.
     async function initializeAppUI() {
         storeOriginalButtonHtml(); // Store original button HTML for loading states
-        loadingText.innerText = "Initializing session...";
-        loadingOverlay.classList.remove('hidden');
+        // Removed initial loading overlay display here. onAuthStateChanged will manage initial UI.
 
         // Attach inline validation listeners
         attachFormValidationListeners();
 
+        // The initial sign-in attempt (custom token or anonymous) will happen in the background.
+        // The onAuthStateChanged listener will then handle the UI update based on the result.
         if (initialAuthToken) {
             try {
                 await signInWithCustomToken(auth, initialAuthToken);
-                console.log("Signed in with custom token.");
+                console.log("Attempted sign-in with custom token.");
             } catch (error) {
-                console.error("Error signing in with custom token:", error);
-                await signInAnonymously(auth);
-                console.log("Signed in anonymously due to custom token failure.");
+                console.error("Error with custom token, attempting anonymous sign-in:", error);
+                await signInAnonymously(auth); // Fallback to anonymous if custom token fails
+                console.log("Attempted anonymous sign-in.");
             }
         } else {
             try {
                 await signInAnonymously(auth);
-                console.log("Signed in anonymously.");
+                console.log("Attempted anonymous sign-in.");
             } catch (error) {
-                // Log the error but do not show an intrusive modal for anonymous sign-in failure.
-                // The onAuthStateChanged listener will naturally transition to the login page.
-                console.error("Error signing in anonymously during initialization:", error);
+                console.error("Error during initial anonymous sign-in attempt:", error);
+                // No modal here; onAuthStateChanged will direct to login if sign-in fails.
             }
         }
     }
@@ -528,7 +529,7 @@
         // --- UI Transition to Dashboard ---
         authContainer.classList.add('hidden'); // Hide auth forms container
         dashboardContainer.classList.remove('hidden'); // Show dashboard
-        loadingOverlay.classList.add('hidden'); // Hide loading overlay
+        loadingOverlay.classList.add('hidden'); // Ensure loading overlay is hidden
 
         // Check if essential profile data is incomplete (adjust as needed for what constitutes 'incomplete')
         if (currentUserData.regNo === 'N/A' || currentUserData.programme === 'N/A' || currentUserData.dob === 'N/A' || currentUserData.gender === 'N/A') {
@@ -540,10 +541,10 @@
 
       } else {
         // User is signed out or not logged in, show login page
-        authContainer.classList.remove('hidden'); // Show auth forms container
-        dashboardContainer.classList.add('hidden'); // Hide dashboard
-        loadingOverlay.classList.add('hidden'); // Hide loading overlay
-        showForm('login'); // Ensure login form is visible
+        // authContainer is already visible by default in HTML
+        dashboardContainer.classList.add('hidden'); // Ensure dashboard is hidden
+        loadingOverlay.classList.add('hidden'); // Ensure loading overlay is hidden
+        showForm('login'); // Ensure login form is visible and active
       }
     });
 
@@ -565,6 +566,7 @@
           return;
       }
 
+      showLoading("Logging in..."); // Show loading overlay specifically for login
       setButtonLoading(loginBtn, true);
 
       const email = emailInput.value.trim().toLowerCase();
@@ -589,6 +591,7 @@
         console.error("Login error:", error);
       } finally {
         setButtonLoading(loginBtn, false);
+        hideLoading(); // Hide loading overlay after login attempt
       }
     }
 
@@ -621,6 +624,7 @@
           return;
       }
 
+      showLoading("Signing up..."); // Show loading overlay specifically for signup
       setButtonLoading(signupBtn, true);
 
       const fullName = fullNameInput.value.trim();
@@ -670,6 +674,7 @@
         console.error("Signup error:", error);
       } finally {
         setButtonLoading(signupBtn, false);
+        hideLoading(); // Hide loading overlay after signup attempt
       }
     }
 
@@ -684,6 +689,7 @@
         await showCustomModal("Validation Error", "Please enter a valid email address.");
         return;
       }
+      showLoading("Sending recovery email..."); // Show loading overlay specifically for password recovery
       setButtonLoading(recoverBtn, true);
       const email = emailInput.value.trim().toLowerCase();
       try {
@@ -702,6 +708,7 @@
         console.error("Password recovery error:", error);
       } finally {
         setButtonLoading(recoverBtn, false);
+        hideLoading(); // Hide loading overlay after recovery attempt
       }
     }
 
@@ -712,13 +719,13 @@
       if (response) {
         try {
           loadingText.innerText = "Logging out...";
-          loadingOverlay.classList.remove('hidden');
+          loadingOverlay.classList.remove('hidden'); // Show loading overlay for logout
           await signOut(auth);
           // onAuthStateChanged will handle UI update and show login form
         } catch (error) {
           console.error("Error signing out:", error);
           alert("Error logging out. Please try again.");
-          loadingOverlay.classList.add('hidden');
+          loadingOverlay.classList.add('hidden'); // Ensure hidden on error
         }
       }
     };
@@ -1240,7 +1247,7 @@
             // Ensure payments is an array, default to empty if not found
             const payments = Array.isArray(feesData.payments) ? feesData.payments : [];
             const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
-            const balance = (feesData.totalFees || 0) - totalPayments; // Ensure totalFees defaults to 0 if not present
+            const balance = (feesData.totalFees || 0) - totalPayments; 
             
             // Neutral color for 0 balance, red for positive, green for negative (credit)
             let balanceColorClass = 'text-gray-600';
