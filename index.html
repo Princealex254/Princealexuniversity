@@ -9,11 +9,25 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.autotable.min.js"></script>
   <style>
+    /* Ensure HTML and Body take full height for proper centering */
+    html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+
     /* Base Body and Typography for Light Mode */
     body {
       font-family: 'Roboto', sans-serif; /* Light, professional typography */
       background-color: #f8f9fa; /* Soft gray accent */
       color: #343a40; /* Darker text for contrast */
+      /* For desktop, body will be a flex container that holds the authContainer centered */
+      display: flex; /* Make body a flex container */
+      justify-content: center; /* Center horizontally */
+      align-items: center; /* Center vertically */
+      flex-direction: column; /* Allows content to stack vertically if needed */
     }
 
     /* Card-based layouts */
@@ -181,11 +195,38 @@
     #authContainer {
         background: url('myschoolgate.png') no-repeat center center fixed; /* Keep background image */
         background-size: cover;
+        /* Ensure authContainer takes full viewport height and width for desktop positioning */
+        min-height: 100vh;
+        width: 100vw;
+        display: flex; /* Make it a flex container to aid in centering its absolute children */
+        justify-content: center; /* Center children horizontally */
+        align-items: center; /* Center children vertically */
+        position: relative; /* Crucial for absolute positioning of forms */
+        padding: 1rem; /* Add some padding for smaller screens to prevent content touching edges */
+        box-sizing: border-box; /* Include padding in width/height */
     }
     .form-wrapper {
         background-color: #ffffff;
         border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Subtle shadow */
+        max-width: 420px; /* Max width as requested */
+        width: 100%; /* Ensure it takes full width up to max-width */
+        padding: 24px; /* Internal padding 20-25px */
+        position: absolute; /* Position absolutely within authContainer */
+        left: 50%; /* Center horizontally with transform */
+        top: 50%; /* Center vertically with transform */
+        transform: translate(-50%, -50%); /* Adjust for element's own size */
+        transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out; /* Smooth transition */
+    }
+    .form-wrapper.active {
+        opacity: 1;
+        visibility: visible;
+        z-index: 10; /* Ensure active form is on top */
+    }
+    .form-wrapper.opacity-0 {
+        opacity: 0;
+        visibility: hidden;
+        z-index: 1; /* Hide inactive forms behind active one */
     }
     .form-wrapper h2 {
         color: #0d6efd; /* Bootstrap blue for auth headings */
@@ -198,6 +239,27 @@
     }
     .form-wrapper a:hover {
         color: #0b5ed7;
+    }
+
+    /* Mobile specific adjustments for forms */
+    @media (max-width: 576px) {
+        #authContainer {
+            /* On mobile, we want forms to stack and flow naturally */
+            display: block; /* Allow forms to stack normally, remove flex behavior */
+            min-height: auto; /* Allow height to collapse based on content */
+            height: auto;
+            position: static; /* Important: remove relative positioning for mobile flow */
+            padding-top: 40px; /* Add some space from the top for better mobile presentation */
+            align-items: flex-start; /* Reset align-items, though display:block makes it less relevant */
+        }
+        .form-wrapper {
+            position: static; /* Revert to static for normal document flow on small screens */
+            transform: none; /* Remove centering transform */
+            margin: 0 auto 20px auto; /* Center horizontally using auto margins and add bottom spacing */
+            width: calc(100% - 30px); /* Adjust width to account for side padding/margin on mobile */
+            box-sizing: border-box; /* Ensure padding is included in width calculation */
+            padding: 20px; /* Consistent internal padding */
+        }
     }
 
     /* Dashboard Header */
@@ -397,8 +459,8 @@
     </div>
   </div>
 
-  <div id="authContainer" class="p-4 w-full h-full flex justify-center items-center">
-    <div id="login-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out active">
+  <div id="authContainer" class="w-full h-full"> <!-- Updated to take full width and height, centering handled by flexbox -->
+    <div id="login-form-wrapper" class="form-wrapper text-center transform transition-all duration-500 ease-in-out active">
       <form id="login-form">
         <h2 class="text-4xl font-extrabold mb-8">Login</h2>
         <div class="mb-6 text-left">
@@ -419,7 +481,7 @@
       </form>
     </div>
 
-    <div id="signup-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="signup-form-wrapper" class="form-wrapper text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="signup-form">
         <h2 class="text-4xl font-extrabold mb-8">Sign Up</h2>
         <div class="mb-6 text-left">
@@ -448,7 +510,7 @@
       </form>
     </div>
 
-    <div id="forgot-password-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="forgot-password-form-wrapper" class="form-wrapper text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="forgot-password-form">
         <h2 class="text-4xl font-extrabold mb-8">Forgot Password</h2>
         <div class="mb-6 text-left">
@@ -896,7 +958,7 @@
 
       const fullName = fullNameInput.value.trim();
       const email = emailInput.value.trim().toLowerCase();
-      const password = passwordInput.value;
+      const password = password.value;
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -1075,7 +1137,7 @@
       const initialStudentName = currentUserData?.name || "Student";
       const initialStudentProgramme = currentUserData?.programme && currentUserData.programme !== 'N/A' ? currentUserData.programme : "Programme Not Set";
       const initialStudentRegNo = currentUserData?.regNo && currentUserData.regNo !== 'N/A' ? currentUserData.regNo : "Registration Number Not Set";
-      const initialProfilePhotoURL = currentUserData?.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=AV';
+      const initialProfilePhotoURL = currentUserData?.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
       const homeContentHtml = `
         <div class="card p-6 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
           <img id="dashboardProfilePhoto" src="${initialProfilePhotoURL}" alt="Profile Photo" class="w-20 h-20 rounded-full object-cover border-4 border-blue-500 shadow-md">
@@ -1515,7 +1577,7 @@
                             <p class="font-bold">${classAtTime.courseCode}</p>
                             <p>${classAtTime.courseName}</p>
                             <p class="text-sm text-gray-600">${classAtTime.lecturer}</p>
-                            <p class="text-sm text-gray-600">${classAtTime.venue}</p>
+                            <p class="text-sm text-gray-600">Venue: ${classAtTime.venue}</p>
                           </td>
                         `;
                       } else {
