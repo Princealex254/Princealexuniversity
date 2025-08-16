@@ -181,21 +181,11 @@
     #authContainer {
         background: url('myschoolgate.png') no-repeat center center fixed; /* Keep background image */
         background-size: cover;
-        /* Ensure authContainer takes full viewport height and centers content */
-        min-height: 100vh;
-        width: 100vw;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 1rem; /* Add some padding for smaller screens */
-        box-sizing: border-box; /* Include padding in width/height */
     }
     .form-wrapper {
         background-color: #ffffff;
         border-radius: 8px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        max-width: 28rem; /* Equivalent to max-w-md */
-        width: 100%; /* Ensure it takes full width up to max-width */
     }
     .form-wrapper h2 {
         color: #0d6efd; /* Bootstrap blue for auth headings */
@@ -407,8 +397,8 @@
     </div>
   </div>
 
-  <div id="authContainer" class="w-full h-full"> <!-- Updated to take full width and height, centering handled by flexbox -->
-    <div id="login-form-wrapper" class="form-wrapper card p-8 text-center transform transition-all duration-500 ease-in-out active">
+  <div id="authContainer" class="p-4 w-full h-full flex justify-center items-center">
+    <div id="login-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out active">
       <form id="login-form">
         <h2 class="text-4xl font-extrabold mb-8">Login</h2>
         <div class="mb-6 text-left">
@@ -429,7 +419,7 @@
       </form>
     </div>
 
-    <div id="signup-form-wrapper" class="form-wrapper card p-8 text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="signup-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="signup-form">
         <h2 class="text-4xl font-extrabold mb-8">Sign Up</h2>
         <div class="mb-6 text-left">
@@ -458,7 +448,7 @@
       </form>
     </div>
 
-    <div id="forgot-password-form-wrapper" class="form-wrapper card p-8 text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="forgot-password-form-wrapper" class="form-wrapper card p-8 w-full max-w-md text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="forgot-password-form">
         <h2 class="text-4xl font-extrabold mb-8">Forgot Password</h2>
         <div class="mb-6 text-left">
@@ -1085,7 +1075,7 @@
       const initialStudentName = currentUserData?.name || "Student";
       const initialStudentProgramme = currentUserData?.programme && currentUserData.programme !== 'N/A' ? currentUserData.programme : "Programme Not Set";
       const initialStudentRegNo = currentUserData?.regNo && currentUserData.regNo !== 'N/A' ? currentUserData.regNo : "Registration Number Not Set";
-      const initialProfilePhotoURL = currentUserData?.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=Avatar';
+      const initialProfilePhotoURL = currentUserData?.profilePhotoURL || 'https://placehold.co/100x100/eeeeee/333333?text=AV';
       const homeContentHtml = `
         <div class="card p-6 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
           <img id="dashboardProfilePhoto" src="${initialProfilePhotoURL}" alt="Profile Photo" class="w-20 h-20 rounded-full object-cover border-4 border-blue-500 shadow-md">
