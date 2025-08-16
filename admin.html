@@ -7,7 +7,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfTLZyH6ONeV8Su2V9Y77Z3V0N219X2V1Q+qF2F6G1OZQ7aXwIM5x5xg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfTLZyH6ONeV8Su2V9Y77Z3V0N219X2V1Q+qF2F6G1OZQ7aXwIM5x5xg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
@@ -46,14 +46,14 @@
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
     const currencyFormatter = new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' });
 
-    const sections = ["dashboard", "students", "student-profile", "announcements", "courses", "timetables", "hostels", "explorer"];
+    const sections = ["dashboard", "students", "student-profile", "announcements", "courses", "timetables", "hostels", "graduation-requests", "clearance-requests", "explorer"];
     const state = {
       currentUser: null,
       isAdmin: false,
       selectedStudentId: null,
       selectedStudent: null,
       unsubscribers: {},
-      counts: { students: 0, courses: 0, announcements: 0, timetables: 0, hostels: 0 },
+      counts: { students: 0, courses: 0, announcements: 0, timetables: 0, hostels: 0, graduationRequests: 0, clearanceRequests: 0 },
       gradesCache: [],
       feesCache: [],
       gradesUnsub: null,
@@ -65,7 +65,11 @@
       timetablesUnsub: null,
       timetablesCache: [],
       hostelsUnsub: null,
-      hostelsCache: []
+      hostelsCache: [],
+      graduationRequestsUnsub: null,
+      graduationRequestsCache: [],
+      clearanceRequestsUnsub: null,
+      clearanceRequestsCache: []
     };
 
     function showToast(kind, msg) {
@@ -153,6 +157,8 @@
         initCoursesListeners();
         initTimetablesListeners();
         initHostelsListeners();
+        initGraduationRequestsListeners();
+        initClearanceRequestsListeners();
         showToast("ok", "Welcome, admin!");
         activateNav("dashboard");
       } catch (err) {
@@ -185,6 +191,8 @@
         initCoursesListeners();
         initTimetablesListeners();
         initHostelsListeners();
+        initGraduationRequestsListeners();
+        initClearanceRequestsListeners();
       });
     }
 
@@ -226,6 +234,18 @@
         state.unsubscribers.hostelsCount = onSnapshot(collection(db, "hostels"), (snap) => {
           state.counts.hostels = snap.size;
           $("#countHostels").textContent = snap.size;
+        });
+      }
+      if (!state.unsubscribers.gradRequestsCount) {
+        state.unsubscribers.gradRequestsCount = onSnapshot(collection(db, "graduationRequests"), (snap) => {
+          state.counts.graduationRequests = snap.size;
+          $("#countGraduationRequests").textContent = snap.size;
+        });
+      }
+      if (!state.unsubscribers.clearRequestsCount) {
+        state.unsubscribers.clearRequestsCount = onSnapshot(collection(db, "clearanceRequests"), (snap) => {
+          state.counts.clearanceRequests = snap.size;
+          $("#countClearanceRequests").textContent = snap.size;
         });
       }
     }
@@ -1469,6 +1489,470 @@
     }
 
     // ------------------------------------
+    // GRADUATION REQUESTS
+    // ------------------------------------
+    function initGraduationRequestsListeners() {
+      if (state.graduationRequestsUnsub) return;
+      const qRef = query(collection(db, "graduationRequests"), orderBy("submittedAt", "desc"));
+      state.graduationRequestsUnsub = onSnapshot(qRef, (snap) => {
+        state.graduationRequestsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderGraduationRequestsTable(state.graduationRequestsCache);
+        $("#countGraduationRequests").textContent = state.graduationRequestsCache.length;
+      });
+    }
+
+    function renderGraduationRequestsTable(data) {
+      const tbody = $("#gradReqsTableBody");
+      tbody.innerHTML = "";
+      const term = $("#gradReqSearch").value.toLowerCase().trim();
+      const arr = data.filter(r =>
+        (r.name || "").toLowerCase().includes(term) ||
+        (r.regNo || "").toLowerCase().includes(term) ||
+        (r.status || "").toLowerCase().includes(term)
+      );
+
+      arr.forEach(r => {
+        const statusColors = {
+          "Pending": "bg-yellow-100 text-yellow-800",
+          "Approved": "bg-green-100 text-green-800",
+          "Rejected": "bg-red-100 text-red-800"
+        };
+        const statusClass = statusColors[r.status] || "bg-gray-100 text-gray-800";
+        const submittedDate = r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : '-';
+
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-sm"><a href="#" class="text-blue-600 hover:underline" data-student-id="${r.studentId}">${r.name || '-'}</a></td>
+          <td class="p-3 text-sm">${r.regNo || '-'}</td>
+          <td class="p-3 text-sm">${r.programme || '-'}</td>
+          <td class="p-3 text-sm">${r.department || '-'}</td>
+          <td class="p-3 text-sm">${r.yearOfStudy || '-'}</td>
+          <td class="p-3 text-sm">${r.gpa || '-'}</td>
+          <td class="p-3 text-sm"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${r.status || '-'}</span></td>
+          <td class="p-3 text-sm">${submittedDate}</td>
+          <td class="p-3 text-sm text-right">
+            <button class="px-2 py-1 text-xs bg-gray-600 text-white rounded mr-2" data-view="${r.id}"><i class="fa fa-eye"></i></button>
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${r.id}"><i class="fa fa-pen"></i></button>
+            <button class="px-2 py-1 text-xs bg-green-600 text-white rounded mr-2" data-approve="${r.id}"><i class="fa fa-check"></i></button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded mr-2" data-reject="${r.id}"><i class="fa fa-times"></i></button>
+            <button class="px-2 py-1 text-xs bg-red-800 text-white rounded" data-del="${r.id}"><i class="fa fa-trash"></i></button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      $$("#gradReqsTableBody [data-student-id]").forEach(btn => btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openStudentProfile(btn.getAttribute("data-student-id"));
+      }));
+      $$("#gradReqsTableBody [data-view]").forEach(btn => btn.addEventListener("click", () => openGradReqModal(btn.getAttribute("data-view"), true))); // True for readOnly
+      $$("#gradReqsTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openGradReqModal(btn.getAttribute("data-edit"))));
+      $$("#gradReqsTableBody [data-approve]").forEach(btn => btn.addEventListener("click", () => updateGradReqStatus(btn.getAttribute("data-approve"), "Approved")));
+      $$("#gradReqsTableBody [data-reject]").forEach(btn => btn.addEventListener("click", () => updateGradReqStatus(btn.getAttribute("data-reject"), "Rejected")));
+      $$("#gradReqsTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => confirmDeleteGradReq(btn.getAttribute("data-del"))));
+    }
+
+    $("#gradReqSearch").addEventListener("input", () => renderGraduationRequestsTable(state.graduationRequestsCache));
+    $("#gradReqsExportPDFBtn").addEventListener("click", () => exportGradReqsPDF());
+    $("#gradReqsExportCSVBtn").addEventListener("click", () => exportGradReqsCSV());
+
+    function openGradReqModal(id = null, readOnly = false) {
+      $("#gradReqForm").reset();
+      $("#gradReqId").value = id || "";
+      $("#gradReqModalTitle").textContent = id ? (readOnly ? "View Graduation Request" : "Edit Graduation Request") : "Add Graduation Request";
+      $("#gradReqSaveBtn").classList.toggle("hidden", readOnly);
+      $("#grStatus").disabled = readOnly;
+      $("#grRemarks").readOnly = readOnly;
+
+      if (id) {
+        const req = state.graduationRequestsCache.find(r => r.id === id);
+        if (req) {
+          $("#grName").value = req.name || "";
+          $("#grRegNo").value = req.regNo || "";
+          $("#grProgramme").value = req.programme || "";
+          $("#grDepartment").value = req.department || "";
+          $("#grYear").value = req.yearOfStudy || "";
+          $("#grGpa").value = req.gpa || "";
+          $("#grStatus").value = req.status || "";
+          $("#grRemarks").value = req.remarks || "";
+        }
+      }
+      $("#gradReqModal").classList.remove("hidden");
+    }
+
+    async function updateGradReqStatus(id, newStatus) {
+      const req = state.graduationRequestsCache.find(r => r.id === id);
+      if (!req) { showToast("error", "Request not found."); return; }
+      $("#gradReqId").value = id;
+      $("#grName").value = req.name || "";
+      $("#grRegNo").value = req.regNo || "";
+      $("#grProgramme").value = req.programme || "";
+      $("#grDepartment").value = req.department || "";
+      $("#grYear").value = req.yearOfStudy || "";
+      $("#grGpa").value = req.gpa || "";
+      $("#grStatus").value = newStatus;
+      $("#grRemarks").value = req.remarks || ""; // Keep existing remarks
+      openGradReqModal(id); // Open modal for editing
+    }
+
+    async function upsertGradReq(e) {
+      e.preventDefault();
+      const id = $("#gradReqId").value;
+      if (!id) { showToast("error", "No request selected for saving."); return; }
+
+      const payload = {
+        status: $("#grStatus").value,
+        remarks: $("#grRemarks").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+      if (!payload.status) {
+        showToast("error", "Please select a status.");
+        return;
+      }
+      try {
+        setLoading(true, "Updating graduation request...");
+        await updateDoc(doc(db, "graduationRequests", id), payload);
+        $("#gradReqModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", "Graduation request updated.");
+      } catch (err) {
+        setLoading(false);
+        showToast("error", err.message || "Failed to save request.");
+      }
+    }
+
+    function confirmDeleteGradReq(id) {
+      $("#confirmDeleteBtn-gradReq").setAttribute("data-id", id);
+      $("#confirmDeleteModal-gradReq").classList.remove("hidden");
+    }
+
+    async function deleteGradReqNow() {
+      const id = $("#confirmDeleteBtn-gradReq").getAttribute("data-id");
+      if (!id) return;
+      try {
+        setLoading(true, "Deleting graduation request...");
+        await deleteDoc(doc(db, "graduationRequests", id));
+        $("#confirmDeleteModal-gradReq").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", "Graduation request deleted.");
+      } catch (err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed.");
+      }
+    }
+
+    async function exportGradReqsPDF() {
+      setLoading(true, "Generating PDF...");
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF({ orientation: "landscape" });
+      docPDF.setFontSize(16);
+      docPDF.text(`Graduation Requests`, 15, 20);
+      const rows = state.graduationRequestsCache.map(r => [
+        r.name, r.regNo, r.programme, r.department, r.yearOfStudy, r.gpa, r.status,
+        r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : '-'
+      ]);
+      docPDF.autoTable({
+        startY: 30,
+        head: [["Name", "Reg No", "Programme", "Department", "Year", "GPA", "Status", "Submitted Date"]],
+        body: rows,
+        headStyles: { fillColor: [24, 116, 205] }
+      });
+      docPDF.save(`graduation_requests.pdf`);
+      setLoading(false);
+      showToast("ok", "PDF exported");
+    }
+
+    async function exportGradReqsCSV() {
+      setLoading(true, "Exporting CSV...");
+      const rows = [["studentId", "name", "regNo", "programme", "department", "yearOfStudy", "gpa", "status", "submittedAt", "remarks"]];
+      state.graduationRequestsCache.forEach(r => {
+        rows.push([
+          r.studentId || "", r.name || "", r.regNo || "", r.programme || "", r.department || "",
+          r.yearOfStudy || "", r.gpa || "", r.status || "",
+          r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toISOString() : "", r.remarks || ""
+        ]);
+      });
+      const csv = rows.map(r => r.map(v => `"${(v ?? "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `graduation_requests.csv`; a.click();
+      URL.revokeObjectURL(url);
+      setLoading(false);
+      showToast("ok", "CSV exported");
+    }
+
+    // ------------------------------------
+    // CLEARANCE REQUESTS
+    // ------------------------------------
+    function initClearanceRequestsListeners() {
+      if (state.clearanceRequestsUnsub) return;
+      const qRef = query(collection(db, "clearanceRequests"), orderBy("submittedAt", "desc"));
+      state.clearanceRequestsUnsub = onSnapshot(qRef, (snap) => {
+        state.clearanceRequestsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderClearanceRequestsTable(state.clearanceRequestsCache);
+        $("#countClearanceRequests").textContent = state.clearanceRequestsCache.length;
+      });
+    }
+
+    function renderClearanceRequestsTable(data) {
+      const tbody = $("#clearReqsTableBody");
+      tbody.innerHTML = "";
+      const term = $("#clearReqSearch").value.toLowerCase().trim();
+      const arr = data.filter(r =>
+        (r.name || "").toLowerCase().includes(term) ||
+        (r.regNo || "").toLowerCase().includes(term) ||
+        (r.status || "").toLowerCase().includes(term)
+      );
+
+      arr.forEach(r => {
+        const statusColors = {
+          "Pending": "bg-yellow-100 text-yellow-800",
+          "Cleared": "bg-green-100 text-green-800",
+          "Rejected": "bg-red-100 text-red-800"
+        };
+        const statusClass = statusColors[r.status] || "bg-gray-100 text-gray-800";
+        const submittedDate = r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : '-';
+
+        let sectionsProgress = '';
+        if (r.sections && typeof r.sections === 'object') {
+          const totalSections = Object.keys(r.sections).length;
+          const clearedSections = Object.values(r.sections).filter(s => s === 'Cleared').length;
+          sectionsProgress = `<div class="text-xs text-gray-500 mt-1">${clearedSections}/${totalSections} sections cleared</div>`;
+        }
+
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="p-3 text-sm"><a href="#" class="text-blue-600 hover:underline" data-student-id="${r.studentId}">${r.name || '-'}</a></td>
+          <td class="p-3 text-sm">${r.regNo || '-'}</td>
+          <td class="p-3 text-sm">${r.programme || '-'}</td>
+          <td class="p-3 text-sm">${r.department || '-'}</td>
+          <td class="p-3 text-sm"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${r.status || '-'}</span>${sectionsProgress}</td>
+          <td class="p-3 text-sm">${submittedDate}</td>
+          <td class="p-3 text-sm text-right">
+            <button class="px-2 py-1 text-xs bg-gray-600 text-white rounded mr-2" data-view="${r.id}"><i class="fa fa-eye"></i></button>
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded mr-2" data-edit="${r.id}"><i class="fa fa-pen"></i></button>
+            <button class="px-2 py-1 text-xs bg-green-600 text-white rounded mr-2" data-approve="${r.id}"><i class="fa fa-check"></i></button>
+            <button class="px-2 py-1 text-xs bg-red-600 text-white rounded mr-2" data-reject="${r.id}"><i class="fa fa-times"></i></button>
+            <button class="px-2 py-1 text-xs bg-red-800 text-white rounded" data-del="${r.id}"><i class="fa fa-trash"></i></button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      $$("#clearReqsTableBody [data-student-id]").forEach(btn => btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openStudentProfile(btn.getAttribute("data-student-id"));
+      }));
+      $$("#clearReqsTableBody [data-view]").forEach(btn => btn.addEventListener("click", () => openClearReqModal(btn.getAttribute("data-view"), true))); // True for readOnly
+      $$("#clearReqsTableBody [data-edit]").forEach(btn => btn.addEventListener("click", () => openClearReqModal(btn.getAttribute("data-edit"))));
+      $$("#clearReqsTableBody [data-approve]").forEach(btn => btn.addEventListener("click", () => updateClearReqStatus(btn.getAttribute("data-approve"), "Cleared")));
+      $$("#clearReqsTableBody [data-reject]").forEach(btn => btn.addEventListener("click", () => updateClearReqStatus(btn.getAttribute("data-reject"), "Rejected")));
+      $$("#clearReqsTableBody [data-del]").forEach(btn => btn.addEventListener("click", () => confirmDeleteClearReq(btn.getAttribute("data-del"))));
+    }
+
+    $("#clearReqSearch").addEventListener("input", () => renderClearanceRequestsTable(state.clearanceRequestsCache));
+    $("#clearReqsExportPDFBtn").addEventListener("click", () => exportClearReqsPDF());
+    $("#clearReqsExportCSVBtn").addEventListener("click", () => exportClearReqsCSV());
+
+    function openClearReqModal(id = null, readOnly = false) {
+      $("#clearReqForm").reset();
+      $("#clearReqId").value = id || "";
+      $("#clearReqModalTitle").textContent = id ? (readOnly ? "View Clearance Request" : "Edit Clearance Request") : "Add Clearance Request";
+      $("#clearReqSaveBtn").classList.toggle("hidden", readOnly);
+      $("#cStatus").disabled = readOnly;
+      $("#cRemarks").readOnly = readOnly;
+      $("#clearanceSectionsContainer").innerHTML = ''; // Clear previous sections
+
+      if (id) {
+        const req = state.clearanceRequestsCache.find(r => r.id === id);
+        if (req) {
+          $("#cName").value = req.name || "";
+          $("#cRegNo").value = req.regNo || "";
+          $("#cProgramme").value = req.programme || "";
+          $("#cDepartment").value = req.department || "";
+          $("#cStatus").value = req.status || "";
+          $("#cRemarks").value = req.remarks || "";
+
+          if (req.sections && typeof req.sections === 'object') {
+            for (const sectionKey in req.sections) {
+              if (Object.hasOwnProperty.call(req.sections, sectionKey)) {
+                const sectionStatus = req.sections[sectionKey];
+                const sectionHtml = `
+                  <div class="mb-2">
+                    <label for="section-${sectionKey}" class="block text-sm font-medium text-gray-700 capitalize">${sectionKey}</label>
+                    <select id="section-${sectionKey}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" ${readOnly ? 'disabled' : ''}>
+                      <option value="Pending">Pending</option>
+                      <option value="Cleared">Cleared</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </div>
+                `;
+                $("#clearanceSectionsContainer").insertAdjacentHTML('beforeend', sectionHtml);
+                $(`#section-${sectionKey}`).value = sectionStatus;
+              }
+            }
+          }
+        }
+      }
+      $("#clearReqModal").classList.remove("hidden");
+    }
+
+    async function updateClearReqStatus(id, newStatus) {
+      const req = state.clearanceRequestsCache.find(r => r.id === id);
+      if (!req) { showToast("error", "Request not found."); return; }
+      $("#clearReqId").value = id;
+      $("#cName").value = req.name || "";
+      $("#cRegNo").value = req.regNo || "";
+      $("#cProgramme").value = req.programme || "";
+      $("#cDepartment").value = req.department || "";
+      $("#cStatus").value = newStatus;
+      $("#cRemarks").value = req.remarks || "";
+
+      $("#clearanceSectionsContainer").innerHTML = ''; // Clear previous sections
+      if (req.sections && typeof req.sections === 'object') {
+        for (const sectionKey in req.sections) {
+          if (Object.hasOwnProperty.call(req.sections, sectionKey)) {
+            const sectionStatus = req.sections[sectionKey];
+            const sectionHtml = `
+              <div class="mb-2">
+                <label for="section-${sectionKey}" class="block text-sm font-medium text-gray-700 capitalize">${sectionKey}</label>
+                <select id="section-${sectionKey}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                  <option value="Pending">Pending</option>
+                  <option value="Cleared">Cleared</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            `;
+            $("#clearanceSectionsContainer").insertAdjacentHTML('beforeend', sectionHtml);
+            $(`#section-${sectionKey}`).value = sectionStatus;
+          }
+        }
+      }
+
+      openClearReqModal(id); // Open modal for editing
+    }
+
+    async function upsertClearReq(e) {
+      e.preventDefault();
+      const id = $("#clearReqId").value;
+      if (!id) { showToast("error", "No request selected for saving."); return; }
+
+      const payload = {
+        status: $("#cStatus").value,
+        remarks: $("#cRemarks").value.trim(),
+        updatedAt: serverTimestamp()
+      };
+
+      const currentReq = state.clearanceRequestsCache.find(r => r.id === id);
+      if (currentReq && currentReq.sections && typeof currentReq.sections === 'object') {
+        const updatedSections = {};
+        let allCleared = true;
+        for (const sectionKey in currentReq.sections) {
+          const sectionSelect = $(`#section-${sectionKey}`);
+          if (sectionSelect) {
+            updatedSections[sectionKey] = sectionSelect.value;
+            if (sectionSelect.value !== "Cleared") {
+              allCleared = false;
+            }
+          } else {
+            updatedSections[sectionKey] = currentReq.sections[sectionKey]; // Preserve if no select found
+            if (currentReq.sections[sectionKey] !== "Cleared") {
+              allCleared = false;
+            }
+          }
+        }
+        payload.sections = updatedSections;
+        if (allCleared) {
+          payload.status = "Cleared"; // Auto-set main status if all sub-sections are cleared
+        }
+      }
+
+      if (!payload.status) {
+        showToast("error", "Please select a status.");
+        return;
+      }
+      try {
+        setLoading(true, "Updating clearance request...");
+        await updateDoc(doc(db, "clearanceRequests", id), payload);
+        $("#clearReqModal").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", "Clearance request updated.");
+      } catch (err) {
+        setLoading(false);
+        showToast("error", err.message || "Failed to save request.");
+      }
+    }
+
+    function confirmDeleteClearReq(id) {
+      $("#confirmDeleteBtn-clearReq").setAttribute("data-id", id);
+      $("#confirmDeleteModal-clearReq").classList.remove("hidden");
+    }
+
+    async function deleteClearReqNow() {
+      const id = $("#confirmDeleteBtn-clearReq").getAttribute("data-id");
+      if (!id) return;
+      try {
+        setLoading(true, "Deleting clearance request...");
+        await deleteDoc(doc(db, "clearanceRequests", id));
+        $("#confirmDeleteModal-clearReq").classList.add("hidden");
+        setLoading(false);
+        showToast("ok", "Clearance request deleted.");
+      } catch (err) {
+        setLoading(false);
+        showToast("error", err.message || "Delete failed.");
+      }
+    }
+
+    async function exportClearReqsPDF() {
+      setLoading(true, "Generating PDF...");
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF({ orientation: "landscape" });
+      docPDF.setFontSize(16);
+      docPDF.text(`Clearance Requests`, 15, 20);
+      const rows = state.clearanceRequestsCache.map(r => {
+        let sectionsSummary = '';
+        if (r.sections && typeof r.sections === 'object') {
+          const totalSections = Object.keys(r.sections).length;
+          const clearedSections = Object.values(r.sections).filter(s => s === 'Cleared').length;
+          sectionsSummary = `${clearedSections}/${totalSections} sections cleared`;
+        }
+        return [
+          r.name, r.regNo, r.programme, r.department, r.status,
+          r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : '-',
+          sectionsSummary
+        ];
+      });
+      docPDF.autoTable({
+        startY: 30,
+        head: [["Name", "Reg No", "Programme", "Department", "Status", "Submitted Date", "Sections"]],
+        body: rows,
+        headStyles: { fillColor: [24, 116, 205] }
+      });
+      docPDF.save(`clearance_requests.pdf`);
+      setLoading(false);
+      showToast("ok", "PDF exported");
+    }
+
+    async function exportClearReqsCSV() {
+      setLoading(true, "Exporting CSV...");
+      const rows = [["studentId", "name", "regNo", "programme", "department", "status", "submittedAt", "remarks", "sections"]];
+      state.clearanceRequestsCache.forEach(r => {
+        rows.push([
+          r.studentId || "", r.name || "", r.regNo || "", r.programme || "", r.department || "",
+          r.status || "", r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toISOString() : "", r.remarks || "",
+          JSON.stringify(r.sections || {})
+        ]);
+      });
+      const csv = rows.map(r => r.map(v => `"${(v ?? "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `clearance_requests.csv`; a.click();
+      URL.revokeObjectURL(url);
+      setLoading(false);
+      showToast("ok", "CSV exported");
+    }
+
+    // ------------------------------------
     // INITIALIZATION & EVENT LISTENERS
     // ------------------------------------
     document.addEventListener("DOMContentLoaded", () => {
@@ -1496,6 +1980,11 @@
       $("#hostelsAddBtn").addEventListener("click", () => openHostelModal());
       $("#hostelForm").addEventListener("submit", upsertHostel);
       $("#confirmDeleteBtn-hostel").addEventListener("click", deleteHostelNow);
+      $("#gradReqForm").addEventListener("submit", upsertGradReq);
+      $("#confirmDeleteBtn-gradReq").addEventListener("click", deleteGradReqNow);
+      $("#clearReqForm").addEventListener("submit", upsertClearReq);
+      $("#confirmDeleteBtn-clearReq").addEventListener("click", deleteClearReqNow);
+
 
       $$(".nav-item").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -1522,13 +2011,15 @@
 
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
-  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[100] hidden">
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-[100] hidden">
     <div class="bg-white p-6 rounded-lg shadow-lg flex items-center">
       <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mr-4"></div>
       <p id="loadingText" class="text-lg text-gray-700">Working...</p>
     </div>
   </div>
 
+  <!-- Auth Screen -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center bg-gray-200">
     <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
       <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Admin Login</h2>
@@ -1548,8 +2039,10 @@
     </div>
   </div>
 
+  <!-- Main App Screen -->
   <div id="appScreen" class="min-h-screen hidden">
     <div class="flex">
+      <!-- Sidebar -->
       <aside class="w-64 bg-white shadow-lg h-screen fixed top-0 left-0 overflow-y-auto">
         <div class="p-6 border-b">
           <h1 class="text-xl font-bold text-gray-800">Admin Panel</h1>
@@ -1570,6 +2063,12 @@
           <a href="#" class="nav-item flex items-center py-2 px-6 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors" data-target="hostels">
             <i class="fa fa-bed mr-3"></i> Hostels
           </a>
+          <a href="#" class="nav-item flex items-center py-2 px-6 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors" data-target="graduation-requests">
+            <i class="fa fa-user-graduate mr-3"></i> Grad Requests
+          </a>
+          <a href="#" class="nav-item flex items-center py-2 px-6 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors" data-target="clearance-requests">
+            <i class="fa fa-file-signature mr-3"></i> Clearance Requests
+          </a>
           <a href="#" class="nav-item flex items-center py-2 px-6 text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors" data-target="announcements">
             <i class="fa fa-bullhorn mr-3"></i> Announcements
           </a>
@@ -1582,8 +2081,10 @@
         </nav>
       </aside>
 
+      <!-- Main Content -->
       <main class="ml-64 flex-1 p-8">
 
+        <!-- DASHBOARD Section -->
         <section id="sec-dashboard" class="hidden">
           <h2 class="text-3xl font-semibold text-gray-800 mb-6">Dashboard</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1632,6 +2133,24 @@
                 <div class="text-4xl text-pink-500"><i class="fa fa-bed"></i></div>
               </div>
             </div>
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-600">Graduation Requests</h3>
+                  <p id="countGraduationRequests" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+                </div>
+                <div class="text-4xl text-indigo-500"><i class="fa fa-user-graduate"></i></div>
+              </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-600">Clearance Requests</h3>
+                  <p id="countClearanceRequests" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+                </div>
+                <div class="text-4xl text-orange-500"><i class="fa fa-file-signature"></i></div>
+              </div>
+            </div>
           </div>
           <div class="mt-8">
             <h3 class="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
@@ -1644,6 +2163,7 @@
           </div>
         </section>
 
+        <!-- STUDENTS Section -->
         <section id="sec-students" class="hidden">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-semibold text-gray-800">Students</h2>
@@ -1684,12 +2204,14 @@
                   </tr>
                 </thead>
                 <tbody id="studentsTableBody" class="bg-white divide-y divide-gray-200">
-                  </tbody>
+                  <!-- Student rows will be injected here -->
+                </tbody>
               </table>
             </div>
           </div>
         </section>
 
+        <!-- STUDENT PROFILE Section -->
         <section id="sec-student-profile" class="hidden">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-semibold text-gray-800">Student Profile</h2>
@@ -1707,6 +2229,7 @@
             </div>
           </div>
 
+          <!-- Tabs for subcollections -->
           <div id="sec-student-profile-tabs" class="bg-white rounded-lg shadow-lg mb-6 hidden">
             <div class="border-b border-gray-200">
               <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
@@ -1722,6 +2245,7 @@
               </nav>
             </div>
             <div class="p-6">
+              <!-- Grades Tab Content -->
               <div id="content-grades" class="student-profile-tab-content">
                 <div class="flex justify-between items-center mb-4">
                   <h3 class="text-xl font-semibold text-gray-800">Grades</h3>
@@ -1757,6 +2281,7 @@
                   </div>
                 </div>
               </div>
+              <!-- Fees Tab Content -->
               <div id="content-fees" class="student-profile-tab-content hidden">
                 <div class="flex justify-between items-center mb-4">
                   <h3 class="text-xl font-semibold text-gray-800">Fees Statement</h3>
@@ -1789,6 +2314,7 @@
                   </div>
                 </div>
               </div>
+              <!-- Registrations Tab Content -->
               <div id="content-registrations" class="student-profile-tab-content hidden">
                 <div class="flex justify-between items-center mb-4">
                   <h3 class="text-xl font-semibold text-gray-800">Course Registrations</h3>
@@ -1825,6 +2351,7 @@
           </div>
         </section>
 
+        <!-- COURSES Section -->
         <section id="sec-courses" class="hidden">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-semibold text-gray-800">Courses</h2>
@@ -1858,6 +2385,7 @@
           </div>
         </section>
 
+        <!-- TIMETABLES Section -->
         <section id="sec-timetables" class="hidden">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-semibold text-gray-800">Timetables</h2>
@@ -1899,6 +2427,7 @@
           </div>
         </section>
 
+        <!-- HOSTELS Section -->
         <section id="sec-hostels" class="hidden">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-semibold text-gray-800">Hostels</h2>
@@ -1931,11 +2460,81 @@
           </div>
         </section>
 
+        <!-- GRADUATION REQUESTS Section -->
+        <section id="sec-graduation-requests" class="hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-semibold text-gray-800">Graduation Requests</h2>
+            <div class="flex space-x-2">
+              <button id="gradReqsExportPDFBtn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 flex items-center"><i class="fa fa-file-pdf mr-2"></i> Export PDF</button>
+              <button id="gradReqsExportCSVBtn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 flex items-center"><i class="fa fa-file-csv mr-2"></i> Export CSV</button>
+            </div>
+          </div>
+          <div class="flex justify-between items-center mb-4">
+            <input type="text" id="gradReqSearch" placeholder="Search by name, reg. no., or status" class="border rounded-md px-3 py-2 w-full max-w-sm" />
+          </div>
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Reg No</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Programme</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Department</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Year</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">GPA</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Submitted Date</th>
+                    <th class="p-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="gradReqsTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- CLEARANCE REQUESTS Section -->
+        <section id="sec-clearance-requests" class="hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-semibold text-gray-800">Clearance Requests</h2>
+            <div class="flex space-x-2">
+              <button id="clearReqsExportPDFBtn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 flex items-center"><i class="fa fa-file-pdf mr-2"></i> Export PDF</button>
+              <button id="clearReqsExportCSVBtn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 flex items-center"><i class="fa fa-file-csv mr-2"></i> Export CSV</button>
+            </div>
+          </div>
+          <div class="flex justify-between items-center mb-4">
+            <input type="text" id="clearReqSearch" placeholder="Search by name, reg. no., or status" class="border rounded-md px-3 py-2 w-full max-w-sm" />
+          </div>
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Reg No</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Programme</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Department</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                    <th class="p-3 text-left text-xs font-semibold text-gray-600 uppercase">Submitted Date</th>
+                    <th class="p-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="clearReqsTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ANNOUNCEMENTS Section -->
         <section id="sec-announcements" class="hidden">
           <h2 class="text-3xl font-semibold text-gray-800">Announcements</h2>
           <p>Announcements management is not yet implemented. This section is a placeholder.</p>
         </section>
 
+        <!-- FIRESTORE EXPLORER Section -->
         <section id="sec-explorer" class="hidden">
           <h2 class="text-3xl font-semibold text-gray-800">Firestore Explorer</h2>
           <p>The Firestore Explorer is a placeholder for a future feature.</p>
@@ -1945,6 +2544,7 @@
     </div>
   </div>
 
+  <!-- Student Add/Edit Modal -->
   <div id="studentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2012,6 +2612,7 @@
     </div>
   </div>
 
+  <!-- Student Delete Confirmation Modal -->
   <div id="confirmDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2026,6 +2627,7 @@
     </div>
   </div>
 
+  <!-- Grade Add/Edit Modal -->
   <div id="gradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2066,6 +2668,7 @@
     </div>
   </div>
 
+  <!-- Grade Delete Confirmation Modal -->
   <div id="confirmDeleteModal-grade" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2080,6 +2683,7 @@
     </div>
   </div>
 
+  <!-- Fee Add/Edit Modal -->
   <div id="feeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2112,6 +2716,7 @@
     </div>
   </div>
 
+  <!-- Fee Delete Confirmation Modal -->
   <div id="confirmDeleteModal-fee" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2126,6 +2731,7 @@
     </div>
   </div>
 
+  <!-- Registration Add/Edit Modal -->
   <div id="regModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2170,6 +2776,7 @@
     </div>
   </div>
 
+  <!-- Registration Delete Confirmation Modal -->
   <div id="confirmDeleteModal-reg" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2184,6 +2791,7 @@
     </div>
   </div>
 
+  <!-- Course Add/Edit Modal -->
   <div id="courseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2224,6 +2832,7 @@
     </div>
   </div>
 
+  <!-- Course Delete Confirmation Modal -->
   <div id="confirmDeleteModal-course" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2238,6 +2847,7 @@
     </div>
   </div>
 
+  <!-- Timetable Add/Edit Modal -->
   <div id="timetableModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2295,6 +2905,7 @@
     </div>
   </div>
 
+  <!-- Timetable Delete Confirmation Modal -->
   <div id="confirmDeleteModal-timetable" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2309,6 +2920,7 @@
     </div>
   </div>
 
+  <!-- Hostel Add/Edit Modal -->
   <div id="hostelModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
       <div class="flex justify-between items-center pb-3 border-b">
@@ -2349,6 +2961,7 @@
     </div>
   </div>
 
+  <!-- Hostel Delete Confirmation Modal -->
   <div id="confirmDeleteModal-hostel" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
       <div class="text-center">
@@ -2359,6 +2972,137 @@
       <div class="flex justify-end gap-2 mt-6">
         <button type="button" onclick="document.getElementById('confirmDeleteModal-hostel').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 rounded-md border border-gray-300 hover:bg-gray-100">Cancel</button>
         <button type="button" id="confirmDeleteBtn-hostel" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graduation Request Add/Edit Modal -->
+  <div id="gradReqModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
+      <div class="flex justify-between items-center pb-3 border-b">
+        <h3 id="gradReqModalTitle" class="text-xl font-semibold">Graduation Request</h3>
+        <button onclick="document.getElementById('gradReqModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="gradReqForm" class="mt-4 grid grid-cols-2 gap-4">
+        <input type="hidden" id="gradReqId" />
+        <div class="col-span-2">
+          <label for="grName" class="block text-sm font-medium text-gray-700">Student Name</label>
+          <input type="text" id="grName" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="grRegNo" class="block text-sm font-medium text-gray-700">Reg. No</label>
+          <input type="text" id="grRegNo" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="grProgramme" class="block text-sm font-medium text-gray-700">Programme</label>
+          <input type="text" id="grProgramme" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="grDepartment" class="block text-sm font-medium text-gray-700">Department</label>
+          <input type="text" id="grDepartment" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="grYear" class="block text-sm font-medium text-gray-700">Year of Study</label>
+          <input type="number" id="grYear" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="grGpa" class="block text-sm font-medium text-gray-700">GPA</label>
+          <input type="number" step="0.01" id="grGpa" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div class="col-span-2">
+          <label for="grStatus" class="block text-sm font-medium text-gray-700">Status</label>
+          <select id="grStatus" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label for="grRemarks" class="block text-sm font-medium text-gray-700">Remarks (Optional)</label>
+          <textarea id="grRemarks" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></textarea>
+        </div>
+        <div class="col-span-2 flex justify-end gap-2 mt-4">
+          <button type="button" onclick="document.getElementById('gradReqModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 rounded-md border border-gray-300 hover:bg-gray-100">Cancel</button>
+          <button type="submit" id="gradReqSaveBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Graduation Request Delete Confirmation Modal -->
+  <div id="confirmDeleteModal-gradReq" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
+      <div class="text-center">
+        <i class="fa fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Graduation Request?</h3>
+        <p class="text-sm text-gray-600">This will permanently remove the graduation request.</p>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button type="button" onclick="document.getElementById('confirmDeleteModal-gradReq').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 rounded-md border border-gray-300 hover:bg-gray-100">Cancel</button>
+        <button type="button" id="confirmDeleteBtn-gradReq" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clearance Request Add/Edit Modal -->
+  <div id="clearReqModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 m-4">
+      <div class="flex justify-between items-center pb-3 border-b">
+        <h3 id="clearReqModalTitle" class="text-xl font-semibold">Clearance Request</h3>
+        <button onclick="document.getElementById('clearReqModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times"></i></button>
+      </div>
+      <form id="clearReqForm" class="mt-4 grid grid-cols-2 gap-4">
+        <input type="hidden" id="clearReqId" />
+        <div class="col-span-2">
+          <label for="cName" class="block text-sm font-medium text-gray-700">Student Name</label>
+          <input type="text" id="cName" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="cRegNo" class="block text-sm font-medium text-gray-700">Reg. No</label>
+          <input type="text" id="cRegNo" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="cProgramme" class="block text-sm font-medium text-gray-700">Programme</label>
+          <input type="text" id="cProgramme" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div>
+          <label for="cDepartment" class="block text-sm font-medium text-gray-700">Department</label>
+          <input type="text" id="cDepartment" readonly class="mt-1 block w-full border border-gray-300 bg-gray-50 rounded-md shadow-sm px-3 py-2" />
+        </div>
+        <div class="col-span-2">
+          <label for="cStatus" class="block text-sm font-medium text-gray-700">Overall Status</label>
+          <select id="cStatus" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+            <option value="Pending">Pending</option>
+            <option value="Cleared">Cleared</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+        <div id="clearanceSectionsContainer" class="col-span-2 grid grid-cols-2 gap-4">
+          <!-- Clearance sections will be dynamically loaded here -->
+        </div>
+        <div class="col-span-2">
+          <label for="cRemarks" class="block text-sm font-medium text-gray-700">Remarks (Optional)</label>
+          <textarea id="cRemarks" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></textarea>
+        </div>
+        <div class="col-span-2 flex justify-end gap-2 mt-4">
+          <button type="button" onclick="document.getElementById('clearReqModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 rounded-md border border-gray-300 hover:bg-gray-100">Cancel</button>
+          <button type="submit" id="clearReqSaveBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Clearance Request Delete Confirmation Modal -->
+  <div id="confirmDeleteModal-clearReq" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 m-4">
+      <div class="text-center">
+        <i class="fa fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Delete Clearance Request?</h3>
+        <p class="text-sm text-gray-600">This will permanently remove the clearance request.</p>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button type="button" onclick="document.getElementById('confirmDeleteModal-clearReq').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 rounded-md border border-gray-300 hover:bg-gray-100">Cancel</button>
+        <button type="button" id="confirmDeleteBtn-clearReq" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>
       </div>
     </div>
   </div>
