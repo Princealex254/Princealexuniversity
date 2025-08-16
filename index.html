@@ -186,17 +186,16 @@
         width: 100vw;
         display: flex;
         justify-content: center;
-        align-items: center; /* Center vertically for large screens */
+        align-items: center;
         padding: 1rem; /* Add some padding for smaller screens */
         box-sizing: border-box; /* Include padding in width/height */
     }
     .form-wrapper {
         background-color: #ffffff;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Subtle shadow */
-        max-width: 420px; /* Max width as requested */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        max-width: 28rem; /* Equivalent to max-w-md */
         width: 100%; /* Ensure it takes full width up to max-width */
-        padding: 24px; /* Internal padding 20-25px */
     }
     .form-wrapper h2 {
         color: #0d6efd; /* Bootstrap blue for auth headings */
@@ -209,18 +208,6 @@
     }
     .form-wrapper a:hover {
         color: #0b5ed7;
-    }
-
-    /* Mobile specific adjustments for forms */
-    @media (max-width: 576px) {
-        #authContainer {
-            align-items: flex-start; /* Top-align forms on mobile */
-            padding-top: 40px; /* Add padding from the top */
-        }
-        .form-wrapper {
-            margin: 0 15px; /* Add side margins */
-            box-sizing: border-box; /* Ensure padding/margin are included in width */
-        }
     }
 
     /* Dashboard Header */
@@ -421,7 +408,7 @@
   </div>
 
   <div id="authContainer" class="w-full h-full"> <!-- Updated to take full width and height, centering handled by flexbox -->
-    <div id="login-form-wrapper" class="form-wrapper text-center transform transition-all duration-500 ease-in-out active">
+    <div id="login-form-wrapper" class="form-wrapper card p-8 text-center transform transition-all duration-500 ease-in-out active">
       <form id="login-form">
         <h2 class="text-4xl font-extrabold mb-8">Login</h2>
         <div class="mb-6 text-left">
@@ -442,7 +429,7 @@
       </form>
     </div>
 
-    <div id="signup-form-wrapper" class="form-wrapper text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="signup-form-wrapper" class="form-wrapper card p-8 text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="signup-form">
         <h2 class="text-4xl font-extrabold mb-8">Sign Up</h2>
         <div class="mb-6 text-left">
@@ -471,7 +458,7 @@
       </form>
     </div>
 
-    <div id="forgot-password-form-wrapper" class="form-wrapper text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
+    <div id="forgot-password-form-wrapper" class="form-wrapper card p-8 text-center transform transition-all duration-500 ease-in-out opacity-0 invisible">
       <form id="forgot-password-form">
         <h2 class="text-4xl font-extrabold mb-8">Forgot Password</h2>
         <div class="mb-6 text-left">
