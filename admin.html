@@ -797,9 +797,10 @@
                                 <label for="roomCapacity">Capacity (beds)</label>
                                 <input type="number" id="roomCapacity" required>
                             </div>
-                            <div class="form-group">
-                                <label for="availableSlots">Available Slots</label>
-                                <input type="number" id="availableSlots" required>
+                            <!-- Removed availableSlots input as it's now auto-calculated -->
+                            <div class="form-group" id="roomAvailableSlotsDisplay" style="display:none;">
+                                <label>Available Slots</label>
+                                <span id="displayAvailableSlots" class="block p-2 border rounded-md bg-gray-100 text-gray-700"></span>
                             </div>
                         </div>
                         <button type="submit" class="btn-primary" id="saveRoomBtn">Add Room</button>
@@ -2657,11 +2658,15 @@
                 let tableHtml = '';
                 roomsSnap.forEach(docSnap => {
                     const room = docSnap.data();
+                    // Ensure occupants is an array, default to empty if not present
+                    const occupants = Array.isArray(room.occupants) ? room.occupants : [];
+                    const availableSlots = room.capacity - occupants.length; // Calculate available slots
+
                     tableHtml += `
                         <tr>
                             <td>${room.roomNo}</td>
                             <td>${room.capacity}-bed</td>
-                            <td>${room.availableSlots}</td>
+                            <td>${availableSlots}</td>
                             <td class="flex gap-2">
                                 <button onclick="editRoom('${hostelId}', '${docSnap.id}')" class="btn-primary text-xs px-2 py-1"><i class="fas fa-edit"></i> Edit</button>
                                 <button onclick="deleteRoom('${hostelId}', '${docSnap.id}', '${room.roomNo}')" class="btn-red text-xs px-2 py-1"><i class="fas fa-trash"></i> Delete</button>
@@ -2693,6 +2698,7 @@
             roomHostelIdField.value = currentManagingHostelId;
             saveRoomBtn.textContent = 'Add Room';
             cancelEditRoomBtn.classList.add('hidden');
+            document.getElementById('roomAvailableSlotsDisplay').style.display = 'none'; // Hide display on reset
         }
 
         roomForm.addEventListener('submit', async (e) => {
@@ -2704,13 +2710,29 @@
             }
             loadingOverlay.classList.remove('hidden');
             try {
+                const roomNo = document.getElementById('roomNo').value.trim();
+                const capacity = parseInt(document.getElementById('roomCapacity').value);
+                const roomId = roomIdField.value;
+
+                let occupants = [];
+                if (roomId) {
+                    // If editing, get existing occupants
+                    const existingRoomDoc = await getDoc(doc(db, `hostels/${hostelId}/rooms`, roomId));
+                    if (existingRoomDoc.exists()) {
+                        occupants = existingRoomDoc.data().occupants || [];
+                    }
+                }
+                
+                // Calculate availableSlots based on new capacity and existing occupants
+                const availableSlots = capacity - occupants.length;
+
                 const roomData = {
-                    roomNo: document.getElementById('roomNo').value.trim(),
-                    capacity: parseInt(document.getElementById('roomCapacity').value),
-                    availableSlots: parseInt(document.getElementById('availableSlots').value),
+                    roomNo: roomNo,
+                    capacity: capacity,
+                    occupants: occupants, // Retain existing occupants or start empty
+                    availableSlots: availableSlots // Auto-calculated
                 };
 
-                const roomId = roomIdField.value;
                 if (roomId) {
                     await updateDoc(doc(db, `hostels/${hostelId}/rooms`, roomId), roomData);
                     showCustomAlert("Room updated successfully!", 'success');
@@ -2742,7 +2764,12 @@
                 roomHostelIdField.value = hostelId;
                 document.getElementById('roomNo').value = roomData.roomNo;
                 document.getElementById('roomCapacity').value = roomData.capacity;
-                document.getElementById('availableSlots').value = roomData.availableSlots;
+                
+                // Calculate and display available slots
+                const occupants = Array.isArray(roomData.occupants) ? roomData.occupants : [];
+                const availableSlots = roomData.capacity - occupants.length;
+                document.getElementById('displayAvailableSlots').textContent = availableSlots;
+                document.getElementById('roomAvailableSlotsDisplay').style.display = 'block';
 
                 saveRoomBtn.textContent = 'Update Room';
                 cancelEditRoomBtn.classList.remove('hidden');
