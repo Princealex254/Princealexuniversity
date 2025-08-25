@@ -199,6 +199,7 @@
         <nav id="sidebar" class="w-64 bg-white border-r p-4 hidden md:block overflow-y-auto">
             <h3 class="text-2xl font-bold mb-4 text-blue-800">Admin Menu</h3>
             <a href="#" class="active" onclick="showSection('adminDashboard')"><i class="fas fa-chart-line mr-2"></i> Dashboard</a>
+            <a href="#" onclick="showSection('createStudent')"><i class="fas fa-user-plus mr-2"></i> Create Student</a>
             <a href="#" onclick="showSection('manageStudents')"><i class="fas fa-users mr-2"></i> Students</a>
             <a href="#" onclick="showSection('manageCourses')"><i class="fas fa-book-open mr-2"></i> Courses</a>
             <a href="#" onclick="showSection('manageTimetable')"><i class="fas fa-calendar-alt mr-2"></i> Timetable</a>
@@ -250,6 +251,32 @@
                         <div class="label">Available Hostel Rooms</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Create Student Section -->
+            <div id="createStudent" class="admin-card hidden">
+                <h2 class="section-title">Create New Student Account</h2>
+                <form id="createStudentForm" class="space-y-4">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="newStudentName">Full Name</label>
+                            <input type="text" id="newStudentName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newStudentEmail">Email</label>
+                            <input type="email" id="newStudentEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newStudentAdmissionNo">Admission Number</label>
+                            <input type="text" id="newStudentAdmissionNo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newStudentPassword">Password</label>
+                            <input type="password" id="newStudentPassword" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Create Student Account</button>
+                </form>
             </div>
 
             <!-- Manage Students Section -->
@@ -1030,7 +1057,7 @@
     <!-- Firebase & Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail, fetchSignInMethodsForEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, orderBy, limit, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -1218,7 +1245,10 @@
                 // Call specific load functions for each section
                 if (id === 'adminDashboard') {
                     await loadAdminDashboardOverview();
-                } else if (id === 'manageStudents') {
+                } else if (id === 'createStudent') {
+                    document.getElementById('createStudentForm').reset(); // Clear form on navigation
+                }
+                else if (id === 'manageStudents') {
                     await loadStudents();
                 } else if (id === 'manageCourses') {
                     await loadCourses();
@@ -1287,8 +1317,12 @@
                 let totalOutstandingFees = 0;
                 const financeBalancesSnap = await getDocs(collection(db, "finance"));
                 financeBalancesSnap.forEach(docSnap => {
-                    if (docSnap.id !== 'transactions') { // Avoid the subcollection name if it somehow appears as a doc
+                    // Check if the document ID is not 'transactions' (which would be a subcollection name if accessed incorrectly as a document)
+                    if (docSnap.id !== 'transactions') { 
                         const balanceData = docSnap.data();
+                        // Assuming 'balance' document for each user directly stores 'amount' as the outstanding balance
+                        // Or, we might need to query a subcollection for balance if structured differently.
+                        // For now, assuming finance document ID is student UID and it has an 'amount' field.
                         totalOutstandingFees += (balanceData.amount || 0);
                     }
                 });
@@ -1312,6 +1346,57 @@
                 loadingOverlay.classList.add('hidden');
             }
         }
+
+        // --- Create Student Functions ---
+        document.getElementById('createStudentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loadingOverlay.classList.remove('hidden');
+            try {
+                const name = document.getElementById('newStudentName').value.trim();
+                const email = document.getElementById('newStudentEmail').value.trim();
+                const admissionNo = document.getElementById('newStudentAdmissionNo').value.trim();
+                const password = document.getElementById('newStudentPassword').value;
+
+                if (!name || !email || !admissionNo || !password) {
+                    showCustomAlert("Please fill in all fields.", 'error');
+                    return;
+                }
+
+                // 1. Create user in Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 2. Save student details to Firestore 'students' collection
+                await setDoc(doc(db, "students", user.uid), {
+                    name: name,
+                    email: email,
+                    admissionNo: admissionNo,
+                    createdAt: serverTimestamp(),
+                    isActive: true, // New students are active by default
+                    // Other fields like program, year, semester, phone, dob, etc. can be updated by student later
+                });
+
+                // 3. Initialize an empty finance record for the new student
+                // The balance document will be created/updated with transactions later.
+                // For now, ensure a base document exists for the student's finance.
+                await setDoc(doc(db, "finance", user.uid), {
+                    totalFees: 0,
+                    totalPaid: 0,
+                    amount: 0, // Outstanding balance
+                });
+
+                showCustomAlert(`Student ${name} created successfully! Admission No: ${admissionNo}`, 'success', () => {
+                    document.getElementById('createStudentForm').reset();
+                    showSection('manageStudents'); // Navigate to manage students to see the new entry
+                });
+                await loadAdminDashboardOverview(); // Update stats
+            } catch (error) {
+                console.error("Error creating student account:", error);
+                showCustomAlert(getFriendlyErrorMessage(error.code), 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        });
 
 
         // --- Manage Students Functions ---
@@ -1715,7 +1800,8 @@
                         // Also delete any grade entries for this course for all students
                         const allStudentsSnap = await getDocs(collection(db, "students"));
                         for (const studentDoc of allStudentsSnap.docs) {
-                            const gradesQuery = query(collection(db, `grades/${studentDoc.id}/results`), where("courseId", "==", id)); // Assuming courseId is stored in grade entry
+                            // Assuming grade entries store the course ID, not just the code
+                            const gradesQuery = query(collection(db, `grades/${studentDoc.id}/results`), where("courseId", "==", id)); 
                             const gradesSnap = await getDocs(gradesQuery);
                             const gradeBatch = db.batch();
                             gradesSnap.forEach(gradeDoc => {
@@ -1725,7 +1811,7 @@
                         }
 
                         // Also delete any timetable entries for this course
-                        const timetableQuery = query(collection(db, "timetable"), where("courseCode", "==", courseIdField.value)); // Use course code
+                        const timetableQuery = query(collection(db, "timetable"), where("courseCode", "==", document.getElementById('courseCode').value)); // Use current course code from form, assuming it's correctly set during editCourse
                         const timetableSnap = await getDocs(timetableQuery);
                         const timetableBatch = db.batch();
                         timetableSnap.forEach(tDoc => {
@@ -1734,7 +1820,7 @@
                         await timetableBatch.commit();
 
                         // Also delete any exam schedules for this course
-                        const examScheduleQuery = query(collection(db, "examSchedule"), where("courseCode", "==", courseIdField.value)); // Use course code
+                        const examScheduleQuery = query(collection(db, "examSchedule"), where("courseCode", "==", document.getElementById('courseCode').value)); // Use current course code from form
                         const examScheduleSnap = await getDocs(examScheduleQuery);
                         const examScheduleBatch = db.batch();
                         examScheduleSnap.forEach(eDoc => {
@@ -2020,8 +2106,10 @@
                 document.getElementById('gradeGrade').value = gradeData.grade;
                 document.getElementById('gradePoints').value = gradeData.gpaPoints;
                 document.getElementById('gradeLecturer').value = gradeData.lecturer;
-                document.getElementById('gradeYear').value = gradeData.year;
-                document.getElementById('gradeSemester').value = gradeData.semester;
+                // Year and Semester are from the overall grade filter, not individual grade entry.
+                // Keep the current selection in the main filter.
+                // document.getElementById('gradeYear').value = gradeData.year; 
+                // document.getElementById('gradeSemester').value = gradeData.semester;
 
                 document.getElementById('saveGradeBtn').textContent = 'Update Grade';
                 document.getElementById('cancelEditGradeBtn').classList.remove('hidden');
@@ -2050,8 +2138,8 @@
                     grade: document.getElementById('gradeGrade').value.trim().toUpperCase(),
                     gpaPoints: parseFloat(document.getElementById('gradePoints').value),
                     lecturer: document.getElementById('gradeLecturer').value.trim(),
-                    year: parseInt(document.getElementById('gradeYear').value),
-                    semester: parseInt(document.getElementById('gradeSemester').value),
+                    year: parseInt(document.getElementById('gradeYear').value), // Use selected filter year
+                    semester: parseInt(document.getElementById('gradeSemester').value), // Use selected filter semester
                 };
 
                 const gradeId = document.getElementById('gradeEntryId').value;
@@ -2077,7 +2165,7 @@
             document.getElementById('gradeEntryId').value = '';
             document.getElementById('saveGradeBtn').textContent = 'Save Grade';
             document.getElementById('cancelEditGradeBtn').classList.add('hidden');
-            // Retain selection of student, year, semester
+            // Retain selection of student, year, semester in filter dropdowns
             document.getElementById('gradeStudentId').value = gradeFormCurrentStudentUid || '';
             document.getElementById('gradeYear').value = document.getElementById('gradeYear').value;
             document.getElementById('gradeSemester').value = document.getElementById('gradeSemester').value;
@@ -3115,41 +3203,42 @@
             
             loadingOverlay.classList.remove('hidden');
             try {
-                const financeDocRef = doc(db, `finance/${studentUid}/balance`);
+                // Reference to the main finance document for the student
+                const financeDocRef = doc(db, "finance", studentUid);
                 const transactionsCollectionRef = collection(db, `finance/${studentUid}/transactions`);
 
-                let currentBalanceData = (await getDoc(financeDocRef)).data() || { totalFees: 0, totalPaid: 0, amount: 0 };
-                let newBalance = currentBalanceData.amount; // Start with current outstanding balance
+                // Get current finance data to update totals and calculate new balance
+                let currentFinanceData = (await getDoc(financeDocRef)).data() || { totalFees: 0, totalPaid: 0, amount: 0 };
+                let newOutstandingBalance = currentFinanceData.amount;
                 let transactionType = "";
 
                 if (action === 'addFees') {
-                    newBalance += amount; // Adding fees increases outstanding balance
-                    currentBalanceData.totalFees = (currentBalanceData.totalFees || 0) + amount;
+                    newOutstandingBalance += amount;
+                    currentFinanceData.totalFees = (currentFinanceData.totalFees || 0) + amount;
                     transactionType = "Fees Charged";
                 } else if (action === 'recordPayment') {
-                    newBalance -= amount; // Recording payment decreases outstanding balance
-                    currentBalanceData.totalPaid = (currentBalanceData.totalPaid || 0) + amount;
+                    newOutstandingBalance -= amount;
+                    currentFinanceData.totalPaid = (currentFinanceData.totalPaid || 0) + amount;
                     transactionType = "Payment";
                 } else if (action === 'adjustBalance') {
-                    // This action directly adjusts the outstanding balance, use with caution
-                    newBalance += amount;
+                    newOutstandingBalance += amount;
                     transactionType = amount > 0 ? "Balance Adjustment (+)" : "Balance Adjustment (-)";
                 }
 
-                // Update the main balance document
+                // Update the main finance document (totalFees, totalPaid, outstanding balance)
                 await setDoc(financeDocRef, {
-                    totalFees: currentBalanceData.totalFees,
-                    totalPaid: currentBalanceData.totalPaid,
-                    amount: newBalance, // This is the calculated new outstanding balance
+                    totalFees: currentFinanceData.totalFees,
+                    totalPaid: currentFinanceData.totalPaid,
+                    amount: newOutstandingBalance,
                 }, { merge: true });
 
-                // Add transaction record
+                // Add a transaction record
                 await addDoc(transactionsCollectionRef, {
                     date: serverTimestamp(),
                     description: description,
                     type: transactionType,
                     amount: amount,
-                    balance: newBalance // Store the balance after this transaction
+                    runningBalance: newOutstandingBalance // Store the balance after this transaction
                 });
 
                 showCustomAlert(`Finance action "${action.replace(/([A-Z])/g, ' $1').trim()}" completed successfully!`, 'success');
@@ -3181,7 +3270,8 @@
             financeTransactionsTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 p-4">Loading transactions...</td></tr>`;
 
             try {
-                const financeDocRef = doc(db, `finance/${uid}/balance`);
+                // Fetch the main finance document for the student
+                const financeDocRef = doc(db, "finance", uid);
                 const financeSnap = await getDoc(financeDocRef);
 
                 let totalFees = 0;
@@ -3192,7 +3282,7 @@
                     const data = financeSnap.data();
                     totalFees = data.totalFees || 0;
                     totalPaid = data.totalPaid || 0;
-                    outstandingBalance = data.amount || (totalFees - totalPaid);
+                    outstandingBalance = data.amount || (totalFees - totalPaid); // Recalculate if 'amount' is missing
                 }
 
                 financeTotalFeesEl.textContent = `KES ${totalFees.toLocaleString()}`;
@@ -3209,6 +3299,7 @@
                     financeStudentStatusMessageDiv.classList.add('pending');
                 }
 
+                // Fetch transactions for the student
                 const transactionsCollectionRef = collection(db, `finance/${uid}/transactions`);
                 const transactionsQuery = query(transactionsCollectionRef, orderBy("date", "desc"));
                 const transactionsSnap = await getDocs(transactionsQuery);
@@ -3221,7 +3312,7 @@
                         const txn = docSnap.data();
                         const txnDate = txn.date ? new Date(txn.date.seconds * 1000).toLocaleDateString() : 'N/A';
                         const amount = `KES ${Number(txn.amount || 0).toLocaleString()}`;
-                        const balance = `KES ${Number(txn.balance || 0).toLocaleString()}`;
+                        const runningBalance = `KES ${Number(txn.runningBalance || 0).toLocaleString()}`;
 
                         tableHtml += `
                             <tr>
@@ -3229,7 +3320,7 @@
                                 <td>${txn.description || 'N/A'}</td>
                                 <td>${txn.type || 'N/A'}</td>
                                 <td class="text-right">${amount}</td>
-                                <td class="text-right">${balance}</td>
+                                <td class="text-right">${runningBalance}</td>
                             </tr>
                         `;
                     });
