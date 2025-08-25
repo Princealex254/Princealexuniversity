@@ -18,6 +18,17 @@
     #sidebar a:hover { background-color: #e9ecef; }
     .dashboard-card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 1rem; }
 
+    /* Fixed Header */
+    #mainHeader {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        z-index: 50; /* Ensure it stays above other content but below modals */
+    }
+    /* Adjust main content for fixed header */
+    .flex-grow { /* This element handles the remaining space, no direct padding needed here */ }
+
+
     /* New styles for dashboard overview */
     .stat-card {
         background: white;
@@ -429,6 +440,115 @@
         color: #0d6efd;
     }
 
+    /* Graduation Specific Styles */
+    .graduation-status-card {
+        background-color: #e0f7fa; /* Light cyan */
+        border: 1px solid #b2ebf2;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+    .graduation-status-card h4 {
+        color: #006064; /* Dark teal */
+        margin-bottom: 1rem;
+    }
+    .graduation-status-card p {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        color: #263238;
+    }
+    .graduation-status-card p strong {
+        color: #0097a7; /* Cyan */
+    }
+    .graduation-status-card .status-badge {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+    .graduation-status-card .status-badge.pending {
+        background-color: #fff9c4; /* Light yellow */
+        color: #fbc02d; /* Amber */
+    }
+    .graduation-status-card .status-badge.approved {
+        background-color: #c8e6c9; /* Light green */
+        color: #388e3c; /* Green */
+    }
+    .graduation-status-card .status-badge.rejected {
+        background-color: #ffcdd2; /* Light red */
+        color: #d32f2f; /* Red */
+    }
+    .graduation-status-card .admin-comments {
+        background-color: #f0f0f0;
+        border-left: 3px solid #757575;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-radius: 5px;
+        font-style: italic;
+    }
+    .graduation-status-card .uploaded-docs-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 1rem;
+    }
+    .graduation-status-card .uploaded-docs-list li {
+        margin-bottom: 0.5rem;
+    }
+    .graduation-status-card .uploaded-docs-list a {
+        color: #0097a7;
+        text-decoration: underline;
+    }
+
+    /* Clearance Specific Styles */
+    .clearance-status-card {
+        background-color: #e8f5e9; /* Light green */
+        border: 1px solid #c8e6c9;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+    .clearance-status-card h4 {
+        color: #2e7d32; /* Dark green */
+        margin-bottom: 1rem;
+    }
+    .clearance-status-card p {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        color: #424242;
+    }
+    .clearance-status-card p strong {
+        color: #4caf50; /* Green */
+    }
+    .clearance-status-card .status-badge {
+        display: inline-block;
+        padding: 0.4rem 1rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+    .clearance-status-card .status-badge.pending {
+        background-color: #fffde7; /* Very light yellow */
+        color: #fbc02d; /* Amber */
+    }
+    .clearance-status-card .status-badge.approved {
+        background-color: #e8f5e9; /* Light green */
+        color: #388e3c; /* Green */
+    }
+    .clearance-status-card .status-badge.rejected {
+        background-color: #ffebee; /* Very light red */
+        color: #d32f2f; /* Red */
+    }
+    .clearance-status-card .department-comment {
+        font-style: italic;
+        color: #616161;
+        font-size: 0.85rem;
+    }
+
   </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -440,7 +560,7 @@
   </div>
 
   <!-- Header -->
-  <header class="p-4 flex justify-between items-center shadow-md bg-white">
+  <header id="mainHeader" class="p-4 flex justify-between items-center shadow-md bg-white">
     <img src="myschoollogo.png" alt="Logo" class="h-12">
     <div class="flex items-center space-x-4">
       <span id="userEmail" class="text-blue-600 font-bold"></span>
@@ -850,14 +970,22 @@
 
       <!-- Graduation -->
       <div id="graduation" class="dashboard-card hidden">
-        <h2 class="text-xl font-bold text-blue-700 mb-4">Graduation Request</h2>
-        <button onclick="requestGraduation()" class="btn-red">Request Graduation</button>
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Graduation Request</h3>
+
+        <div id="graduationContent">
+          <!-- Content (form or status) will be loaded dynamically here by JavaScript -->
+          <div class="empty-state">Loading graduation status...</div>
+        </div>
       </div>
 
       <!-- Clearance -->
       <div id="clearance" class="dashboard-card hidden">
-        <h2 class="text-xl font-bold text-blue-700 mb-4">Clearance Request</h2>
-        <button onclick="requestClearance()" class="btn-red">Request Clearance</button>
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Clearance Request</h3>
+
+        <div id="clearanceContent">
+            <!-- Dynamic content: form or status card -->
+            <div class="empty-state">Loading clearance status...</div>
+        </div>
       </div>
 
       <!-- Finance -->
@@ -976,7 +1104,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, updatePassword, updateEmail, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, orderBy, limit, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 
@@ -1707,7 +1835,7 @@
         try {
             const studentDocRef = doc(db, "students", uid);
             const studentSnap = await getDoc(studentDocRef);
-            const studentData = studentSnap.exists() ? snap.data() : {};
+            const studentData = studentSnap.exists() ? studentSnap.data() : {};
             const registeredCourses = studentData.registeredCourses || [];
 
             if (registeredCourses.length === 0) {
@@ -2364,40 +2492,381 @@
 
 
     /**
-     * Graduation request
+     * Graduation request functions
      */
-    window.requestGraduation = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-      loadingOverlay.classList.remove('hidden');
-      try {
-        await setDoc(doc(db, "graduations", user.uid), { requested: true, date: new Date().toISOString(), userId: user.uid }, { merge: true });
-        showCustomAlert("Graduation request submitted successfully!", 'success');
-      } catch (error) {
-        console.error("Error submitting graduation request:", error);
-        showCustomAlert("Failed to submit graduation request. Please try again.", 'error');
-      } finally {
-        loadingOverlay.classList.add('hidden');
-      }
-    };
+
+    async function initGraduationView(uid) {
+        const graduationContentDiv = document.getElementById('graduationContent');
+        graduationContentDiv.innerHTML = `<div class="empty-state">Loading graduation status...</div>`; // Initial loading state
+
+        loadingOverlay.classList.remove('hidden');
+        try {
+            const studentDocRef = doc(db, "students", uid);
+            const studentSnap = await getDoc(studentDocRef);
+            const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+            const graduationRequestDocRef = doc(db, "graduations", uid);
+            const graduationRequestSnap = await getDoc(graduationRequestDocRef);
+
+            if (graduationRequestSnap.exists()) {
+                // If a request exists, show the status card
+                const requestData = graduationRequestSnap.data();
+                const statusBadgeClass = {
+                    "Pending": "pending",
+                    "Approved": "approved",
+                    "Rejected": "rejected"
+                }[requestData.status] || "pending"; // Default to pending if status is unexpected
+
+                const dateSubmitted = requestData.dateSubmitted ? new Date(requestData.dateSubmitted.seconds * 1000).toLocaleDateString() : 'N/A';
+
+                let uploadedDocsHtml = '';
+                if (requestData.clearanceFormUrl) {
+                    uploadedDocsHtml += `<li><i class="fas fa-file-pdf mr-2 text-red-500"></i> <a href="${requestData.clearanceFormUrl}" target="_blank">Clearance Form</a></li>`;
+                }
+                if (requestData.feeClearanceProofUrl) {
+                    uploadedDocsHtml += `<li><i class="fas fa-receipt mr-2 text-green-500"></i> <a href="${requestData.feeClearanceProofUrl}" target="_blank">Fee Clearance Proof</a></li>`;
+                }
+                if (uploadedDocsHtml === '') {
+                    uploadedDocsHtml = '<li>No documents uploaded.</li>';
+                }
+
+                graduationContentDiv.innerHTML = `
+                    <div id="graduationStatusCard" class="graduation-status-card">
+                        <h4 class="text-xl font-bold text-blue-800 flex items-center"><i class="fas fa-info-circle mr-3"></i> Your Graduation Request Status</h4>
+                        
+                        <p class="text-gray-700"><strong>Submission Date:</strong> <span id="statusDateSubmitted">${dateSubmitted}</span></p>
+                        <p class="text-gray-700"><strong>Admission No:</strong> <span id="statusAdmNo">${requestData.admissionNo || studentData.admissionNo || 'N/A'}</span></p>
+                        <p class="text-gray-700"><strong>Program:</strong> <span id="statusProgram">${requestData.program || studentData.program || 'N/A'}</span></p>
+                        
+                        <div class="flex items-center text-lg font-semibold">
+                            <span class="mr-2">Status:</span>
+                            <span id="statusBadge" class="status-badge ${statusBadgeClass}">${requestData.status}</span>
+                        </div>
+
+                        <div id="adminCommentsSection" class="admin-comments ${requestData.comments ? '' : 'hidden'}">
+                            <p class="font-semibold text-gray-800">Admin Comments:</p>
+                            <p id="statusComments" class="text-gray-600 italic">${requestData.comments || ''}</p>
+                        </div>
+
+                        <div id="uploadedDocumentsSection" class="space-y-2 pt-4 border-t border-blue-200 mt-4">
+                            <p class="font-semibold text-gray-800">Uploaded Documents:</p>
+                            <ul id="uploadedDocsList" class="uploaded-docs-list">
+                                ${uploadedDocsHtml}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // If no request exists, show the form
+                const studentName = studentData.name || 'N/A';
+                const admissionNo = studentData.admissionNo || 'Not assigned yet';
+                const program = studentData.program || 'N/A';
+                const yearSem = (studentData.year && studentData.semester) ? `Year ${studentData.year}, Semester ${studentData.semester}` : 'N/A';
+
+                graduationContentDiv.innerHTML = `
+                    <form id="graduationForm" class="space-y-6">
+                        <div class="p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+                            <p class="font-semibold mb-2">Your Details (from Profile):</p>
+                            <p><strong>Name:</strong> <span id="gradName">${studentName}</span></p>
+                            <p><strong>Admission No:</strong> <span id="gradAdmNo">${admissionNo}</span></p>
+                            <p><strong>Program:</strong> <span id="gradProgram">${program}</span></p>
+                            <p><strong>Year / Semester:</strong> <span id="gradYearSem">${yearSem}</span></p>
+                        </div>
+
+                        <h4 class="font-semibold text-blue-500 mt-4 mb-2">Confirm Requirements</h4>
+                        <div class="flex items-center mb-4">
+                            <input type="checkbox" id="confirmGrad" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="confirmGrad" class="ml-2 block text-sm text-gray-900">I confirm I have met all graduation requirements.</label>
+                        </div>
+
+                        <h4 class="font-semibold text-blue-500 mt-4 mb-2">Upload Supporting Documents (Optional)</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="clearanceFormUpload" class="block text-sm font-medium text-gray-700">Upload Clearance Form (PDF):</label>
+                                <input type="file" id="clearanceFormUpload" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>
+                                <span id="clearanceFormStatus" class="text-xs text-gray-500">No file selected.</span>
+                            </div>
+                            <div>
+                                <label for="feeClearanceProofUpload" class="block text-sm font-medium text-gray-700">Upload Proof of Fee Clearance (PDF, JPG, PNG):</label>
+                                <input type="file" id="feeClearanceProofUpload" accept=".pdf,.jpg,.png" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"/>
+                                <span id="feeClearanceProofStatus" class="text-xs text-gray-500">No file selected.</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-red mt-6 w-full sm:w-auto"><i class="fas fa-paper-plane mr-2"></i> Submit Graduation Request</button>
+                    </form>
+                `;
+                // Add event listeners after rendering the form
+                document.getElementById('graduationForm').addEventListener('submit', submitGraduationRequest);
+                document.getElementById('clearanceFormUpload').addEventListener('change', (e) => {
+                    document.getElementById('clearanceFormStatus').textContent = e.target.files[0] ? e.target.files[0].name : 'No file selected.';
+                });
+                document.getElementById('feeClearanceProofUpload').addEventListener('change', (e) => {
+                    document.getElementById('feeClearanceProofStatus').textContent = e.target.files[0] ? e.target.files[0].name : 'No file selected.';
+                });
+            }
+        } catch (error) {
+            console.error("Error loading graduation view:", error);
+            graduationContentDiv.innerHTML = `<div class="empty-state text-red-600">Error loading graduation details. Please try again.</div>`;
+            showCustomAlert("Failed to load graduation details. Please try again.", 'error');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+
+    async function uploadFile(file, uid, folder, fileNamePrefix) {
+        if (!file) return null;
+        const filePath = `students/${uid}/graduation/${folder}/${fileNamePrefix}_${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, filePath);
+        await uploadBytes(storageRef, file);
+        return await getDownloadURL(storageRef);
+    }
+
+    async function submitGraduationRequest(event) {
+        event.preventDefault();
+        const user = auth.currentUser;
+        if (!user) {
+            showCustomAlert("Please log in to submit a graduation request.", 'error');
+            return;
+        }
+
+        const confirmGrad = document.getElementById('confirmGrad').checked;
+        if (!confirmGrad) {
+            showCustomAlert("You must confirm that you have met all graduation requirements.", 'info');
+            return;
+        }
+
+        loadingOverlay.classList.remove('hidden');
+        try {
+            const studentDocRef = doc(db, "students", user.uid);
+            const studentSnap = await getDoc(studentDocRef);
+            const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+            const admissionNo = studentData.admissionNo || 'N/A';
+            const program = studentData.program || 'N/A';
+
+            const clearanceFormFile = document.getElementById('clearanceFormUpload').files[0];
+            const feeClearanceProofFile = document.getElementById('feeClearanceProofUpload').files[0];
+
+            let clearanceFormUrl = null;
+            let feeClearanceProofUrl = null;
+
+            if (clearanceFormFile) {
+                clearanceFormUrl = await uploadFile(clearanceFormFile, user.uid, 'clearance_forms', 'clearance');
+            }
+            if (feeClearanceProofFile) {
+                feeClearanceProofUrl = await uploadFile(feeClearanceProofFile, user.uid, 'fee_proofs', 'fee_clearance');
+            }
+
+            const graduationRequestData = {
+                admissionNo: admissionNo,
+                program: program,
+                dateSubmitted: serverTimestamp(),
+                status: "Pending", // Initial status
+                comments: "", // Admin comments start empty
+                clearanceFormUrl: clearanceFormUrl,
+                feeClearanceProofUrl: feeClearanceProofUrl
+            };
+
+            const graduationDocRef = doc(db, "graduations", user.uid);
+            await setDoc(graduationDocRef, graduationRequestData);
+
+            showCustomAlert("Graduation request submitted successfully! You can track its status here.", 'success', () => {
+                initGraduationView(user.uid); // Reload view to show status card
+            });
+
+        } catch (error) {
+            console.error("Error submitting graduation request:", error);
+            showCustomAlert("Failed to submit graduation request. Please try again.", 'error');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
 
     /**
-     * Clearance request
+     * Clearance request functions
      */
-    window.requestClearance = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-      loadingOverlay.classList.remove('hidden');
-      try {
-        await setDoc(doc(db, "clearances", user.uid), { requested: true, date: new Date().toISOString(), userId: user.uid }, { merge: true });
-        showCustomAlert("Clearance request submitted successfully!", 'success');
-      } catch (error) {
-        console.error("Error submitting clearance request:", error);
-        showCustomAlert("Failed to submit clearance request. Please try again.", 'error');
-      } finally {
-        loadingOverlay.classList.add('hidden');
-      }
-    };
+
+    const clearanceDepartments = [
+        { id: 'finance', name: 'Finance Department' },
+        { id: 'library', name: 'Library Services' },
+        { id: 'hostel', name: 'Hostel Administration' },
+        { id: 'dean', name: 'Dean\'s Office' }
+    ];
+
+    async function initClearanceView(uid) {
+        const clearanceContentDiv = document.getElementById('clearanceContent');
+        clearanceContentDiv.innerHTML = `<div class="empty-state">Loading clearance status...</div>`; // Initial loading state
+
+        loadingOverlay.classList.remove('hidden');
+        try {
+            const studentDocRef = doc(db, "students", uid);
+            const studentSnap = await getDoc(studentDocRef);
+            const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+            const clearanceRequestDocRef = doc(db, "clearances", uid);
+            const clearanceRequestSnap = await getDoc(clearanceRequestDocRef);
+
+            if (clearanceRequestSnap.exists()) {
+                // If a request exists, show the status tracking table
+                const requestData = clearanceRequestSnap.data();
+                renderClearanceStatus(requestData, studentData);
+            } else {
+                // If no request exists, show the form
+                const studentName = studentData.name || 'N/A';
+                const admissionNo = studentData.admissionNo || 'Not assigned yet';
+                const program = studentData.program || 'N/A';
+                
+                clearanceContentDiv.innerHTML = `
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800 mb-4">
+                        <p class="font-semibold mb-2">Your Details (from Profile):</p>
+                        <p><strong>Name:</strong> <span id="clearanceStudentName">${studentName}</span></p>
+                        <p><strong>Admission No:</strong> <span id="clearanceAdmNo">${admissionNo}</span></p>
+                        <p><strong>Program:</strong> <span id="clearanceProgram">${program}</span></p>
+                    </div>
+                    <form id="clearanceForm" class="space-y-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="confirmClear" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="confirmClear" class="ml-2 block text-sm text-gray-900">I confirm I have returned all items and cleared all dues with all departments.</label>
+                        </div>
+                        <button type="submit" class="btn-red w-full sm:w-auto"><i class="fas fa-paper-plane mr-2"></i> Submit Clearance Request</button>
+                    </form>
+                `;
+                document.getElementById('clearanceForm').addEventListener('submit', submitClearanceRequest);
+            }
+        } catch (error) {
+            console.error("Error loading clearance view:", error);
+            clearanceContentDiv.innerHTML = `<div class="empty-state text-red-600">Error loading clearance details. Please try again.</div>`;
+            showCustomAlert("Failed to load clearance details. Please try again.", 'error');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+
+    async function submitClearanceRequest(event) {
+        event.preventDefault();
+        const user = auth.currentUser;
+        if (!user) {
+            showCustomAlert("Please log in to submit a clearance request.", 'error');
+            return;
+        }
+
+        const confirmClear = document.getElementById('confirmClear').checked;
+        if (!confirmClear) {
+            showCustomAlert("You must confirm that you have returned all items and cleared all dues.", 'info');
+            return;
+        }
+
+        loadingOverlay.classList.remove('hidden');
+        try {
+            const studentDocRef = doc(db, "students", user.uid);
+            const studentSnap = await getDoc(studentDocRef);
+            const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+            const initialApprovals = {};
+            clearanceDepartments.forEach(dept => {
+                initialApprovals[dept.id] = { status: "Pending", comments: "" };
+            });
+
+            const clearanceRequestData = {
+                admissionNo: studentData.admissionNo || 'N/A',
+                dateSubmitted: serverTimestamp(),
+                approvals: initialApprovals,
+                overallStatus: "Pending" // Initial overall status
+            };
+
+            const clearanceDocRef = doc(db, "clearances", user.uid);
+            await setDoc(clearanceDocRef, clearanceRequestData);
+
+            showCustomAlert("Clearance request submitted successfully! You can track its status here.", 'success', () => {
+                initClearanceView(user.uid); // Reload view to show status card
+            });
+
+        } catch (error) {
+            console.error("Error submitting clearance request:", error);
+            showCustomAlert("Failed to submit clearance request. Please try again.", 'error');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+
+    function renderClearanceStatus(clearanceData, studentData) {
+        const clearanceContentDiv = document.getElementById('clearanceContent');
+        const departments = clearanceDepartments; // Use the defined departments
+
+        let allApproved = true;
+        let anyRejected = false;
+
+        let tableRowsHtml = '';
+        departments.forEach(dept => {
+            const approval = clearanceData.approvals[dept.id] || { status: "Pending", comments: "" };
+            const status = approval.status;
+            const comments = approval.comments;
+
+            if (status !== "Approved") {
+                allApproved = false;
+            }
+            if (status === "Rejected") {
+                anyRejected = true;
+            }
+
+            const statusIcon = status === "Approved" ? '<i class="fas fa-check-circle text-green-500 mr-1"></i>' :
+                               status === "Rejected" ? '<i class="fas fa-times-circle text-red-500 mr-1"></i>' :
+                               '<i class="fas fa-hourglass-half text-yellow-500 mr-1"></i>';
+            const statusClass = status.toLowerCase();
+
+            tableRowsHtml += `
+                <tr>
+                    <td class="p-2 border">${dept.name}</td>
+                    <td class="p-2 border text-center"><span class="status-badge ${statusClass}">${statusIcon} ${status}</span></td>
+                    <td class="p-2 border department-comment">${comments || 'No comments'}</td>
+                </tr>
+            `;
+        });
+
+        let overallStatus = "Pending";
+        let overallStatusClass = "pending";
+        if (anyRejected) {
+            overallStatus = "Rejected";
+            overallStatusClass = "rejected";
+        } else if (allApproved) {
+            overallStatus = "Approved";
+            overallStatusClass = "approved";
+        }
+
+        const dateSubmitted = clearanceData.dateSubmitted ? new Date(clearanceData.dateSubmitted.seconds * 1000).toLocaleDateString() : 'N/A';
+
+        clearanceContentDiv.innerHTML = `
+            <div id="clearanceStatusCard" class="clearance-status-card">
+                <h4 class="text-xl font-bold text-green-700 flex items-center mb-3"><i class="fas fa-clipboard-check mr-3"></i> Your Clearance Request Status</h4>
+                <p><strong>Admission No:</strong> ${clearanceData.admissionNo || studentData.admissionNo || 'N/A'}</p>
+                <p class="mb-4"><strong>Date Submitted:</strong> ${dateSubmitted}</p>
+
+                <h5 class="font-semibold text-green-600 mb-2">Departmental Approvals</h5>
+                <div class="overflow-x-auto mb-4">
+                    <table class="w-full border-collapse border mt-2">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-2 border text-left">Department</th>
+                                <th class="p-2 border text-center">Status</th>
+                                <th class="p-2 border text-left">Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p id="clearanceOverall" class="mt-3 text-lg font-bold flex items-center">
+                    Overall Clearance Status: <span class="status-badge ${overallStatusClass} ml-2">${overallStatus}</span>
+                </p>
+                <div class="mt-4">
+                  <button type="button" onclick="initClearanceView(auth.currentUser.uid)" class="btn-red w-full sm:w-auto"><i class="fas fa-sync-alt mr-2"></i> Refresh Status</button>
+                </div>
+            </div>
+        `;
+    }
 
     /**
      * Finance section functions
@@ -3023,9 +3492,13 @@
             } else if (id === 'examCard') {
                 await initExamCardView(user.uid);
             } else if (id === 'finance') {
-                await initFinanceView(user.uid); // Initialize finance view
+                await initFinanceView(user.uid);
             } else if (id === 'hostels') {
                 await initHostelsView(user.uid);
+            } else if (id === 'graduation') {
+                await initGraduationView(user.uid);
+            } else if (id === 'clearance') {
+                await initClearanceView(user.uid); // Initialize clearance view
             } else if (id === 'announcements') {
                 await loadAnnouncements();
             }
