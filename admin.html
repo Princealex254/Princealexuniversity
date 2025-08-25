@@ -58,6 +58,7 @@
         .status-badge.full { background-color: #fee2e2; color: #991b1b; } /* Hostel status */
         .status-badge.available { background-color: #d1fae5; color: #065f46; } /* Hostel status */
         .status-badge.cleared { background-color: #d1fae5; color: #065f46; } /* Finance status */
+        .status-badge.inactive { background-color: #e0e0e0; color: #757575; } /* Student status */
 
         /* Loading overlay styles */
         .loading-overlay {
@@ -202,11 +203,13 @@
             <a href="#" onclick="showSection('manageCourses')"><i class="fas fa-book-open mr-2"></i> Courses</a>
             <a href="#" onclick="showSection('manageTimetable')"><i class="fas fa-calendar-alt mr-2"></i> Timetable</a>
             <a href="#" onclick="showSection('manageGrades')"><i class="fas fa-award mr-2"></i> Grades</a>
+            <a href="#" onclick="showSection('manageExamSchedule')"><i class="fas fa-clipboard-list mr-2"></i> Exam Cards</a>
             <a href="#" onclick="showSection('manageAnnouncements')"><i class="fas fa-bullhorn mr-2"></i> Announcements</a>
             <a href="#" onclick="showSection('manageHostels')"><i class="fas fa-hotel mr-2"></i> Hostels</a>
             <a href="#" onclick="showSection('manageGraduation')"><i class="fas fa-graduation-cap mr-2"></i> Graduation Requests</a>
             <a href="#" onclick="showSection('manageClearance')"><i class="fas fa-check-double mr-2"></i> Clearance Requests</a>
             <a href="#" onclick="showSection('manageFinance')"><i class="fas fa-wallet mr-2"></i> Finance</a>
+            <a href="#" onclick="showSection('manageAdmins')"><i class="fas fa-user-shield mr-2"></i> Admins & Roles</a>
         </nav>
 
         <!-- Main Content -->
@@ -227,6 +230,11 @@
                         <div class="label">Active Courses</div>
                     </div>
                     <div class="admin-stat-card">
+                        <i class="fas fa-money-bill-wave icon"></i>
+                        <div id="totalOutstandingFees" class="value">KES 0</div>
+                        <div class="label">Total Outstanding Fees</div>
+                    </div>
+                    <div class="admin-stat-card">
                         <i class="fas fa-hourglass-half icon"></i>
                         <div id="pendingGraduations" class="value">0</div>
                         <div class="label">Pending Grad Requests</div>
@@ -235,11 +243,6 @@
                         <i class="fas fa-clipboard-check icon"></i>
                         <div id="pendingClearances" class="value">0</div>
                         <div class="label">Pending Clearance</div>
-                    </div>
-                    <div class="admin-stat-card">
-                        <i class="fas fa-money-bill-wave icon"></i>
-                        <div id="totalOutstandingFees" class="value">KES 0</div>
-                        <div class="label">Total Outstanding Fees</div>
                     </div>
                     <div class="admin-stat-card">
                         <i class="fas fa-hotel icon"></i>
@@ -253,7 +256,7 @@
             <div id="manageStudents" class="admin-card hidden">
                 <h2 class="section-title">Manage Students</h2>
                 <div class="mb-4 flex flex-col sm:flex-row gap-2 items-center">
-                    <input type="text" id="studentSearchInput" placeholder="Search by name or email" class="p-2 border rounded-md flex-grow">
+                    <input type="text" id="studentSearchInput" placeholder="Search by name, email, or admission no." class="p-2 border rounded-md flex-grow">
                     <button onclick="searchStudents()" class="btn-primary">Search</button>
                     <button onclick="loadStudents()" class="btn-primary">Clear Search</button>
                 </div>
@@ -266,11 +269,12 @@
                                 <th>Email</th>
                                 <th>Program</th>
                                 <th>Year/Sem</th>
+                                <th>Active</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="6" class="text-center text-gray-500 p-4">Loading students...</td></tr>
+                            <tr><td colspan="7" class="text-center text-gray-500 p-4">Loading students...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -287,12 +291,53 @@
                                     <input type="text" id="editAdmissionNo" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="editName">Name</label>
+                                    <label for="editName">Full Name</label>
                                     <input type="text" id="editName" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="editEmail">Email</label>
                                     <input type="email" id="editEmail" readonly class="bg-gray-100">
+                                </div>
+                                <div class="form-group">
+                                    <label for="editPhone">Phone Number</label>
+                                    <input type="text" id="editPhone">
+                                </div>
+                                <div class="form-group">
+                                    <label for="editDob">Date of Birth</label>
+                                    <input type="date" id="editDob">
+                                </div>
+                                <div class="form-group">
+                                    <label for="editGender">Gender</label>
+                                    <select id="editGender">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editAddress">Address</label>
+                                    <textarea id="editAddress" rows="2"></textarea>
+                                </div>
+                                <!-- Guardian Info -->
+                                <div class="col-span-full">
+                                    <h4 class="text-lg font-semibold text-blue-600 mt-4 mb-2">Guardian Information</h4>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editGuardianName">Guardian Name</label>
+                                    <input type="text" id="editGuardianName">
+                                </div>
+                                <div class="form-group">
+                                    <label for="editGuardianPhone">Guardian Phone</label>
+                                    <input type="text" id="editGuardianPhone">
+                                </div>
+                                <div class="form-group">
+                                    <label for="editGuardianRelation">Relationship</label>
+                                    <input type="text" id="editGuardianRelation">
+                                </div>
+                                <!-- Academic Info -->
+                                <div class="col-span-full">
+                                    <h4 class="text-lg font-semibold text-blue-600 mt-4 mb-2">Academic Information</h4>
                                 </div>
                                 <div class="form-group">
                                     <label for="editProgram">Program</label>
@@ -311,12 +356,12 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="editPhone">Phone</label>
-                                    <input type="text" id="editPhone">
+                                    <label for="editEnrollmentDate">Enrollment Date</label>
+                                    <input type="text" id="editEnrollmentDate" readonly class="bg-gray-100">
                                 </div>
-                                <div class="form-group">
-                                    <label for="editAddress">Address</label>
-                                    <input type="text" id="editAddress">
+                                <div class="form-group flex items-center gap-2 mt-4 col-span-full">
+                                    <input type="checkbox" id="editIsActive" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <label for="editIsActive" class="mb-0">Account Active</label>
                                 </div>
                             </div>
                             <div class="flex justify-end gap-2 mt-4">
@@ -324,6 +369,9 @@
                                 <button type="submit" class="btn-primary">Save Changes</button>
                             </div>
                         </form>
+                        <div class="flex justify-start gap-2 mt-4 pt-4 border-t border-gray-200">
+                            <button onclick="resetStudentPassword(document.getElementById('editStudentUid').value, document.getElementById('editEmail').value)" class="btn-primary"><i class="fas fa-redo mr-2"></i> Reset Password</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -472,19 +520,14 @@
                         <datalist id="studentUids"></datalist>
                     </div>
                     <div class="form-group">
-                        <label for="gradeCourseCode">Course Code</label>
-                        <input type="text" id="gradeCourseCode" placeholder="Enter Course Code" list="courseCodes">
-                        <datalist id="courseCodes"></datalist>
-                    </div>
-                    <div class="form-group">
                         <label for="gradeYear">Year</label>
-                        <select id="gradeYear" onchange="loadStudentGrades()">
+                        <select id="gradeYear">
                             <option value="">Select Year</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="gradeSemester">Semester</label>
-                        <select id="gradeSemester" onchange="loadStudentGrades()">
+                        <select id="gradeSemester">
                             <option value="">Select Semester</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                         </select>
                     </div>
@@ -494,6 +537,11 @@
                 <form id="gradeEntryForm" class="space-y-4 mb-6 hidden">
                     <input type="hidden" id="gradeEntryId">
                     <div class="form-grid">
+                        <div class="form-group">
+                            <label for="gradeCourseCode">Course Code</label>
+                            <input type="text" id="gradeCourseCode" placeholder="Enter Course Code" list="courseCodes" required>
+                            <datalist id="courseCodes"></datalist>
+                        </div>
                         <div class="form-group">
                             <label for="gradeCourseTitle">Course Title</label>
                             <input type="text" id="gradeCourseTitle" readonly class="bg-gray-100">
@@ -535,6 +583,70 @@
                         </thead>
                         <tbody>
                             <tr><td colspan="7" class="text-center text-gray-500 p-4">No grades loaded. Select student, year, and semester.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Manage Exam Schedule Section -->
+            <div id="manageExamSchedule" class="admin-card hidden">
+                <h2 class="section-title">Manage Exam Schedule</h2>
+                <form id="examScheduleForm" class="space-y-4 mb-6">
+                    <input type="hidden" id="examScheduleId">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="examScheduleCourseCode">Course Code</label>
+                            <input type="text" id="examScheduleCourseCode" required list="courseCodesExam">
+                            <datalist id="courseCodesExam"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="examScheduleDate">Exam Date</label>
+                            <input type="date" id="examScheduleDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="examScheduleTime">Exam Time</label>
+                            <input type="time" id="examScheduleTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="examScheduleVenue">Venue</label>
+                            <input type="text" id="examScheduleVenue" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="examScheduleLecturer">Lecturer</label>
+                            <input type="text" id="examScheduleLecturer">
+                        </div>
+                        <div class="form-group">
+                            <label for="examScheduleYear">Year</label>
+                            <select id="examScheduleYear" required>
+                                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="examScheduleSemester">Semester</label>
+                            <select id="examScheduleSemester" required>
+                                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="saveExamScheduleBtn">Add Exam Schedule</button>
+                    <button type="button" class="btn-red hidden" id="cancelEditExamScheduleBtn" onclick="resetExamScheduleForm()">Cancel Edit</button>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table id="examScheduleTable">
+                        <thead>
+                            <tr>
+                                <th>Course Code</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Venue</th>
+                                <th>Lecturer</th>
+                                <th>Year/Sem</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="7" class="text-center text-gray-500 p-4">Loading exam schedules...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -866,6 +978,48 @@
                 </div>
             </div>
 
+            <!-- Manage Admins & Roles Section -->
+            <div id="manageAdmins" class="admin-card hidden">
+                <h2 class="section-title">Manage Admins & Roles</h2>
+                <form id="adminForm" class="space-y-4 mb-6">
+                    <input type="hidden" id="editAdminUid">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="adminUserUid">User UID</label>
+                            <input type="text" id="adminUserUid" placeholder="Enter Firebase User UID" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminRole">Role</label>
+                            <select id="adminRole" required>
+                                <option value="Superadmin">Superadmin</option>
+                                <option value="Registrar">Registrar</option>
+                                <option value="Finance Officer">Finance Officer</option>
+                                <option value="Hostel Manager">Hostel Manager</option>
+                                <option value="Academics Officer">Academics Officer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="saveAdminBtn">Add Admin</button>
+                    <button type="button" class="btn-red hidden" id="cancelEditAdminBtn" onclick="resetAdminForm()">Cancel Edit</button>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table id="adminsTable">
+                        <thead>
+                            <tr>
+                                <th>User UID</th>
+                                <th>Email (from Auth)</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="4" class="text-center text-gray-500 p-4">Loading admins...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -876,7 +1030,7 @@
     <!-- Firebase & Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, orderBy, limit, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -1001,6 +1155,8 @@
                     return 'Too many attempts. Please try again later.';
                 case 'auth/operation-not-allowed':
                     return 'This operation is not allowed. Please contact support.';
+                case 'auth/user-disabled':
+                    return 'This user account has been disabled.';
                 default:
                     return 'An unexpected error occurred. Please try again.';
             }
@@ -1071,6 +1227,10 @@
                 } else if (id === 'manageGrades') {
                     await loadAllStudentsAndCoursesForGrades(); // Pre-load datalists
                     document.getElementById('gradesTable').innerHTML = `<tbody><tr><td colspan="7" class="text-center text-gray-500 p-4">Select student, year, and semester to load grades.</td></tr></tbody>`;
+                    document.getElementById('gradeEntryForm').classList.add('hidden'); // Hide grade entry form initially
+                } else if (id === 'manageExamSchedule') {
+                    await loadAllCoursesForExamSchedule(); // Pre-load datalist
+                    await loadExamSchedules();
                 } else if (id === 'manageAnnouncements') {
                     await loadAnnouncements();
                 } else if (id === 'manageHostels') {
@@ -1090,6 +1250,8 @@
                     document.getElementById('financeStudentStatusMessage').textContent = 'Select a student to view finance status...';
                     document.getElementById('financeStudentStatusMessage').className = 'finance-status-message mt-4'; // Reset classes
                     document.getElementById('financeActionFields').classList.add('hidden');
+                } else if (id === 'manageAdmins') {
+                    await loadAdmins();
                 }
             } catch (error) {
                 console.error(`Error loading section ${id}:`, error);
@@ -1158,12 +1320,12 @@
         async function loadStudents() {
             loadingOverlay.classList.remove('hidden');
             const studentsTableBody = document.querySelector('#studentsTable tbody');
-            studentsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 p-4">Loading students...</td></tr>`;
+            studentsTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 p-4">Loading students...</td></tr>`;
             try {
                 const studentsSnap = await getDocs(collection(db, "students"));
                 allStudents = []; // Clear cache
                 if (studentsSnap.empty) {
-                    studentsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 p-4">No students registered.</td></tr>`;
+                    studentsTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 p-4">No students registered.</td></tr>`;
                     return;
                 }
 
@@ -1172,6 +1334,10 @@
                     const student = docSnap.data();
                     allStudents.push({ uid: docSnap.id, ...student }); // Add to cache
                     const yearSem = (student.year && student.semester) ? `Y${student.year} S${student.semester}` : 'N/A';
+                    const isActive = student.isActive !== false; // Default to true if not set
+                    const statusClass = isActive ? 'active' : 'inactive';
+                    const statusText = isActive ? 'Active' : 'Inactive';
+
                     tableHtml += `
                         <tr>
                             <td>${student.admissionNo || 'N/A'}</td>
@@ -1179,6 +1345,7 @@
                             <td>${student.email || 'N/A'}</td>
                             <td>${student.program || 'N/A'}</td>
                             <td>${yearSem}</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td class="flex gap-2">
                                 <button onclick="editStudent('${docSnap.id}')" class="btn-primary text-xs px-2 py-1"><i class="fas fa-edit"></i> Edit</button>
                                 <button onclick="deleteStudent('${docSnap.id}')" class="btn-red text-xs px-2 py-1"><i class="fas fa-trash"></i> Delete</button>
@@ -1189,7 +1356,7 @@
                 studentsTableBody.innerHTML = tableHtml;
             } catch (error) {
                 console.error("Error loading students:", error);
-                studentsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Error loading students.</td></tr>`;
+                studentsTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 p-4">Error loading students.</td></tr>`;
                 showCustomAlert("Failed to load students. Please try again.", 'error');
             } finally {
                 loadingOverlay.classList.add('hidden');
@@ -1213,13 +1380,16 @@
             );
 
             if (filteredStudents.length === 0) {
-                studentsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 p-4">No matching students found.</td></tr>`;
+                studentsTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 p-4">No matching students found.</td></tr>`;
                 return;
             }
 
             let tableHtml = '';
             filteredStudents.forEach(student => {
                 const yearSem = (student.year && student.semester) ? `Y${student.year} S${student.semester}` : 'N/A';
+                const isActive = student.isActive !== false;
+                const statusClass = isActive ? 'active' : 'inactive';
+                const statusText = isActive ? 'Active' : 'Inactive';
                 tableHtml += `
                     <tr>
                         <td>${student.admissionNo || 'N/A'}</td>
@@ -1227,6 +1397,7 @@
                         <td>${student.email || 'N/A'}</td>
                         <td>${student.program || 'N/A'}</td>
                         <td>${yearSem}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td class="flex gap-2">
                             <button onclick="editStudent('${student.uid}')" class="btn-primary text-xs px-2 py-1"><i class="fas fa-edit"></i> Edit</button>
                             <button onclick="deleteStudent('${student.uid}')" class="btn-red text-xs px-2 py-1"><i class="fas fa-trash"></i> Delete</button>
@@ -1253,11 +1424,18 @@
                 document.getElementById('editAdmissionNo').value = studentData.admissionNo || '';
                 document.getElementById('editName').value = studentData.name || '';
                 document.getElementById('editEmail').value = studentData.email || '';
+                document.getElementById('editPhone').value = studentData.phone || '';
+                document.getElementById('editDob').value = studentData.dob || '';
+                document.getElementById('editGender').value = studentData.gender || '';
+                document.getElementById('editAddress').value = studentData.address || '';
+                document.getElementById('editGuardianName').value = studentData.guardian?.name || '';
+                document.getElementById('editGuardianPhone').value = studentData.guardian?.phone || '';
+                document.getElementById('editGuardianRelation').value = studentData.guardian?.relation || '';
                 document.getElementById('editProgram').value = studentData.program || '';
                 document.getElementById('editYear').value = studentData.year || '';
                 document.getElementById('editSemester').value = studentData.semester || '';
-                document.getElementById('editPhone').value = studentData.phone || '';
-                document.getElementById('editAddress').value = studentData.address || '';
+                document.getElementById('editEnrollmentDate').value = studentData.enrollmentDate || '';
+                document.getElementById('editIsActive').checked = studentData.isActive !== false; // Default to true
 
                 document.getElementById('studentDetailModal').classList.remove('hidden');
 
@@ -1274,19 +1452,35 @@
             const uid = document.getElementById('editStudentUid').value;
             loadingOverlay.classList.remove('hidden');
             try {
-                const studentDocRef = doc(db, "students", uid);
-                await updateDoc(studentDocRef, {
+                const studentData = {
                     admissionNo: document.getElementById('editAdmissionNo').value.trim(),
                     name: document.getElementById('editName').value.trim(),
+                    phone: document.getElementById('editPhone').value.trim(),
+                    dob: document.getElementById('editDob').value,
+                    gender: document.getElementById('editGender').value,
+                    address: document.getElementById('editAddress').value.trim(),
+                    guardian: {
+                        name: document.getElementById('editGuardianName').value.trim(),
+                        phone: document.getElementById('editGuardianPhone').value.trim(),
+                        relation: document.getElementById('editGuardianRelation').value.trim(),
+                    },
                     program: document.getElementById('editProgram').value.trim(),
                     year: parseInt(document.getElementById('editYear').value),
                     semester: parseInt(document.getElementById('editSemester').value),
-                    phone: document.getElementById('editPhone').value.trim(),
-                    address: document.getElementById('editAddress').value.trim(),
-                });
+                    isActive: document.getElementById('editIsActive').checked, // New field for active status
+                };
+
+                // Preserve enrollmentDate if not explicitly editable
+                const existingStudentSnap = await getDoc(doc(db, "students", uid));
+                if (existingStudentSnap.exists()) {
+                    studentData.enrollmentDate = existingStudentSnap.data().enrollmentDate || studentData.enrollmentDate;
+                }
+
+                await updateDoc(doc(db, "students", uid), studentData);
                 showCustomAlert("Student updated successfully!", 'success');
                 closeModal('studentDetailModal');
                 await loadStudents();
+                await loadAdminDashboardOverview(); // Update stats
             } catch (error) {
                 console.error("Error updating student:", error);
                 showCustomAlert("Failed to update student. Please try again.", 'error');
@@ -1295,22 +1489,61 @@
             }
         });
 
+        async function resetStudentPassword(uid, email) {
+            showCustomConfirm(`Send password reset email to ${email}?`, 'confirm', async (confirmed) => {
+                if (confirmed) {
+                    loadingOverlay.classList.remove('hidden');
+                    try {
+                        // Check if the email is registered with Firebase Auth
+                        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+                        if (signInMethods.length === 0) {
+                            showCustomAlert(`No Firebase account found for email: ${email}. Cannot send password reset.`, 'error');
+                            return;
+                        }
+
+                        await sendPasswordResetEmail(auth, email);
+                        showCustomAlert(`Password reset email sent to ${email}.`, 'success');
+                    } catch (error) {
+                        console.error("Error sending password reset email:", error);
+                        showCustomAlert(getFriendlyErrorMessage(error.code), 'error');
+                    } finally {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
         async function deleteStudent(uid) {
             showCustomConfirm("Are you sure you want to delete this student and all their associated data (grades, finance, etc.)? This action is irreversible.", 'delete', async (confirmed) => {
                 if (confirmed) {
                     loadingOverlay.classList.remove('hidden');
                     try {
                         const studentDocRef = doc(db, "students", uid);
-                        await deleteDoc(studentDocRef);
-
-                        // Delete associated subcollections (grades, finance, etc.)
-                        // Note: Firestore doesn't automatically delete subcollections.
-                        // For a real app, you'd implement server-side deletion or cloud functions.
-                        // Here, we'll delete the main document, and leave a note about subcollections.
-                        console.warn(`Student ${uid} deleted. Remember to manually delete subcollections (grades, finance, etc.) if not handled by Cloud Functions.`);
                         
-                        // Delete hostel booking if exists
-                        const studentSnap = await getDoc(studentDocRef); // Re-fetch or use cached student data if available
+                        // Delete associated subcollections (grades, finance, etc.)
+                        // For a real app, you'd implement server-side deletion or cloud functions.
+                        // Here, we'll explicitly delete some known subcollections.
+                        
+                        // 1. Delete Grades subcollection
+                        const gradesSnap = await getDocs(collection(db, `grades/${uid}/results`));
+                        const deleteGradePromises = gradesSnap.docs.map(gDoc => deleteDoc(gDoc.ref));
+                        await Promise.all(deleteGradePromises);
+                        await deleteDoc(doc(db, "grades", uid)); // Delete parent grades doc if it exists
+
+                        // 2. Delete Finance subcollection and balance document
+                        const financeTxnSnap = await getDocs(collection(db, `finance/${uid}/transactions`));
+                        const deleteFinanceTxnPromises = financeTxnSnap.docs.map(txnDoc => deleteDoc(txnDoc.ref));
+                        await Promise.all(deleteFinanceTxnPromises);
+                        await deleteDoc(doc(db, "finance", uid)); // Delete parent finance doc (balance)
+
+                        // 3. Delete Graduation request
+                        await deleteDoc(doc(db, "graduations", uid));
+
+                        // 4. Delete Clearance request
+                        await deleteDoc(doc(db, "clearances", uid));
+
+                        // 5. Update hostel room availability if they had a booking
+                        const studentSnap = await getDoc(studentDocRef);
                         if (studentSnap.exists() && studentSnap.data().hostelBooking) {
                             const { hostelId, roomNo } = studentSnap.data().hostelBooking;
                             if (hostelId && roomNo) {
@@ -1323,17 +1556,21 @@
                             }
                         }
 
-                        // Also attempt to delete the user from Firebase Auth if still exists (careful with this)
-                        // This requires admin SDK or client-side re-authentication.
-                        // For simplicity, we'll assume manual deletion from Firebase Auth console for now.
-                        // Or, in a real application, implement a callable Cloud Function to delete user.
+                        // 6. Delete student document
+                        await deleteDoc(studentDocRef);
+                        
+                        // Note on Firebase Auth user deletion:
+                        // Deleting the Firebase Auth user requires the Admin SDK (server-side)
+                        // or for the user themselves to be re-authenticated client-side.
+                        // For this frontend-only app, you'd need to manually delete the user
+                        // from the Firebase Authentication console, or implement a Cloud Function.
 
-                        showCustomAlert("Student and their main profile data deleted successfully.", 'success');
+                        showCustomAlert("Student and their associated data deleted successfully.", 'success');
                         await loadStudents();
                         await loadAdminDashboardOverview(); // Update stats
                     } catch (error) {
                         console.error("Error deleting student:", error);
-                        showCustomAlert("Failed to delete student. Please try again.", 'error');
+                        showCustomAlert("Failed to delete student. Please try again. Ensure security rules allow deletion.", 'error');
                     } finally {
                         loadingOverlay.classList.add('hidden');
                     }
@@ -1462,18 +1699,51 @@
                         await deleteDoc(doc(db, "courses", id));
 
                         // Also remove this course from any student's registeredCourses array
-                        const studentsQuery = query(collection(db, "students"), where("registeredCourses", "array-contains", { id: id }));
-                        const studentsSnap = await getDocs(studentsQuery);
-
+                        // Fetch all students and filter their registeredCourses
+                        const studentsSnap = await getDocs(collection(db, "students"));
                         const batch = db.batch(); // Use a batch for multiple updates
                         studentsSnap.forEach(studentDoc => {
                             const studentData = studentDoc.data();
-                            const updatedCourses = (studentData.registeredCourses || []).filter(course => course.id !== id);
-                            batch.update(studentDoc.ref, { registeredCourses: updatedCourses });
+                            const registeredCourses = studentData.registeredCourses || [];
+                            const updatedCourses = registeredCourses.filter(course => course.id !== id);
+                            if (updatedCourses.length !== registeredCourses.length) { // Only update if course was found
+                                batch.update(studentDoc.ref, { registeredCourses: updatedCourses });
+                            }
                         });
                         await batch.commit();
 
-                        showCustomAlert("Course deleted successfully!", 'success');
+                        // Also delete any grade entries for this course for all students
+                        const allStudentsSnap = await getDocs(collection(db, "students"));
+                        for (const studentDoc of allStudentsSnap.docs) {
+                            const gradesQuery = query(collection(db, `grades/${studentDoc.id}/results`), where("courseId", "==", id)); // Assuming courseId is stored in grade entry
+                            const gradesSnap = await getDocs(gradesQuery);
+                            const gradeBatch = db.batch();
+                            gradesSnap.forEach(gradeDoc => {
+                                gradeBatch.delete(gradeDoc.ref);
+                            });
+                            await gradeBatch.commit();
+                        }
+
+                        // Also delete any timetable entries for this course
+                        const timetableQuery = query(collection(db, "timetable"), where("courseCode", "==", courseIdField.value)); // Use course code
+                        const timetableSnap = await getDocs(timetableQuery);
+                        const timetableBatch = db.batch();
+                        timetableSnap.forEach(tDoc => {
+                            timetableBatch.delete(tDoc.ref);
+                        });
+                        await timetableBatch.commit();
+
+                        // Also delete any exam schedules for this course
+                        const examScheduleQuery = query(collection(db, "examSchedule"), where("courseCode", "==", courseIdField.value)); // Use course code
+                        const examScheduleSnap = await getDocs(examScheduleQuery);
+                        const examScheduleBatch = db.batch();
+                        examScheduleSnap.forEach(eDoc => {
+                            examScheduleBatch.delete(eDoc.ref);
+                        });
+                        await examScheduleBatch.commit();
+
+
+                        showCustomAlert("Course and all associated data deleted successfully!", 'success');
                         await loadCourses();
                         await loadAdminDashboardOverview(); // Update stats
                     } catch (error) {
@@ -1635,7 +1905,7 @@
                     allStudentsForGrades.push({ uid: docSnap.id, ...studentData });
                     const option = document.createElement('option');
                     option.value = docSnap.id;
-                    option.textContent = `${studentData.name} (${docSnap.id})`;
+                    option.textContent = `${studentData.name || 'N/A'} (${docSnap.id})`;
                     studentUidsDatalist.appendChild(option);
                 });
 
@@ -1666,6 +1936,7 @@
             const gradesTableBody = document.querySelector('#manageGrades #gradesTable tbody');
             const gradeEntryForm = document.getElementById('gradeEntryForm');
             gradesTableBody.innerHTML = '';
+            resetGradeForm(); // Reset form first
             gradeEntryForm.classList.add('hidden'); // Hide form by default
 
             if (!studentUid || !year || !semester) {
@@ -1806,7 +2077,7 @@
             document.getElementById('gradeEntryId').value = '';
             document.getElementById('saveGradeBtn').textContent = 'Save Grade';
             document.getElementById('cancelEditGradeBtn').classList.add('hidden');
-            // Re-select student/year/semester if they were set
+            // Retain selection of student, year, semester
             document.getElementById('gradeStudentId').value = gradeFormCurrentStudentUid || '';
             document.getElementById('gradeYear').value = document.getElementById('gradeYear').value;
             document.getElementById('gradeSemester').value = document.getElementById('gradeSemester').value;
@@ -1823,6 +2094,158 @@
                     } catch (error) {
                         console.error("Error deleting grade:", error);
                         showCustomAlert("Failed to delete grade. Please try again.", 'error');
+                    } finally {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // --- Manage Exam Schedule Functions ---
+        const examScheduleForm = document.getElementById('examScheduleForm');
+        const examScheduleIdField = document.getElementById('examScheduleId');
+        const saveExamScheduleBtn = document.getElementById('saveExamScheduleBtn');
+        const cancelEditExamScheduleBtn = document.getElementById('cancelEditExamScheduleBtn');
+        let allCoursesForExam = [];
+
+        async function loadAllCoursesForExamSchedule() {
+            try {
+                const coursesSnap = await getDocs(collection(db, "courses"));
+                const courseCodesDatalist = document.getElementById('courseCodesExam');
+                courseCodesDatalist.innerHTML = '';
+                allCoursesForExam = [];
+                coursesSnap.forEach(docSnap => {
+                    const courseData = docSnap.data();
+                    allCoursesForExam.push({ id: docSnap.id, ...courseData });
+                    const option = document.createElement('option');
+                    option.value = courseData.code;
+                    option.textContent = `${courseData.code} - ${courseData.title}`;
+                    courseCodesDatalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error loading courses for exam schedule datalist:", error);
+            }
+        }
+
+
+        async function loadExamSchedules() {
+            loadingOverlay.classList.remove('hidden');
+            const examScheduleTableBody = document.querySelector('#examScheduleTable tbody');
+            examScheduleTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 p-4">Loading exam schedules...</td></tr>`;
+            try {
+                const examSnap = await getDocs(collection(db, "examSchedule"));
+                if (examSnap.empty) {
+                    examScheduleTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 p-4">No exam schedules available.</td></tr>`;
+                    return;
+                }
+
+                let tableHtml = '';
+                examSnap.forEach(docSnap => {
+                    const exam = docSnap.data();
+                    const formattedDate = exam.date ? new Date(exam.date).toLocaleDateString() : 'N/A';
+                    tableHtml += `
+                        <tr>
+                            <td>${exam.courseCode || 'N/A'}</td>
+                            <td>${formattedDate}</td>
+                            <td>${exam.time || 'N/A'}</td>
+                            <td>${exam.venue || 'N/A'}</td>
+                            <td>${exam.lecturer || 'N/A'}</td>
+                            <td>Y${exam.year || 'N/A'} S${exam.semester || 'N/A'}</td>
+                            <td class="flex gap-2">
+                                <button onclick="editExamSchedule('${docSnap.id}')" class="btn-primary text-xs px-2 py-1"><i class="fas fa-edit"></i> Edit</button>
+                                <button onclick="deleteExamSchedule('${docSnap.id}')" class="btn-red text-xs px-2 py-1"><i class="fas fa-trash"></i> Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                examScheduleTableBody.innerHTML = tableHtml;
+                resetExamScheduleForm();
+            } catch (error) {
+                console.error("Error loading exam schedules:", error);
+                examScheduleTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 p-4">Error loading exam schedules.</td></tr>`;
+                showCustomAlert("Failed to load exam schedules. Please try again.", 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        function resetExamScheduleForm() {
+            examScheduleForm.reset();
+            examScheduleIdField.value = '';
+            saveExamScheduleBtn.textContent = 'Add Exam Schedule';
+            cancelEditExamScheduleBtn.classList.add('hidden');
+        }
+
+        examScheduleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loadingOverlay.classList.remove('hidden');
+            try {
+                const examData = {
+                    courseCode: document.getElementById('examScheduleCourseCode').value.trim(),
+                    date: document.getElementById('examScheduleDate').value,
+                    time: document.getElementById('examScheduleTime').value,
+                    venue: document.getElementById('examScheduleVenue').value.trim(),
+                    lecturer: document.getElementById('examScheduleLecturer').value.trim(),
+                    year: parseInt(document.getElementById('examScheduleYear').value),
+                    semester: parseInt(document.getElementById('examScheduleSemester').value),
+                };
+
+                const examScheduleId = examScheduleIdField.value;
+                if (examScheduleId) {
+                    await updateDoc(doc(db, "examSchedule", examScheduleId), examData);
+                    showCustomAlert("Exam schedule updated successfully!", 'success');
+                } else {
+                    await addDoc(collection(db, "examSchedule"), examData);
+                    showCustomAlert("Exam schedule added successfully!", 'success');
+                }
+                await loadExamSchedules();
+            } catch (error) {
+                console.error("Error saving exam schedule:", error);
+                showCustomAlert("Failed to save exam schedule. Please try again.", 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        });
+
+        async function editExamSchedule(id) {
+            loadingOverlay.classList.remove('hidden');
+            try {
+                const examDoc = await getDoc(doc(db, "examSchedule", id));
+                if (!examDoc.exists()) {
+                    showCustomAlert("Exam schedule entry not found.", 'error');
+                    return;
+                }
+                const examData = examDoc.data();
+                examScheduleIdField.value = id;
+                document.getElementById('examScheduleCourseCode').value = examData.courseCode;
+                document.getElementById('examScheduleDate').value = examData.date; // Date input type handles string
+                document.getElementById('examScheduleTime').value = examData.time;
+                document.getElementById('examScheduleVenue').value = examData.venue;
+                document.getElementById('examScheduleLecturer').value = examData.lecturer;
+                document.getElementById('examScheduleYear').value = examData.year;
+                document.getElementById('examScheduleSemester').value = examData.semester;
+
+                saveExamScheduleBtn.textContent = 'Update Exam Schedule';
+                cancelEditExamScheduleBtn.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error editing exam schedule:", error);
+                showCustomAlert("Failed to load exam schedule for editing.", 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        async function deleteExamSchedule(id) {
+            showCustomConfirm("Are you sure you want to delete this exam schedule entry?", 'delete', async (confirmed) => {
+                if (confirmed) {
+                    loadingOverlay.classList.remove('hidden');
+                    try {
+                        await deleteDoc(doc(db, "examSchedule", id));
+                        showCustomAlert("Exam schedule entry deleted successfully!", 'success');
+                        await loadExamSchedules();
+                    } catch (error) {
+                        console.error("Error deleting exam schedule entry:", error);
+                        showCustomAlert("Failed to delete exam schedule entry. Please try again.", 'error');
                     } finally {
                         loadingOverlay.classList.add('hidden');
                     }
@@ -1883,6 +2306,7 @@
             announcementIdField.value = '';
             saveAnnouncementBtn.textContent = 'Publish Announcement';
             cancelEditAnnouncementBtn.classList.add('hidden');
+            document.getElementById('announcementPinned').checked = false; // Reset checkbox
         }
 
         announcementForm.addEventListener('submit', async (e) => {
@@ -2107,6 +2531,7 @@
 
                         showCustomAlert("Hostel, its rooms, and associated student bookings deleted successfully!", 'success');
                         await loadHostels();
+                        await loadAdminDashboardOverview(); // Update stats
                     } catch (error) {
                         console.error("Error deleting hostel:", error);
                         showCustomAlert("Failed to delete hostel. Please try again.", 'error');
@@ -2120,7 +2545,6 @@
         // --- Room Management Functions ---
         async function manageRooms(hostelId, hostelName) {
             currentManagingHostelId = hostelId;
-            document.getElementById('manageHostels').classList.remove('hidden'); // Stay on hostels section
             document.getElementById('hostelForm').classList.add('hidden'); // Hide hostel form
             document.getElementById('hostelsTable').parentElement.classList.add('hidden'); // Hide hostels table
 
@@ -2700,15 +3124,14 @@
 
                 if (action === 'addFees') {
                     newBalance += amount; // Adding fees increases outstanding balance
-                    currentBalanceData.totalFees += amount;
+                    currentBalanceData.totalFees = (currentBalanceData.totalFees || 0) + amount;
                     transactionType = "Fees Charged";
                 } else if (action === 'recordPayment') {
                     newBalance -= amount; // Recording payment decreases outstanding balance
-                    currentBalanceData.totalPaid += amount;
+                    currentBalanceData.totalPaid = (currentBalanceData.totalPaid || 0) + amount;
                     transactionType = "Payment";
                 } else if (action === 'adjustBalance') {
                     // This action directly adjusts the outstanding balance, use with caution
-                    // It can be either positive (increase balance) or negative (decrease balance)
                     newBalance += amount;
                     transactionType = amount > 0 ? "Balance Adjustment (+)" : "Balance Adjustment (-)";
                 }
@@ -2826,6 +3249,180 @@
                 loadingOverlay.classList.add('hidden');
             }
         }
+
+        // --- Manage Admins & Roles Functions ---
+        const adminForm = document.getElementById('adminForm');
+        const editAdminUidField = document.getElementById('editAdminUid');
+        const saveAdminBtn = document.getElementById('saveAdminBtn');
+        const cancelEditAdminBtn = document.getElementById('cancelEditAdminBtn');
+
+        async function loadAdmins() {
+            loadingOverlay.classList.remove('hidden');
+            const adminsTableBody = document.querySelector('#adminsTable tbody');
+            adminsTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">Loading admins...</td></tr>`;
+            try {
+                const adminsSnap = await getDocs(collection(db, "admins"));
+                if (adminsSnap.empty) {
+                    adminsTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 p-4">No admin accounts configured.</td></tr>`;
+                    return;
+                }
+
+                let tableHtml = '';
+                for (const docSnap of adminsSnap.docs) {
+                    const admin = docSnap.data();
+                    const adminUid = docSnap.id;
+                    if (admin.isAdmin) { // Only show active admins
+                        let email = admin.email || 'N/A';
+                        
+                        // Try to get email from Firebase Auth for the UID if not in Firestore doc
+                        if (email === 'N/A') {
+                            try {
+                                // IMPORTANT: This is a client-side workaround. A real admin panel
+                                // would use Firebase Admin SDK on a backend to fetch user data by UID.
+                                // Client-side cannot directly fetch other users' emails by UID without Admin SDK.
+                                // For this demo, we'll assume the email is stored in the admin doc or display UID.
+                                // As a fallback, try to match with students collection for email if it's a student UID.
+                                const studentDoc = await getDoc(doc(db, "students", adminUid));
+                                if (studentDoc.exists()) {
+                                    email = studentDoc.data().email || 'N/A';
+                                }
+                            } catch (e) {
+                                console.warn(`Could not fetch email for UID ${adminUid} from Auth/Students:`, e);
+                            }
+                        }
+
+                        tableHtml += `
+                            <tr>
+                                <td>${adminUid}</td>
+                                <td>${email}</td>
+                                <td>${admin.role || 'Not Assigned'}</td>
+                                <td class="flex gap-2">
+                                    <button onclick="editAdmin('${adminUid}')" class="btn-primary text-xs px-2 py-1"><i class="fas fa-edit"></i> Edit</button>
+                                    <button onclick="removeAdmin('${adminUid}')" class="btn-red text-xs px-2 py-1"><i class="fas fa-user-times"></i> Remove Admin</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+                adminsTableBody.innerHTML = tableHtml;
+                resetAdminForm();
+            } catch (error) {
+                console.error("Error loading admins:", error);
+                adminsTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 p-4">Error loading admins.</td></tr>`;
+                showCustomAlert("Failed to load admin accounts. Please try again.", 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        function resetAdminForm() {
+            adminForm.reset();
+            editAdminUidField.value = '';
+            document.getElementById('adminUserUid').readOnly = false;
+            saveAdminBtn.textContent = 'Add Admin';
+            cancelEditAdminBtn.classList.add('hidden');
+        }
+
+        adminForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loadingOverlay.classList.remove('hidden');
+            try {
+                const userUid = document.getElementById('adminUserUid').value.trim();
+                const role = document.getElementById('adminRole').value;
+
+                if (!userUid) {
+                    showCustomAlert("Please enter a User UID.", 'error');
+                    return;
+                }
+
+                // Check if this UID corresponds to a valid Firebase Auth user (optional, but good practice)
+                // This is difficult client-side. A server-side solution would be better.
+                // For this demo, we'll assume the UID is valid.
+
+                const adminData = {
+                    isAdmin: true,
+                    role: role,
+                    // You might want to store the email here if it's not the UID,
+                    // but for simplicity, the UID is the primary identifier.
+                };
+
+                const editAdminId = editAdminUidField.value;
+                if (editAdminId) {
+                    // Update existing admin
+                    await updateDoc(doc(db, "admins", editAdminId), adminData);
+                    showCustomAlert("Admin role updated successfully!", 'success');
+                } else {
+                    // Add new admin
+                    // Ensure a student profile exists for this UID, if not, create a basic one
+                    const studentDocRef = doc(db, "students", userUid);
+                    const studentSnap = await getDoc(studentDocRef);
+                    if (!studentSnap.exists()) {
+                         await setDoc(studentDocRef, { 
+                             email: userUid + "@unknown.com", // Placeholder email if Auth email not available
+                             name: "Admin User",
+                             createdAt: serverTimestamp(),
+                             isActive: true
+                         }, { merge: true });
+                         console.warn(`Created basic student profile for new admin UID: ${userUid}`);
+                    }
+
+
+                    await setDoc(doc(db, "admins", userUid), adminData, { merge: true }); // Use setDoc with merge to create or update
+                    showCustomAlert("User granted admin privileges successfully!", 'success');
+                }
+                await loadAdmins();
+                await loadAdminDashboardOverview(); // Update stats
+            } catch (error) {
+                console.error("Error saving admin:", error);
+                showCustomAlert("Failed to save admin. Please ensure the UID is correct.", 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        });
+
+        async function editAdmin(uid) {
+            loadingOverlay.classList.remove('hidden');
+            try {
+                const adminDoc = await getDoc(doc(db, "admins", uid));
+                if (!adminDoc.exists() || !adminDoc.data().isAdmin) {
+                    showCustomAlert("Admin not found.", 'error');
+                    return;
+                }
+                const adminData = adminDoc.data();
+                editAdminUidField.value = uid;
+                document.getElementById('adminUserUid').value = uid;
+                document.getElementById('adminUserUid').readOnly = true; // UID should not be changed for an existing admin
+                document.getElementById('adminRole').value = adminData.role || 'Superadmin';
+
+                saveAdminBtn.textContent = 'Update Admin Role';
+                cancelEditAdminBtn.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error editing admin:", error);
+                showCustomAlert("Failed to load admin for editing.", 'error');
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        async function removeAdmin(uid) {
+            showCustomConfirm("Are you sure you want to remove admin privileges for this user? They will no longer be able to access the admin panel.", 'delete', async (confirmed) => {
+                if (confirmed) {
+                    loadingOverlay.classList.remove('hidden');
+                    try {
+                        await updateDoc(doc(db, "admins", uid), { isAdmin: false, role: null }); // Set isAdmin to false
+                        showCustomAlert("Admin privileges removed successfully!", 'success');
+                        await loadAdmins();
+                        await loadAdminDashboardOverview(); // Update stats
+                    } catch (error) {
+                        console.error("Error removing admin privileges:", error);
+                        showCustomAlert("Failed to remove admin privileges. Please try again.", 'error');
+                    } finally {
+                        loadingOverlay.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
