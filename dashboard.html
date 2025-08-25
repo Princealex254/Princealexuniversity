@@ -549,6 +549,115 @@
         font-size: 0.85rem;
     }
 
+    /* Announcements Specific Styles */
+    .announcement-card {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.2rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease-in-out;
+    }
+    .announcement-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    .announcement-card .category-badge {
+        display: inline-block;
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+    }
+    .category-badge.academics { background-color: #e3f2fd; color: #1e88e5; } /* Blue */
+    .category-badge.finance { background-color: #e8f5e9; color: #43a047; } /* Green */
+    .category-badge.hostel { background-color: #fff3e0; color: #fb8c00; } /* Orange */
+    .category-badge.events { background-color: #f3e5f5; color: #8e24aa; } /* Purple */
+    .category-badge.general { background-color: #eceff1; color: #546e7a; } /* Gray */
+
+    .announcement-card h4 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+    }
+    .announcement-card h4 .pinned-icon {
+        color: #fbc02d; /* Amber */
+        margin-right: 0.5rem;
+        font-size: 1.2em;
+    }
+    .announcement-card .meta-info {
+        font-size: 0.85rem;
+        color: #616161;
+        margin-bottom: 0.8rem;
+    }
+    .announcement-card .message-excerpt {
+        color: #424242;
+        line-height: 1.5;
+        margin-bottom: 0.8rem;
+    }
+    .announcement-card .read-more-btn {
+        color: #0d6efd;
+        text-decoration: underline;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    /* Announcement Modal for full view */
+    .announcement-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+    .announcement-modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        max-width: 700px;
+        width: 90%;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+    }
+    .announcement-modal-content .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #757575;
+    }
+    .announcement-modal-content h3 {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #1a202c;
+        margin-bottom: 1rem;
+    }
+    .announcement-modal-content .meta-info {
+        font-size: 0.95rem;
+        color: #616161;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 1rem;
+    }
+    .announcement-modal-content .full-message {
+        font-size: 1rem;
+        color: #424242;
+        line-height: 1.6;
+    }
+
   </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -1090,8 +1199,25 @@
 
       <!-- Announcements -->
       <div id="announcements" class="dashboard-card hidden">
-        <h2 class="text-xl font-bold text-blue-700 mb-4">Announcements</h2>
-        <ul id="announcementList"></ul>
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Announcements</h3>
+
+        <!-- Filter -->
+        <div class="flex space-x-2 mb-4">
+          <select id="announcementFilter" class="border p-2 rounded">
+            <option value="all">All</option>
+            <option value="Academics">Academics</option>
+            <option value="Finance">Finance</option>
+            <option value="Hostel">Hostel</option>
+            <option value="Events">Events</option>
+            <option value="General">General</option>
+          </select>
+          <button onclick="loadAnnouncements(document.getElementById('announcementFilter').value)" class="btn-red">Filter</button>
+        </div>
+
+        <!-- List -->
+        <div id="announcementList" class="space-y-4">
+            <div class="empty-state">Loading announcements...</div>
+        </div>
       </div>
     </main>
   </div>
@@ -1099,6 +1225,16 @@
   <footer class="bg-white p-4 text-center border-t text-sm">
     © 2025 Prince Alex Design University. All rights reserved.
   </footer>
+
+    <!-- Announcement Read More Modal -->
+    <div id="announcementReadMoreModal" class="announcement-modal hidden">
+        <div class="announcement-modal-content">
+            <span class="close-btn" onclick="document.getElementById('announcementReadMoreModal').classList.add('hidden');">&times;</span>
+            <h3 id="modalTitle"></h3>
+            <p class="meta-info"><span id="modalDate"></span> | <span id="modalAuthor"></span> <span id="modalCategoryBadge" class="category-badge"></span></p>
+            <div id="modalMessage" class="full-message"></div>
+        </div>
+    </div>
 
   <!-- Firebase & Script -->
   <script type="module">
@@ -1417,10 +1553,12 @@
             announcementsSnap.forEach(docSnap => {
                 const announcementData = docSnap.data();
                 const announceDate = announcementData.date ? new Date(announcementData.date.seconds * 1000).toLocaleDateString() : 'N/A';
+                const messageExcerpt = announcementData.message.length > 100 ? announcementData.message.substring(0, 100) + "..." : announcementData.message;
+
                 announcementsHtml += `
                     <div class="announcement-item">
                         <strong>${announcementData.title}</strong>
-                        <p>${announcementData.message}</p>
+                        <p>${messageExcerpt}</p>
                         <span class="date">Posted: ${announceDate}</span>
                     </div>
                 `;
@@ -3470,6 +3608,98 @@
     }
 
 
+    /**
+     * Announcements section functions
+     */
+    // This function is also called from loadRecentAnnouncements on home section
+    window.loadAnnouncements = async (category = 'all') => {
+        const announcementListDiv = document.getElementById('announcementList');
+        announcementListDiv.innerHTML = `<div class="empty-state">Loading announcements...</div>`; // Initial loading state
+
+        loadingOverlay.classList.remove('hidden');
+        try {
+            let announcementsQuery;
+            if (category === 'all') {
+                announcementsQuery = query(
+                    collection(db, "announcements"),
+                    orderBy("date", "desc")
+                );
+            } else {
+                announcementsQuery = query(
+                    collection(db, "announcements"),
+                    where("category", "==", category),
+                    orderBy("date", "desc")
+                );
+            }
+            
+            const announcementsSnap = await getDocs(announcementsQuery);
+
+            if (announcementsSnap.empty) {
+                announcementListDiv.innerHTML = `<div class="empty-state">No announcements available in this category.</div>`;
+                return;
+            }
+
+            let announcementsHtml = '';
+            announcementsSnap.forEach(docSnap => {
+                const a = docSnap.data();
+                const announcementId = docSnap.id;
+                const formattedDate = a.date ? new Date(a.date.seconds * 1000).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+                const truncatedMessage = a.message.length > 150 ? a.message.substring(0, 150) + "..." : a.message;
+                const hasMore = a.message.length > 150;
+
+                const categoryClass = a.category ? a.category.toLowerCase() : 'general';
+                const categoryBadgeHtml = a.category ? `<span class="category-badge ${categoryClass}">${a.category}</span>` : '';
+                const pinnedIcon = a.pinned ? '<i class="fas fa-thumbtack pinned-icon mr-2"></i>' : '';
+
+                announcementsHtml += `
+                    <div class="announcement-card">
+                        <h4>${pinnedIcon}${a.title} ${categoryBadgeHtml}</h4>
+                        <p class="meta-info">${formattedDate} | ${a.author || 'Administration'}</p>
+                        <p class="message-excerpt">${truncatedMessage}</p>
+                        ${hasMore ? `<a href="#" class="read-more-btn" data-id="${announcementId}">Read more...</a>` : ''}
+                    </div>
+                `;
+            });
+            announcementListDiv.innerHTML = announcementsHtml;
+
+            // Add event listeners for "Read more..." buttons after rendering
+            announcementListDiv.querySelectorAll('.read-more-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const announcementId = e.target.dataset.id;
+                    openAnnouncementModal(announcementId, announcementsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                });
+            });
+
+        } catch (error) {
+            console.error("Error loading announcements:", error);
+            announcementListDiv.innerHTML = `<div class="empty-state text-red-600">Error loading announcements. Please try again.</div>`;
+            showCustomAlert("Failed to load announcements. Please try again.", 'error');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    };
+
+    function openAnnouncementModal(announcementId, allAnnouncements) {
+        const announcement = allAnnouncements.find(a => a.id === announcementId);
+        if (!announcement) {
+            showCustomAlert("Announcement details not found.", 'error');
+            return;
+        }
+
+        const modal = document.getElementById('announcementReadMoreModal');
+        document.getElementById('modalTitle').textContent = announcement.title;
+        document.getElementById('modalDate').textContent = announcement.date ? new Date(announcement.date.seconds * 1000).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+        document.getElementById('modalAuthor').textContent = announcement.author || 'Administration';
+        document.getElementById('modalMessage').textContent = announcement.message;
+
+        const categoryBadgeElement = document.getElementById('modalCategoryBadge');
+        categoryBadgeElement.textContent = announcement.category || 'General';
+        categoryBadgeElement.className = `category-badge ${announcement.category ? announcement.category.toLowerCase() : 'general'}`;
+        
+        modal.classList.remove('hidden');
+    }
+
     // Call load functions when their respective sections are shown
     const originalShowSection = window.showSection;
     window.showSection = async (id) => {
@@ -3498,9 +3728,9 @@
             } else if (id === 'graduation') {
                 await initGraduationView(user.uid);
             } else if (id === 'clearance') {
-                await initClearanceView(user.uid); // Initialize clearance view
+                await initClearanceView(user.uid);
             } else if (id === 'announcements') {
-                await loadAnnouncements();
+                await loadAnnouncements('all'); // Load all announcements by default for the full view
             }
         } catch (error) {
             console.error(`Error loading section ${id}:`, error);
