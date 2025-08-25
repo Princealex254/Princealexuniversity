@@ -1379,15 +1379,28 @@
       if (!user) {
         window.location.href = "login.html";
       } else {
-        loadingOverlay.classList.remove('hidden'); // Show loading overlay
+        // Show loading overlay immediately upon successful authentication
+        loadingOverlay.classList.remove('hidden'); 
         userEmailSpan.textContent = user.email;
-        // Load dashboard overview data first
-        await loadDashboardOverview(user.uid);
-        // Load profile and settings data on initial auth to ensure they are ready when their sections are displayed
-        await loadProfile(user.uid);
-        await loadSettings(user.uid);
 
-        loadingOverlay.classList.add('hidden'); // Hide loading overlay
+        try {
+            // Await all initial data loading for the dashboard
+            await loadDashboardOverview(user.uid);
+            // Load profile and settings data on initial auth to ensure they are ready when their sections are displayed
+            await loadProfile(user.uid);
+            await loadSettings(user.uid);
+            
+            // Optionally, pre-load other sections if deemed necessary for faster switching
+            // For example:
+            // await initCourseRegistration(user.uid); // This would call Firestore on load, consider if truly needed.
+
+        } catch (error) {
+            console.error("Error during initial dashboard load:", error);
+            showCustomAlert("Failed to load dashboard data. Please refresh.", 'error');
+        } finally {
+            // Hide loading overlay only after ALL initial data has been loaded or an error occurred
+            loadingOverlay.classList.add('hidden'); 
+        }
       }
     });
 
