@@ -1331,14 +1331,23 @@
 
                 // Available Hostel Rooms
                 let totalAvailableHostelRooms = 0;
-                const hostelsSnap = await getDocs(collection(db, "hostels"));
-                for (const docSnap of hostelsSnap.docs) {
-                    const roomsSnap = await getDocs(collection(db, `hostels/${docSnap.id}/rooms`));
-                    roomsSnap.forEach(roomDoc => {
-                        totalAvailableHostelRooms += (roomDoc.data().availableSlots || 0);
-                    });
-                }
-                document.getElementById('availableHostelRooms').textContent = totalAvailableHostelRooms;
+const hostelsSnap = await getDocs(collection(db, "hostels"));
+for (const docSnap of hostelsSnap.docs) {
+    const hostelData = docSnap.data();
+    let hostelAvailable = 0;
+
+    const roomsSnap = await getDocs(collection(db, `hostels/${docSnap.id}/rooms`));
+    if (roomsSnap.empty) {
+        // If no rooms, default available to hostel capacity
+        hostelAvailable = hostelData.capacity || 0;
+    } else {
+        roomsSnap.forEach(roomDoc => {
+            hostelAvailable += (roomDoc.data().availableSlots || 0);
+        });
+    }
+    totalAvailableHostelRooms += hostelAvailable;
+}
+document.getElementById('availableHostelRooms').textContent = totalAvailableHostelRooms;
 
             } catch (error) {
                 console.error("Error loading admin dashboard overview:", error);
