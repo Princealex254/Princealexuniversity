@@ -3542,5 +3542,315 @@
         }
 
     </script>
+
+<script>
+// === Compatibility + CRUD action menu fixes ===
+// Do NOT remove existing code; this augments it to ensure action buttons work with Firebase v9.
+
+(function(){
+  try {
+    // Provide a v8-style batch shim for code that calls db.batch() in v9 modular SDKs
+    if (typeof writeBatch === 'function' && typeof db !== 'undefined' && !db.batch) {
+      db.batch = function(){ return writeBatch(db); };
+    }
+  } catch(e) { console.warn('Batch shim error', e); }
+
+  // Helper: safely get course code by id when deleting
+  async function __getCourseCodeById(id){
+    try {
+      const snap = await getDoc(doc(db, "courses", id));
+      if (snap.exists()) {
+        const d = snap.data();
+        return d.code || null;
+      }
+    } catch(e){ console.error(e); }
+    return null;
+  }
+
+  // --- Override deleteCourse to be robust (use course.id + course.code) ---
+  (function(){
+    const original = window.deleteCourse;
+    window.deleteCourse = async function(id){
+      // confirm via existing confirm if present
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Are you sure you want to delete this course? This will also remove it from any student's registered courses.", 'delete', async (confirmed) => {
+          if (!confirmed) return;
+          if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+          try {
+            // Delete the course document
+            await deleteDoc(doc(db, "courses", id));
+
+            // Remove course from any student's registeredCourses (support both db.batch shim and writeBatch directly)
+            const studentsSnap = await getDocs(collection(db, "students"));
+            const b = (db && db.batch) ? db.batch() : writeBatch(db);
+            studentsSnap.forEach(studentDoc => {
+              const studentData = studentDoc.data();
+              const registeredCourses = studentData.registeredCourses || [];
+              const updatedCourses = registeredCourses.filter(c => (c.id && c.id !== id) && (c.courseId && c.courseId !== id));
+              if (updatedCourses.length !== registeredCourses.length) {
+                b.update(studentDoc.ref, { registeredCourses: updatedCourses });
+              }
+            });
+            await b.commit();
+
+            // Delete any grade entries referencing this course id
+            const allStudentsSnap = await getDocs(collection(db, "students"));
+            for (const sDoc of allStudentsSnap.docs) {
+              const q1 = query(collection(db, `grades/${sDoc.id}/results`), where("courseId", "==", id));
+              const snap1 = await getDocs(q1);
+              if (!snap1.empty) {
+                const gb = (db && db.batch) ? db.batch() : writeBatch(db);
+                snap1.forEach(gd => gb.delete(gd.ref));
+                await gb.commit();
+              }
+            }
+
+            // Determine courseCode robustly
+            let code = null;
+            try { code = document.getElementById('courseCode')?.value?.trim() || null; } catch(_){}
+            if (!code) code = await __getCourseCodeById(id);
+
+            if (code) {
+              // Delete any timetable entries for this course code
+              const tQ = query(collection(db, "timetable"), where("courseCode", "==", code));
+              const tSnap = await getDocs(tQ);
+              if (!tSnap.empty) {
+                const tb = (db && db.batch) ? db.batch() : writeBatch(db);
+                tSnap.forEach(t => tb.delete(t.ref));
+                await tb.commit();
+              }
+
+              // Delete any exam schedules for this course code
+              const eQ = query(collection(db, "examSchedule"), where("courseCode", "==", code));
+              const eSnap = await getDocs(eQ);
+              if (!eSnap.empty) {
+                const eb = (db && db.batch) ? db.batch() : writeBatch(db);
+                eSnap.forEach(e => eb.delete(e.ref));
+                await eb.commit();
+              }
+            }
+
+            if (typeof showCustomAlert === 'function') showCustomAlert("Course and all associated data deleted successfully!", 'success');
+            if (typeof loadCourses === 'function') await loadCourses();
+            if (typeof loadAdminDashboardOverview === 'function') await loadAdminDashboardOverview();
+          } catch (error) {
+            console.error("Error deleting course (patched):", error);
+            if (typeof showCustomAlert === 'function') showCustomAlert("Failed to delete course. Please try again.", 'error');
+          } finally {
+            if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden');
+          }
+        });
+      } else if (typeof original === 'function') {
+        // Fallback to original
+        return original(id);
+      }
+    }
+  })();
+
+  // --- Ensure editStudent/deleteStudent exist globally (use originals if present) ---
+  if (typeof window.editStudent !== 'function') {
+    window.editStudent = async function(uid){
+      try {
+        if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+        const studentDocRef = doc(db, "students", uid);
+        const studentSnap = await getDoc(studentDocRef);
+        if (!studentSnap.exists()) { if (typeof showCustomAlert === 'function') showCustomAlert("Student not found.", 'error'); return; }
+        const s = studentSnap.data();
+        // Populate modal fields if present
+        const m = (id)=>document.getElementById(id);
+        m('editStudentUid') && (m('editStudentUid').value = uid);
+        m('editAdmissionNo') && (m('editAdmissionNo').value = s.admissionNo || '');
+        m('editName') && (m('editName').value = s.name || '');
+        m('editEmail') && (m('editEmail').value = s.email || '');
+        m('editPhone') && (m('editPhone').value = s.phone || '');
+        m('editDob') && (m('editDob').value = s.dob || '');
+        m('editGender') && (m('editGender').value = s.gender || '');
+        m('editAddress') && (m('editAddress').value = s.address || '');
+        m('editGuardianName') && (m('editGuardianName').value = s.guardian?.name || '');
+        m('editGuardianPhone') && (m('editGuardianPhone').value = s.guardian?.phone || '');
+        m('editGuardianRelation') && (m('editGuardianRelation').value = s.guardian?.relation || '');
+        m('editProgram') && (m('editProgram').value = s.program || '');
+        m('editYear') && (m('editYear').value = s.year || '');
+        m('editSemester') && (m('editSemester').value = s.semester || '');
+        m('editEnrollmentDate') && (m('editEnrollmentDate').value = s.enrollmentDate || '');
+        m('editIsActive') && (m('editIsActive').checked = s.isActive !== false);
+        const modal = m('studentDetailModal'); if (modal) modal.classList.remove('hidden');
+      } finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+    }
+  }
+  if (typeof window.deleteStudent !== 'function') {
+    window.deleteStudent = async function(uid){
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Are you sure you want to delete this student and all their associated data (grades, finance, etc.)? This action is irreversible.", 'delete', async (confirmed) => {
+          if (!confirmed) return;
+          if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+          try {
+            const studentDocRef = doc(db, "students", uid);
+            // Delete subcollections and related docs
+            const gradesSnap = await getDocs(collection(db, `grades/${uid}/results`));
+            await Promise.all(gradesSnap.docs.map(g => deleteDoc(g.ref)));
+            await deleteDoc(doc(db, "grades", uid));
+            const financeTxnSnap = await getDocs(collection(db, `finance/${uid}/transactions`));
+            await Promise.all(financeTxnSnap.docs.map(t => deleteDoc(t.ref)));
+            await deleteDoc(doc(db, "finance", uid));
+            await deleteDoc(doc(db, "graduations", uid));
+            await deleteDoc(doc(db, "clearances", uid));
+            // Hostel booking slot return
+            const studentSnap = await getDoc(studentDocRef);
+            if (studentSnap.exists() && studentSnap.data().hostelBooking) {
+              const { hostelId, roomNo } = studentSnap.data().hostelBooking || {};
+              if (hostelId && roomNo) {
+                const roomsQueryRef = query(collection(db, `hostels/${hostelId}/rooms`), where("roomNo", "==", roomNo));
+                const roomsSnap = await getDocs(roomsQueryRef);
+                if (!roomsSnap.empty) {
+                  const roomDocRef = roomsSnap.docs[0].ref;
+                  await updateDoc(roomDocRef, { availableSlots: increment(1) });
+                }
+              }
+            }
+            await deleteDoc(studentDocRef);
+            if (typeof showCustomAlert === 'function') showCustomAlert("Student and their associated data deleted successfully.", 'success');
+            if (typeof loadStudents === 'function') await loadStudents();
+            if (typeof loadAdminDashboardOverview === 'function') await loadAdminDashboardOverview();
+          } catch (e) {
+            console.error("Error deleting student (patched):", e);
+            if (typeof showCustomAlert === 'function') showCustomAlert("Failed to delete student. Please try again. Ensure security rules allow deletion.", 'error');
+          } finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+        });
+      }
+    }
+  }
+
+  // Timetable CRUD (define if missing)
+  if (typeof window.editTimetable !== 'function') {
+    window.editTimetable = async function(id){
+      try {
+        if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+        const snap = await getDoc(doc(db, "timetable", id));
+        if (!snap.exists()) { if (typeof showCustomAlert === 'function') showCustomAlert("Timetable entry not found.", 'error'); return; }
+        const d = snap.data();
+        const g = (x)=>document.getElementById(x);
+        g('timetableId') && (g('timetableId').value = id);
+        g('timetableCourseCode') && (g('timetableCourseCode').value = d.courseCode || '');
+        g('timetableDay') && (g('timetableDay').value = d.day || '');
+        g('timetableStartTime') && (g('timetableStartTime').value = d.startTime || '');
+        g('timetableEndTime') && (g('timetableEndTime').value = d.endTime || '');
+        g('timetableVenue') && (g('timetableVenue').value = d.venue || '');
+        const btn = g('saveTimetableBtn'); if (btn) btn.textContent = 'Update Entry';
+        const cancel = g('cancelEditTimetableBtn'); if (cancel) cancel.classList.remove('hidden');
+      } finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+    }
+  }
+  if (typeof window.deleteTimetable !== 'function') {
+    window.deleteTimetable = async function(id){
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Are you sure you want to delete this timetable entry?", 'delete', async (confirmed) => {
+          if (!confirmed) return;
+          if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+          try {
+            await deleteDoc(doc(db, "timetable", id));
+            if (typeof showCustomAlert === 'function') showCustomAlert("Timetable entry deleted successfully!", 'success');
+            if (typeof loadTimetableEntries === 'function') await loadTimetableEntries();
+          } catch(e){
+            console.error("Error deleting timetable entry:", e);
+            if (typeof showCustomAlert === 'function') showCustomAlert("Failed to delete timetable entry. Please try again.", 'error');
+          } finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+        });
+      }
+    }
+  }
+
+  // Exam schedule - ensure edit exists
+  if (typeof window.editExamSchedule !== 'function') {
+    window.editExamSchedule = async function(id){
+      try {
+        if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+        const snap = await getDoc(doc(db, "examSchedule", id));
+        if (!snap.exists()) { if (typeof showCustomAlert === 'function') showCustomAlert("Exam schedule entry not found.", 'error'); return; }
+        const d = snap.data();
+        const g = (x)=>document.getElementById(x);
+        g('examScheduleId') && (g('examScheduleId').value = id);
+        g('examCourseCode') && (g('examCourseCode').value = d.courseCode || '');
+        g('examDate') && (g('examDate').value = d.date || '');
+        g('examStartTime') && (g('examStartTime').value = d.startTime || '');
+        g('examEndTime') && (g('examEndTime').value = d.endTime || '');
+        g('examVenue') && (g('examVenue').value = d.venue || '');
+        const btn = g('saveExamScheduleBtn'); if (btn) btn.textContent = 'Update Exam';
+        const cancel = g('cancelEditExamScheduleBtn'); if (cancel) cancel.classList.remove('hidden');
+      } finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+    }
+  }
+
+  // Announcements - ensure functions exist (already in file, but keep fallback)
+  if (typeof window.deleteAnnouncement !== 'function') {
+    window.deleteAnnouncement = async function(id){
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Are you sure you want to delete this announcement?", 'delete', async (confirmed) => {
+          if (!confirmed) return;
+          if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+          try { await deleteDoc(doc(db, "announcements", id));
+            if (typeof showCustomAlert === 'function') showCustomAlert("Announcement deleted successfully!", 'success');
+            if (typeof loadAnnouncements === 'function') await loadAnnouncements();
+            if (typeof loadAdminDashboardOverview === 'function') await loadAdminDashboardOverview();
+          } catch(e){ console.error(e); if (typeof showCustomAlert === 'function') showCustomAlert("Failed to delete announcement. Please try again.", 'error'); }
+          finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+        });
+      }
+    }
+  }
+
+  // Generic helpers for Graduation, Clearance, Hostels, Admins if their action menus exist
+  if (typeof window.deleteGraduationRequest !== 'function') {
+    window.deleteGraduationRequest = async function(uid){
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Delete this graduation request?", 'delete', async (c)=>{
+          if (!c) return;
+          try { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+            await deleteDoc(doc(db, "graduations", uid));
+            if (typeof showCustomAlert === 'function') showCustomAlert("Graduation request deleted.", 'success');
+            if (typeof loadGraduations === 'function') await loadGraduations();
+          } catch(e){ console.error(e); if (typeof showCustomAlert === 'function') showCustomAlert("Failed to delete graduation request.", 'error'); }
+          finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+        });
+      }
+    }
+  }
+
+  if (typeof window.deleteClearanceRequest !== 'function') {
+    window.deleteClearanceRequest = async function(uid){
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Delete this clearance request?", 'delete', async (c)=>{
+          if (!c) return;
+          try { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+            await deleteDoc(doc(db, "clearances", uid));
+            if (typeof showCustomAlert === 'function') showCustomAlert("Clearance request deleted.", 'success');
+            if (typeof loadClearances === 'function') await loadClearances();
+          } catch(e){ console.error(e); if (typeof showCustomAlert === 'function') showCustomAlert("Failed to delete clearance request.", 'error'); }
+          finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+        });
+      }
+    }
+  }
+
+  // Admins management - ensure deleteAdmin exists if used
+  if (typeof window.deleteAdmin !== 'function') {
+    window.deleteAdmin = async function(uid){
+      if (typeof showCustomConfirm === 'function') {
+        return showCustomConfirm("Are you sure you want to remove this admin?", 'delete', async (c)=>{
+          if (!c) return;
+          try { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.remove('hidden');
+            await deleteDoc(doc(db, "admins", uid));
+            if (typeof showCustomAlert === 'function') showCustomAlert("Admin removed.", 'success');
+            if (typeof loadAdmins === 'function') await loadAdmins();
+          } catch(e){ console.error(e); if (typeof showCustomAlert === 'function') showCustomAlert("Failed to remove admin.", 'error'); }
+          finally { if (typeof loadingOverlay !== 'undefined') loadingOverlay.classList.add('hidden'); }
+        });
+      }
+    }
+  }
+
+})(); 
+</script>
+
 </body>
 </html>
