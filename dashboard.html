@@ -660,9 +660,15 @@
 
   </style>
 </head>
-<body>
+<body class="h-screen flex flex-col">
 
-  <!-- Header is outside the dashboardContent to always be visible -->
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading dashboard...</div>
+  </div>
+
+  <!-- Header -->
   <header id="mainHeader" class="p-4 flex justify-between items-center shadow-md bg-white">
     <img src="myschoollogo.png" alt="Logo" class="h-12">
     <div class="flex items-center space-x-4">
@@ -671,574 +677,554 @@
     </div>
   </header>
 
-  <!-- Universal Loading Overlay -->
-  <div id="loading" class="fixed inset-0 flex items-center justify-center bg-white z-50">
-    <p class="text-lg font-semibold text-blue-600 flex items-center">
-      <span class="spinner mr-3"></span> Loading dashboard...
-    </p>
-  </div>
+  <div class="flex flex-grow">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="w-64 bg-white border-r p-4 hidden md:block overflow-y-auto">
+      <h3 class="text-2xl font-bold mb-4 text-blue-800">Menu</h3>
+      <a href="#" onclick="showSection('home')"><i class="fas fa-home mr-2"></i> Dashboard</a>
+      <a href="#" onclick="showSection('profile')"><i class="fas fa-user mr-2"></i> Profile</a>
+      <a href="#" onclick="showSection('settings')"><i class="fas fa-cog mr-2"></i> Settings</a>
+      <a href="#" onclick="showSection('courseReg')"><i class="fas fa-file-alt mr-2"></i> Course Registration</a>
+      <a href="#" onclick="showSection('timetable')"><i class="fas fa-calendar-alt mr-2"></i> Timetable</a>
+      <a href="#" onclick="showSection('grades')"><i class="fas fa-clipboard-list mr-2"></i> Grades</a>
+      <a href="#" onclick="showSection('examCard')"><i class="fas fa-id-card mr-2"></i> Exam Card</a>
+      <a href="#" onclick="showSection('graduation')"><i class="fas fa-graduation-cap mr-2"></i> Graduation Request</a>
+      <a href="#" onclick="showSection('clearance')"><i class="fas fa-check-circle mr-2"></i> Clearance Request</a>
+      <a href="#" onclick="showSection('finance')"><i class="fas fa-money-bill-wave mr-2"></i> Finance</a>
+      <a href="#" onclick="showSection('hostels')"><i class="fas fa-hotel mr-2"></i> Hostels</a>
+      <a href="#" onclick="showSection('announcements')"><i class="fas fa-bullhorn mr-2"></i> Announcements</a>
+    </nav>
 
-  <!-- Critical Error Overlay -->
-  <div id="errorBox" class="hidden fixed inset-0 flex items-center justify-center bg-white z-50">
-    <p class="text-lg font-semibold text-red-600">⚠ Error loading dashboard</p>
-  </div>
+    <!-- Main Content -->
+    <main id="mainContent" class="flex-grow p-6 overflow-y-auto">
+      <!-- Home - Dashboard Overview -->
+      <div id="home" class="dashboard-card">
+        <h2 class="text-xl font-bold text-blue-700 mb-4" id="welcomeMessage">Welcome to your Dashboard</h2>
+        <p class="text-gray-600 mb-6">Here’s a quick look at your university status.</p>
 
-  <!-- Main Dashboard Content (initially hidden) -->
-  <div id="dashboardContent" class="hidden h-screen flex flex-col">
-    <!-- Non-critical warning box (e.g., profile missing) -->
-    <div id="dashboardWarningBox" class="hidden p-4 mb-4 text-center text-orange-700 bg-orange-100 border border-orange-200 rounded-md">
-      <!-- Content will be inserted by JS -->
-    </div>
-
-    <div class="flex flex-grow">
-      <!-- Sidebar -->
-      <nav id="sidebar" class="w-64 bg-white border-r p-4 hidden md:block overflow-y-auto">
-        <h3 class="text-2xl font-bold mb-4 text-blue-800">Menu</h3>
-        <a href="#" onclick="showSection('home')"><i class="fas fa-home mr-2"></i> Dashboard</a>
-        <a href="#" onclick="showSection('profile')"><i class="fas fa-user mr-2"></i> Profile</a>
-        <a href="#" onclick="showSection('settings')"><i class="fas fa-cog mr-2"></i> Settings</a>
-        <a href="#" onclick="showSection('courseReg')"><i class="fas fa-file-alt mr-2"></i> Course Registration</a>
-        <a href="#" onclick="showSection('timetable')"><i class="fas fa-calendar-alt mr-2"></i> Timetable</a>
-        <a href="#" onclick="showSection('grades')"><i class="fas fa-clipboard-list mr-2"></i> Grades</a>
-        <a href="#" onclick="showSection('examCard')"><i class="fas fa-id-card mr-2"></i> Exam Card</a>
-        <a href="#" onclick="showSection('graduation')"><i class="fas fa-graduation-cap mr-2"></i> Graduation Request</a>
-        <a href="#" onclick="showSection('clearance')"><i class="fas fa-check-circle mr-2"></i> Clearance Request</a>
-        <a href="#" onclick="showSection('finance')"><i class="fas fa-money-bill-wave mr-2"></i> Finance</a>
-        <a href="#" onclick="showSection('hostels')"><i class="fas fa-hotel mr-2"></i> Hostels</a>
-        <a href="#" onclick="showSection('announcements')"><i class="fas fa-bullhorn mr-2"></i> Announcements</a>
-      </nav>
-
-      <!-- Main Content -->
-      <main id="mainContent" class="flex-grow p-6 overflow-y-auto">
-        <!-- Home - Dashboard Overview -->
-        <div id="home" class="dashboard-card">
-          <h2 class="text-xl font-bold text-blue-700 mb-4" id="welcomeMessage">Welcome to your Dashboard</h2>
-          <p class="text-gray-600 mb-6">Here’s a quick look at your university status.</p>
-
-          <h3 class="section-title">Quick Stats</h3>
-          <div id="quickStats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 mb-8">
-              <!-- Stat cards will be dynamically loaded here -->
-          </div>
-          <hr class="my-6 border-gray-300">
-
-          <h3 class="section-title">Upcoming Classes Today</h3>
-          <div id="upcomingClasses" class="mt-4 mb-8">
-              <!-- Upcoming classes will be dynamically loaded here -->
-          </div>
-          <hr class="my-6 border-gray-300">
-
-          <h3 class="section-title">Recent Announcements</h3>
-          <div id="recentAnnouncements" class="mt-4">
-              <!-- Recent announcements will be dynamically loaded here -->
-          </div>
+        <h3 class="section-title">Quick Stats</h3>
+        <div id="quickStats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 mb-8">
+            <!-- Stat cards will be dynamically loaded here -->
         </div>
+        <hr class="my-6 border-gray-300">
 
-        <!-- Profile -->
-        <div id="profile" class="dashboard-card hidden">
-          <h2 class="text-xl font-bold text-blue-700 mb-4">Your Profile</h2>
-          <form id="profileForm" class="space-y-6">
-            <!-- Basic Info -->
-            <div class="space-y-4">
-              <h3 class="text-lg font-semibold text-blue-600">Basic Information</h3>
+        <h3 class="section-title">Upcoming Classes Today</h3>
+        <div id="upcomingClasses" class="mt-4 mb-8">
+            <!-- Upcoming classes will be dynamically loaded here -->
+        </div>
+        <hr class="my-6 border-gray-300">
+
+        <h3 class="section-title">Recent Announcements</h3>
+        <div id="recentAnnouncements" class="mt-4">
+            <!-- Recent announcements will be dynamically loaded here -->
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div id="profile" class="dashboard-card hidden">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Your Profile</h2>
+        <form id="profileForm" class="space-y-6">
+          <!-- Basic Info -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-blue-600">Basic Information</h3>
+            <div>
+              <label for="profileName" class="block text-sm font-medium text-gray-700">Full Name</label>
+              <input type="text" id="profileName" placeholder="Full Name" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+            <div>
+              <label for="profileEmail" class="block text-sm font-medium text-gray-700">Email</label>
+              <input type="email" id="profileEmail" placeholder="Email" class="mt-1 w-full border p-2 rounded-md bg-gray-100 cursor-not-allowed shadow-sm" readonly/>
+            </div>
+            <div>
+              <label for="profilePhone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+              <input type="text" id="profilePhone" placeholder="Phone Number" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+            <div>
+              <label for="profileDob" class="block text-sm font-medium text-gray-700">Date of Birth</label>
+              <input type="date" id="profileDob" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+            <div>
+              <label for="profileGender" class="block text-sm font-medium text-gray-700">Gender</label>
+              <select id="profileGender" class="mt-1 w-full border p-2 rounded-md shadow-sm">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="profileAddress" class="block text-sm font-medium text-gray-700">Address</label>
+              <textarea id="profileAddress" placeholder="Your Address" rows="3" class="mt-1 w-full border p-2 rounded-md shadow-sm"></textarea>
+            </div>
+          </div>
+
+          <!-- Guardian Info -->
+          <div class="space-y-4 mt-6">
+            <h3 class="text-lg font-semibold text-blue-600">Guardian Information</h3>
+            <div>
+              <label for="profileGuardianName" class="block text-sm font-medium text-gray-700">Guardian Name</label>
+              <input type="text" id="profileGuardianName" placeholder="Guardian Full Name" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+            <div>
+              <label for="profileGuardianPhone" class="block text-sm font-medium text-gray-700">Guardian Phone</label>
+              <input type="text" id="profileGuardianPhone" placeholder="Guardian Phone Number" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+            <div>
+              <label for="profileGuardianRelation" class="block text-sm font-medium text-gray-700">Relationship</label>
+              <input type="text" id="profileGuardianRelation" placeholder="e.g., Mother, Father, Aunt" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+          </div>
+
+          <!-- Academic Info -->
+          <div class="space-y-4 mt-6">
+            <h3 class="text-lg font-semibold text-blue-600">Academic Information</h3>
+            <div>
+              <label for="profileAdmissionNo" class="block text-sm font-medium text-gray-700">Admission Number</label>
+              <input type="text" id="profileAdmissionNo" class="mt-1 w-full border p-2 rounded-md bg-gray-100 cursor-not-allowed shadow-sm" disabled value="Not assigned yet – contact administration."/>
+            </div>
+            <div>
+              <label for="profileProgram" class="block text-sm font-medium text-gray-700">Program of Study</label>
+              <input type="text" id="profileProgram" placeholder="e.g., BSc Computer Science" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
               <div>
-                <label for="profileName" class="block text-sm font-medium text-gray-700">Full Name</label>
-                <input type="text" id="profileName" placeholder="Full Name" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
-              </div>
-              <div>
-                <label for="profileEmail" class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" id="profileEmail" placeholder="Email" class="mt-1 w-full border p-2 rounded-md bg-gray-100 cursor-not-allowed shadow-sm" readonly/>
-              </div>
-              <div>
-                <label for="profilePhone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                <input type="text" id="profilePhone" placeholder="Phone Number" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
-              </div>
-              <div>
-                <label for="profileDob" class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                <input type="date" id="profileDob" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
-              </div>
-              <div>
-                <label for="profileGender" class="block text-sm font-medium text-gray-700">Gender</label>
-                <select id="profileGender" class="mt-1 w-full border p-2 rounded-md shadow-sm">
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
+                <label for="profileYear" class="block text-sm font-medium text-gray-700">Year</label>
+                <select id="profileYear" class="mt-1 w-full border p-2 rounded-md shadow-sm">
+                  <option value="">Select Year</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
                 </select>
               </div>
               <div>
-                <label for="profileAddress" class="block text-sm font-medium text-gray-700">Address</label>
-                <textarea id="profileAddress" placeholder="Your Address" rows="3" class="mt-1 w-full border p-2 rounded-md shadow-sm"></textarea>
+                <label for="profileSemester" class="block text-sm font-medium text-gray-700">Semester</label>
+                <select id="profileSemester" class="mt-1 w-full border p-2 rounded-md shadow-sm">
+                  <option value="">Select Semester</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </select>
               </div>
             </div>
+            <div>
+              <label for="profileEnrollmentDate" class="block text-sm font-medium text-gray-700">Enrollment Date</label>
+              <input type="text" id="profileEnrollmentDate" class="mt-1 w-full border p-2 rounded-md bg-gray-100 cursor-not-allowed shadow-sm" disabled value="Not set yet"/>
+            </div>
+          </div>
 
-            <!-- Guardian Info -->
-            <div class="space-y-4 mt-6">
-              <h3 class="text-lg font-semibold text-blue-600">Guardian Information</h3>
+          <!-- Profile Picture -->
+          <div class="space-y-4 mt-6">
+            <h3 class="text-lg font-semibold text-blue-600">Profile Picture</h3>
+            <div class="flex items-center space-x-4">
+              <img id="profilePicturePreview" class="h-24 w-24 rounded-full object-cover border-2 border-blue-300" src="https://placehold.co/96x96/e2e8f0/6b7280?text=No+Image" alt="Profile Picture"/>
               <div>
-                <label for="profileGuardianName" class="block text-sm font-medium text-gray-700">Guardian Name</label>
-                <input type="text" id="profileGuardianName" placeholder="Guardian Full Name" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
-              </div>
-              <div>
-                <label for="profileGuardianPhone" class="block text-sm font-medium text-gray-700">Guardian Phone</label>
-                <input type="text" id="profileGuardianPhone" placeholder="Guardian Phone Number" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
-              </div>
-              <div>
-                <label for="profileGuardianRelation" class="block text-sm font-medium text-gray-700">Relationship</label>
-                <input type="text" id="profileGuardianRelation" placeholder="e.g., Mother, Father, Aunt" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
+                <input type="file" id="profilePictureUpload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                <p class="mt-1 text-xs text-gray-500">JPG, PNG, GIF up to 2MB</p>
               </div>
             </div>
+          </div>
 
-            <!-- Academic Info -->
-            <div class="space-y-4 mt-6">
-              <h3 class="text-lg font-semibold text-blue-600">Academic Information</h3>
-              <div>
-                <label for="profileAdmissionNo" class="block text-sm font-medium text-gray-700">Admission Number</label>
-                <input type="text" id="profileAdmissionNo" class="mt-1 w-full border p-2 rounded-md bg-gray-100 cursor-not-allowed shadow-sm" disabled value="Not assigned yet – contact administration."/>
-              </div>
-              <div>
-                <label for="profileProgram" class="block text-sm font-medium text-gray-700">Program of Study</label>
-                <input type="text" id="profileProgram" placeholder="e.g., BSc Computer Science" class="mt-1 w-full border p-2 rounded-md shadow-sm"/>
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label for="profileYear" class="block text-sm font-medium text-gray-700">Year</label>
-                  <select id="profileYear" class="mt-1 w-full border p-2 rounded-md shadow-sm">
-                    <option value="">Select Year</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="profileSemester" class="block text-sm font-medium text-gray-700">Semester</label>
-                  <select id="profileSemester" class="mt-1 w-full border p-2 rounded-md shadow-sm">
-                    <option value="">Select Semester</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label for="profileEnrollmentDate" class="block text-sm font-medium text-gray-700">Enrollment Date</label>
-                <input type="text" id="profileEnrollmentDate" class="mt-1 w-full border p-2 rounded-md bg-gray-100 cursor-not-allowed shadow-sm" disabled value="Not set yet"/>
-              </div>
-            </div>
+          <button type="submit" class="btn-red mt-6">Update Profile</button>
+        </form>
+      </div>
 
-            <!-- Profile Picture -->
-            <div class="space-y-4 mt-6">
-              <h3 class="text-lg font-semibold text-blue-600">Profile Picture</h3>
-              <div class="flex items-center space-x-4">
-                <img id="profilePicturePreview" class="h-24 w-24 rounded-full object-cover border-2 border-blue-300" src="https://placehold.co/96x96/e2e8f0/6b7280?text=No+Image" alt="Profile Picture"/>
-                <div>
-                  <input type="file" id="profilePictureUpload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                  <p class="mt-1 text-xs text-gray-500">JPG, PNG, GIF up to 2MB</p>
-                </div>
+      <!-- Settings -->
+      <div id="settings" class="dashboard-card hidden">
+          <h2 class="text-xl font-bold text-blue-700 mb-4">Settings</h2>
+          <form id="settingsForm" class="space-y-6">
+              <!-- Account Security -->
+              <div class="space-y-4">
+                  <h3 class="text-lg font-semibold text-blue-600">Account Security 🔒</h3>
+                  <div>
+                      <button type="button" onclick="changePassword()" class="btn-red">Change Password</button>
+                  </div>
+                  <div>
+                      <button type="button" id="changeEmailBtn" class="btn-red">Change Email</button>
+                  </div>
+                  <div class="flex items-center">
+                      <input type="checkbox" id="twoFactorEnabled" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      <label for="twoFactorEnabled" class="ml-2 block text-sm text-gray-900">Enable Two-Step Verification</label>
+                  </div>
               </div>
-            </div>
 
-            <button type="submit" class="btn-red mt-6">Update Profile</button>
+              <!-- Notification Preferences -->
+              <div class="space-y-4 mt-6">
+                  <h3 class="text-lg font-semibold text-blue-600">Notification Preferences 🔔</h3>
+                  <div class="flex items-center">
+                      <input type="checkbox" id="notifyEmail" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      <label for="notifyEmail" class="ml-2 block text-sm text-gray-900">Email Notifications (Announcements, Fees Alerts)</label>
+                  </div>
+                  <div class="flex items-center">
+                      <input type="checkbox" id="notifyInApp" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      <label for="notifyInApp" class="ml-2 block text-sm text-gray-900">In-app Notifications</label>
+                  </div>
+                  <div class="flex items-center">
+                      <input type="checkbox" id="notifySms" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      <label for="notifySms" class="ml-2 block text-sm text-gray-900">SMS Alerts</label>
+                  </div>
+              </div>
+
+              <!-- Privacy & Data -->
+              <div class="space-y-4 mt-6">
+                  <h3 class="text-lg font-semibold text-blue-600">Privacy & Data 🕵️</h3>
+                  <div class="flex items-center">
+                      <input type="checkbox" id="showProfileToClassmates" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      <label for="showProfileToClassmates" class="ml-2 block text-sm text-gray-900">Show profile to classmates</label>
+                  </div>
+                  <div>
+                      <button type="button" class="btn-red">Download Personal Data (Future Feature)</button>
+                  </div>
+              </div>
+
+              <button type="submit" class="btn-red mt-6">Save Settings</button>
           </form>
-        </div>
 
-        <!-- Settings -->
-        <div id="settings" class="dashboard-card hidden">
-            <h2 class="text-xl font-bold text-blue-700 mb-4">Settings</h2>
-            <form id="settingsForm" class="space-y-6">
-                <!-- Account Security -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-blue-600">Account Security 🔒</h3>
-                    <div>
-                        <button type="button" onclick="changePassword()" class="btn-red">Change Password</button>
-                    </div>
-                    <div>
-                        <button type="button" id="changeEmailBtn" class="btn-red">Change Email</button>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="twoFactorEnabled" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="twoFactorEnabled" class="ml-2 block text-sm text-gray-900">Enable Two-Step Verification</label>
-                    </div>
-                </div>
-
-                <!-- Notification Preferences -->
-                <div class="space-y-4 mt-6">
-                    <h3 class="text-lg font-semibold text-blue-600">Notification Preferences 🔔</h3>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="notifyEmail" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="notifyEmail" class="ml-2 block text-sm text-gray-900">Email Notifications (Announcements, Fees Alerts)</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="notifyInApp" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="notifyInApp" class="ml-2 block text-sm text-gray-900">In-app Notifications</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="notifySms" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="notifySms" class="ml-2 block text-sm text-gray-900">SMS Alerts</label>
-                    </div>
-                </div>
-
-                <!-- Privacy & Data -->
-                <div class="space-y-4 mt-6">
-                    <h3 class="text-lg font-semibold text-blue-600">Privacy & Data 🕵️</h3>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="showProfileToClassmates" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="showProfileToClassmates" class="ml-2 block text-sm text-gray-900">Show profile to classmates</label>
-                    </div>
-                    <div>
-                        <button type="button" class="btn-red">Download Personal Data (Future Feature)</button>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-red mt-6">Save Settings</button>
-            </form>
-
-            <!-- Danger Zone -->
-            <div class="space-y-4 mt-8 pt-8 border-t border-gray-200">
-                <h3 class="text-lg font-semibold text-red-600">Danger Zone ⚠️</h3>
-                <p class="text-sm text-gray-600">This action cannot be undone. Please proceed with caution.</p>
-                <div>
-                    <button type="button" id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">Delete Account</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Course Registration -->
-        <div id="courseReg" class="dashboard-card hidden">
-          <h2 class="text-xl font-bold text-blue-700 mb-4">Course Registration</h2>
-          <div class="space-y-4">
-            <h3 class="text-lg font-bold text-blue-600 mb-3">Filter Courses</h3>
-            
-            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
-              <select id="yearSelect" class="border p-2 rounded-md flex-grow">
-                <option value="">Select Year</option>
-                <option value="1">Year 1</option>
-                <option value="2">Year 2</option>
-                <option value="3">Year 3</option>
-                <option value="4">Year 4</option>
-              </select>
-              <select id="semesterSelect" class="border p-2 rounded-md flex-grow">
-                <option value="">Select Semester</option>
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-                <option value="3">Semester 3</option>
-              </select>
-              <button onclick="filterAndLoadCourses()" class="btn-red">Load Courses</button>
-            </div>
-
-            <h4 class="text-md font-semibold text-blue-600 mt-6 mb-3">Available Courses</h4>
-            <div id="availableCoursesList" class="mb-6 space-y-2">
-              <!-- Available courses will be dynamically loaded here -->
-              <div class="empty-state">Select year and semester to load available courses.</div>
-            </div>
-            <button onclick="registerSelectedCourses()" class="btn-red w-full sm:w-auto">Register Selected Courses</button>
-          </div>
-
-          <h4 class="text-md font-semibold text-blue-600 mt-8 mb-3 border-t pt-6">Currently Registered Courses</h4>
-          <div id="registeredCoursesDisplay" class="overflow-x-auto">
-              <table class="w-full border-collapse border mt-2">
-                  <thead class="bg-gray-100">
-                      <tr>
-                          <th class="p-2 border text-left">Code</th>
-                          <th class="p-2 border text-left">Title</th>
-                          <th class="p-2 border text-left">Credits</th>
-                          <th class="p-2 border text-left">Lecturer</th>
-                          <th class="p-2 border text-left">Action</th>
-                      </tr>
-                  </thead>
-                  <tbody id="registeredCoursesTable">
-                      <!-- Registered courses will be dynamically loaded here -->
-                      <tr><td colspan="5" class="p-4 text-center text-gray-500">You haven’t registered for any courses yet.</td></tr>
-                  </tbody>
-              </table>
-          </div>
-        </div>
-
-        <!-- Timetable -->
-        <div id="timetable" class="dashboard-card hidden">
-          <h2 class="text-xl font-bold text-blue-700 mb-4">Timetable</h2>
-          <div class="space-y-4">
-              <h3 class="text-lg font-bold text-blue-600 mb-3">Weekly Timetable Overview</h3>
-              
-              <!-- Optional Filters -->
-              <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
-                  <select id="timetableYear" class="border p-2 rounded-md flex-grow">
-                      <option value="">Select Year</option>
-                      <option value="1">Year 1</option>
-                      <option value="2">Year 2</option>
-                      <option value="3">Year 3</option>
-                      <option value="4">Year 4</option>
-                  </select>
-                  <select id="timetableSemester" class="border p-2 rounded-md flex-grow">
-                      <option value="">Select Semester</option>
-                      <option value="1">Semester 1</option>
-                      <option value="2">Semester 2</option>
-                      <option value="3">Semester 3</option>
-                  </select>
-                  <button onclick="handleLoadTimetable()" class="btn-red">Load Timetable</button>
-              </div>
-
-              <!-- Timetable Grid -->
-              <div class="overflow-x-auto">
-                  <table class="w-full border-collapse border mt-2">
-                      <thead class="bg-gray-100">
-                          <tr>
-                              <th class="p-2 border text-left">Time</th>
-                              <th class="p-2 border text-left">Monday</th>
-                              <th class="p-2 border text-left">Tuesday</th>
-                              <th class="p-2 border text-left">Wednesday</th>
-                              <th class="p-2 border text-left">Thursday</th>
-                              <th class="p-2 border text-left">Friday</th>
-                          </tr>
-                      </thead>
-                      <tbody id="timetableTable">
-                          <tr><td colspan="6" class="p-4 text-center text-gray-500">Select year and semester and click "Load Timetable" to view your schedule.</td></tr>
-                      </tbody>
-                  </table>
+          <!-- Danger Zone -->
+          <div class="space-y-4 mt-8 pt-8 border-t border-gray-200">
+              <h3 class="text-lg font-semibold text-red-600">Danger Zone ⚠️</h3>
+              <p class="text-sm text-gray-600">This action cannot be undone. Please proceed with caution.</p>
+              <div>
+                  <button type="button" id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">Delete Account</button>
               </div>
           </div>
-        </div>
+      </div>
 
-        <!-- Grades -->
-        <div id="grades" class="dashboard-card hidden">
-          <h2 class="text-xl font-bold text-blue-700 mb-4">Grades & Transcript</h2>
-
-          <!-- Filters -->
+      <!-- Course Registration -->
+      <div id="courseReg" class="dashboard-card hidden">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Course Registration</h2>
+        <div class="space-y-4">
+          <h3 class="text-lg font-bold text-blue-600 mb-3">Filter Courses</h3>
+          
           <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
-            <select id="gradesYear" class="border p-2 rounded-md flex-grow">
+            <select id="yearSelect" class="border p-2 rounded-md flex-grow">
               <option value="">Select Year</option>
               <option value="1">Year 1</option>
               <option value="2">Year 2</option>
               <option value="3">Year 3</option>
               <option value="4">Year 4</option>
             </select>
-            <select id="gradesSemester" class="border p-2 rounded-md flex-grow">
+            <select id="semesterSelect" class="border p-2 rounded-md flex-grow">
               <option value="">Select Semester</option>
               <option value="1">Semester 1</option>
               <option value="2">Semester 2</option>
               <option value="3">Semester 3</option>
             </select>
-            <button onclick="handleLoadGrades()" class="btn-red">Load Grades</button>
+            <button onclick="filterAndLoadCourses()" class="btn-red">Load Courses</button>
           </div>
 
-          <!-- Grades Table -->
-          <div class="overflow-x-auto mb-4">
-              <table class="w-full border-collapse border mt-2">
-                  <thead class="bg-gray-100">
-                      <tr>
-                          <th class="p-2 border text-left">Code</th>
-                          <th class="p-2 border text-left">Title</th>
-                          <th class="p-2 border text-left">Credits</th>
-                          <th class="p-2 border text-left">Grade</th>
-                          <th class="p-2 border text-left">Points</th>
-                          <th class="p-2 border text-left">Lecturer</th>
-                      </tr>
-                  </thead>
-                  <tbody id="gradesTable">
-                      <tr><td colspan="6" class="p-4 text-center text-gray-500">Select year and semester and click "Load Grades" to view.</td></tr>
-                  </tbody>
-              </table>
+          <h4 class="text-md font-semibold text-blue-600 mt-6 mb-3">Available Courses</h4>
+          <div id="availableCoursesList" class="mb-6 space-y-2">
+            <!-- Available courses will be dynamically loaded here -->
+            <div class="empty-state">Select year and semester to load available courses.</div>
           </div>
-
-          <!-- GPA Section -->
-          <div class="mt-4 space-y-2">
-            <p id="semesterGpa" class="font-semibold text-blue-700">Semester GPA: N/A</p>
-            <p id="cumulativeGpa" class="font-semibold text-blue-700">Cumulative GPA: N/A</p>
-          </div>
-
-          <!-- Transcript -->
-          <button onclick="downloadTranscript()" class="btn-red mt-4">Download Transcript (PDF)</button>
+          <button onclick="registerSelectedCourses()" class="btn-red w-full sm:w-auto">Register Selected Courses</button>
         </div>
 
-        <!-- Exam Card -->
-        <div id="examCard" class="dashboard-card hidden">
-          <h2 class="text-xl font-bold text-blue-700 mb-4">Exam Card</h2>
-
-          <!-- Info Section -->
-          <div id="examCardInfo" class="mb-4 text-sm text-gray-700 p-4 border rounded-md bg-blue-50">
-            <p><strong>Name:</strong> <span id="examName">Loading...</span></p>
-            <p><strong>Admission No:</strong> <span id="examAdmNo">Loading...</span></p>
-            <p><strong>Program:</strong> <span id="examProgram">Loading...</span></p>
-            <p><strong>Year / Semester:</strong> <span id="examYearSem">Loading...</span></p>
-          </div>
-
-          <!-- Courses Table -->
-          <div class="overflow-x-auto mb-4">
-              <table class="w-full border-collapse border mt-2">
-                  <thead class="bg-gray-100">
-                      <tr>
-                          <th class="p-2 border text-left">Code</th>
-                          <th class="p-2 border text-left">Title</th>
-                          <th class="p-2 border text-left">Credits</th>
-                          <th class="p-2 border text-left">Lecturer</th>
-                          <th class="p-2 border text-left">Venue</th>
-                          <th class="p-2 border text-left">Date</th>
-                      </tr>
-                  </thead>
-                  <tbody id="examCoursesTable">
-                      <tr><td colspan="6" class="p-4 text-center text-gray-500">Loading registered courses and exam schedule...</td></tr>
-                  </tbody>
-              </table>
-          </div>
-
-          <!-- Status -->
-          <div id="examStatus" class="mb-4 p-3 rounded-md text-center text-lg font-semibold bg-gray-100 border border-gray-300">
-              Checking finance clearance...
-          </div>
-
-          <!-- Download -->
-          <button onclick="downloadExamCard()" class="btn-red w-full sm:w-auto">Download Exam Card (PDF)</button>
+        <h4 class="text-md font-semibold text-blue-600 mt-8 mb-3 border-t pt-6">Currently Registered Courses</h4>
+        <div id="registeredCoursesDisplay" class="overflow-x-auto">
+            <table class="w-full border-collapse border mt-2">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-2 border text-left">Code</th>
+                        <th class="p-2 border text-left">Title</th>
+                        <th class="p-2 border text-left">Credits</th>
+                        <th class="p-2 border text-left">Lecturer</th>
+                        <th class="p-2 border text-left">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="registeredCoursesTable">
+                    <!-- Registered courses will be dynamically loaded here -->
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">You haven’t registered for any courses yet.</td></tr>
+                </tbody>
+            </table>
         </div>
+      </div>
 
-        <!-- Graduation -->
-        <div id="graduation" class="dashboard-card hidden">
-          <h3 class="text-lg font-bold text-blue-600 mb-3">Graduation Request</h3>
-
-          <div id="graduationContent">
-            <!-- Content (form or status) will be loaded dynamically here by JavaScript -->
-            <div class="empty-state">Loading graduation status...</div>
-          </div>
-        </div>
-
-        <!-- Clearance -->
-        <div id="clearance" class="dashboard-card hidden">
-          <h3 class="text-lg font-bold text-blue-600 mb-3">Clearance Request</h3>
-
-          <div id="clearanceContent">
-              <!-- Dynamic content: form or status card -->
-              <div class="empty-state">Loading clearance status...</div>
-          </div>
-        </div>
-
-        <!-- Finance -->
-        <div id="finance" class="dashboard-card hidden">
-          <h3 class="text-lg font-bold text-blue-600 mb-3">Finance</h3>
-
-          <!-- Fees Summary -->
-          <div id="financeSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div class="finance-summary-card bg-blue-50">
-                  <p class="label">Total Fees Charged</p>
-                  <p id="totalFees" class="value text-blue-700">KES 0</p>
-              </div>
-              <div class="finance-summary-card bg-green-50">
-                  <p class="label">Total Payments Made</p>
-                  <p id="totalPaid" class="value text-green-700">KES 0</p>
-              </div>
-              <div class="finance-summary-card bg-red-50">
-                  <p class="label">Outstanding Balance</p>
-                  <p id="balance" class="value text-red-700">KES 0</p>
-              </div>
-          </div>
-          <div id="financeStatusMessage" class="finance-status-message">
-              Loading finance status...
-          </div>
-
-          <h4 class="font-semibold text-blue-500 mb-2 mt-6">Transactions History</h4>
-          <div class="overflow-x-auto mb-4">
-              <table class="w-full border-collapse border mt-2">
-                  <thead class="bg-gray-100">
-                      <tr>
-                          <th class="p-2 border text-left">Date</th>
-                          <th class="p-2 border text-left">Description</th>
-                          <th class="p-2 border text-left">Type</th>
-                          <th class="p-2 border text-right">Amount (KES)</th>
-                          <th class="p-2 border text-right">Running Balance (KES)</th>
-                      </tr>
-                  </thead>
-                  <tbody id="financeTable">
-                      <tr><td colspan="5" class="p-4 text-center text-gray-500">No transactions recorded.</td></tr>
-                  </tbody>
-              </table>
-          </div>
-
-          <!-- Statement -->
-          <button onclick="downloadStatement()" class="btn-red w-full sm:w-auto mt-4"><i class="fas fa-download mr-2"></i> Download Fee Statement (PDF)</button>
-
-          <!-- Upcoming Fee Deadlines (Optional) -->
-          <div id="upcomingFeeDeadlines" class="finance-upcoming-deadlines hidden">
-              <h4 class="font-semibold text-blue-700 mb-3">Upcoming Fee Deadlines</h4>
-              <ul id="feeDeadlinesList">
-                  <div class="empty-state">No upcoming fee deadlines.</div>
-              </ul>
-          </div>
-
-        </div>
-
-        <!-- Hostels -->
-        <div id="hostels" class="dashboard-card hidden">
-          <h3 class="text-lg font-bold text-blue-600 mb-3">Hostel Accommodation</h3>
-
-          <!-- Student Booking Status -->
-          <div id="currentBooking" class="mb-6">
-            <h4 class="font-semibold text-blue-500">Your Current Booking</h4>
-            <div id="bookingDetails" class="empty-state">No booking yet.</div>
-          </div>
-
-          <!-- Available Hostels -->
-          <h4 class="font-semibold text-blue-500 mb-2">Available Hostels</h4>
-          <div id="hostelList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div class="empty-state full-width">No hostels available at the moment.</div>
-          </div>
-
-          <!-- Room List (Shown when hostel clicked) -->
-          <div id="roomList" class="mt-6 hidden">
-            <h4 class="font-semibold text-blue-500 mb-2" id="roomsForHostelTitle">Rooms for [Hostel Name]</h4>
-            <button onclick="backToHostels()" class="btn-red text-xs mb-4"><i class="fas fa-arrow-left mr-2"></i> Back to Hostels</button>
-            <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="empty-state full-width">Loading rooms...</div>
+      <!-- Timetable -->
+      <div id="timetable" class="dashboard-card hidden">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Timetable</h2>
+        <div class="space-y-4">
+            <h3 class="text-lg font-bold text-blue-600 mb-3">Weekly Timetable Overview</h3>
+            
+            <!-- Optional Filters -->
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+                <select id="timetableYear" class="border p-2 rounded-md flex-grow">
+                    <option value="">Select Year</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
+                </select>
+                <select id="timetableSemester" class="border p-2 rounded-md flex-grow">
+                    <option value="">Select Semester</option>
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                    <option value="3">Semester 3</option>
+                </select>
+                <button onclick="handleLoadTimetable()" class="btn-red">Load Timetable</button>
             </div>
-          </div>
 
-          <!-- Hostel Rules & Notices -->
-          <div id="hostelRulesNotices" class="hostel-rules-card hidden">
-              <h4 class="font-semibold text-orange-700 mb-3">Hostel Rules & Important Notices</h4>
-              <div id="rulesContent">
-                  <ul>
-                      <li>Curfew is at 10:00 PM on weekdays and 11:00 PM on weekends.</li>
-                      <li>No guests are allowed after 9:00 PM.</li>
-                      <li>Keep your room and common areas clean.</li>
-                      <li>Report any maintenance issues immediately to the hostel warden.</li>
-                      <li>Silence hours are from 10:00 PM to 6:00 AM.</li>
-                      <li>No cooking is allowed inside rooms. Use designated common kitchens.</li>
-                  </ul>
-              </div>
-              <h5 class="font-semibold text-orange-700 mt-4 mb-2">Important Notices:</h5>
-              <div id="hostelNoticesList">
-                  <div class="empty-state">No special notices for hostels at this time.</div>
-              </div>
-          </div>
+            <!-- Timetable Grid -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border mt-2">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="p-2 border text-left">Time</th>
+                            <th class="p-2 border text-left">Monday</th>
+                            <th class="p-2 border text-left">Tuesday</th>
+                            <th class="p-2 border text-left">Wednesday</th>
+                            <th class="p-2 border text-left">Thursday</th>
+                            <th class="p-2 border text-left">Friday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="timetableTable">
+                        <tr><td colspan="6" class="p-4 text-center text-gray-500">Select year and semester and click "Load Timetable" to view your schedule.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+      </div>
 
+      <!-- Grades -->
+      <div id="grades" class="dashboard-card hidden">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Grades & Transcript</h2>
+
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+          <select id="gradesYear" class="border p-2 rounded-md flex-grow">
+            <option value="">Select Year</option>
+            <option value="1">Year 1</option>
+            <option value="2">Year 2</option>
+            <option value="3">Year 3</option>
+            <option value="4">Year 4</option>
+          </select>
+          <select id="gradesSemester" class="border p-2 rounded-md flex-grow">
+            <option value="">Select Semester</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+            <option value="3">Semester 3</option>
+          </select>
+          <button onclick="handleLoadGrades()" class="btn-red">Load Grades</button>
         </div>
 
-        <!-- Announcements -->
-        <div id="announcements" class="dashboard-card hidden">
-          <h3 class="text-lg font-bold text-blue-600 mb-3">Announcements</h3>
+        <!-- Grades Table -->
+        <div class="overflow-x-auto mb-4">
+            <table class="w-full border-collapse border mt-2">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-2 border text-left">Code</th>
+                        <th class="p-2 border text-left">Title</th>
+                        <th class="p-2 border text-left">Credits</th>
+                        <th class="p-2 border text-left">Grade</th>
+                        <th class="p-2 border text-left">Points</th>
+                        <th class="p-2 border text-left">Lecturer</th>
+                    </tr>
+                </thead>
+                <tbody id="gradesTable">
+                    <tr><td colspan="6" class="p-4 text-center text-gray-500">Select year and semester and click "Load Grades" to view.</td></tr>
+                </tbody>
+            </table>
+        </div>
 
-          <!-- Filter -->
-          <div class="flex space-x-2 mb-4">
-            <select id="announcementFilter" class="border p-2 rounded">
-              <option value="all">All</option>
-              <option value="Academics">Academics</option>
-              <option value="Finance">Finance</option>
-              <option value="Hostel">Hostel</option>
-              <option value="Events">Events</option>
-              <option value="General">General</option>
-            </select>
-            <button onclick="loadAnnouncements(document.getElementById('announcementFilter').value)" class="btn-red">Filter</button>
-          </div>
+        <!-- GPA Section -->
+        <div class="mt-4 space-y-2">
+          <p id="semesterGpa" class="font-semibold text-blue-700">Semester GPA: N/A</p>
+          <p id="cumulativeGpa" class="font-semibold text-blue-700">Cumulative GPA: N/A</p>
+        </div>
 
-          <!-- List -->
-          <div id="announcementList" class="space-y-4">
-              <div class="empty-state">Loading announcements...</div>
+        <!-- Transcript -->
+        <button onclick="downloadTranscript()" class="btn-red mt-4">Download Transcript (PDF)</button>
+      </div>
+
+      <!-- Exam Card -->
+      <div id="examCard" class="dashboard-card hidden">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Exam Card</h2>
+
+        <!-- Info Section -->
+        <div id="examCardInfo" class="mb-4 text-sm text-gray-700 p-4 border rounded-md bg-blue-50">
+          <p><strong>Name:</strong> <span id="examName">Loading...</span></p>
+          <p><strong>Admission No:</strong> <span id="examAdmNo">Loading...</span></p>
+          <p><strong>Program:</strong> <span id="examProgram">Loading...</span></p>
+          <p><strong>Year / Semester:</strong> <span id="examYearSem">Loading...</span></p>
+        </div>
+
+        <!-- Courses Table -->
+        <div class="overflow-x-auto mb-4">
+            <table class="w-full border-collapse border mt-2">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-2 border text-left">Code</th>
+                        <th class="p-2 border text-left">Title</th>
+                        <th class="p-2 border text-left">Credits</th>
+                        <th class="p-2 border text-left">Lecturer</th>
+                        <th class="p-2 border text-left">Venue</th>
+                        <th class="p-2 border text-left">Date</th>
+                    </tr>
+                </thead>
+                <tbody id="examCoursesTable">
+                    <tr><td colspan="6" class="p-4 text-center text-gray-500">Loading registered courses and exam schedule...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Status -->
+        <div id="examStatus" class="mb-4 p-3 rounded-md text-center text-lg font-semibold bg-gray-100 border border-gray-300">
+            Checking finance clearance...
+        </div>
+
+        <!-- Download -->
+        <button onclick="downloadExamCard()" class="btn-red w-full sm:w-auto">Download Exam Card (PDF)</button>
+      </div>
+
+      <!-- Graduation -->
+      <div id="graduation" class="dashboard-card hidden">
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Graduation Request</h3>
+
+        <div id="graduationContent">
+          <!-- Content (form or status) will be loaded dynamically here by JavaScript -->
+          <div class="empty-state">Loading graduation status...</div>
+        </div>
+      </div>
+
+      <!-- Clearance -->
+      <div id="clearance" class="dashboard-card hidden">
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Clearance Request</h3>
+
+        <div id="clearanceContent">
+            <!-- Dynamic content: form or status card -->
+            <div class="empty-state">Loading clearance status...</div>
+        </div>
+      </div>
+
+      <!-- Finance -->
+      <div id="finance" class="dashboard-card hidden">
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Finance</h3>
+
+        <!-- Fees Summary -->
+        <div id="financeSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="finance-summary-card bg-blue-50">
+                <p class="label">Total Fees Charged</p>
+                <p id="totalFees" class="value text-blue-700">KES 0</p>
+            </div>
+            <div class="finance-summary-card bg-green-50">
+                <p class="label">Total Payments Made</p>
+                <p id="totalPaid" class="value text-green-700">KES 0</p>
+            </div>
+            <div class="finance-summary-card bg-red-50">
+                <p class="label">Outstanding Balance</p>
+                <p id="balance" class="value text-red-700">KES 0</p>
+            </div>
+        </div>
+        <div id="financeStatusMessage" class="finance-status-message">
+            Loading finance status...
+        </div>
+
+        <h4 class="font-semibold text-blue-500 mb-2 mt-6">Transactions History</h4>
+        <div class="overflow-x-auto mb-4">
+            <table class="w-full border-collapse border mt-2">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-2 border text-left">Date</th>
+                        <th class="p-2 border text-left">Description</th>
+                        <th class="p-2 border text-left">Type</th>
+                        <th class="p-2 border text-right">Amount (KES)</th>
+                        <th class="p-2 border text-right">Running Balance (KES)</th>
+                    </tr>
+                </thead>
+                <tbody id="financeTable">
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">No transactions recorded.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Statement -->
+        <button onclick="downloadStatement()" class="btn-red w-full sm:w-auto mt-4"><i class="fas fa-download mr-2"></i> Download Fee Statement (PDF)</button>
+
+        <!-- Upcoming Fee Deadlines (Optional) -->
+        <div id="upcomingFeeDeadlines" class="finance-upcoming-deadlines hidden">
+            <h4 class="font-semibold text-blue-700 mb-3">Upcoming Fee Deadlines</h4>
+            <ul id="feeDeadlinesList">
+                <div class="empty-state">No upcoming fee deadlines.</div>
+            </ul>
+        </div>
+
+      </div>
+
+      <!-- Hostels -->
+      <div id="hostels" class="dashboard-card hidden">
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Hostel Accommodation</h3>
+
+        <!-- Student Booking Status -->
+        <div id="currentBooking" class="mb-6">
+          <h4 class="font-semibold text-blue-500">Your Current Booking</h4>
+          <div id="bookingDetails" class="empty-state">No booking yet.</div>
+        </div>
+
+        <!-- Available Hostels -->
+        <h4 class="font-semibold text-blue-500 mb-2">Available Hostels</h4>
+        <div id="hostelList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="empty-state full-width">No hostels available at the moment.</div>
+        </div>
+
+        <!-- Room List (Shown when hostel clicked) -->
+        <div id="roomList" class="mt-6 hidden">
+          <h4 class="font-semibold text-blue-500 mb-2" id="roomsForHostelTitle">Rooms for [Hostel Name]</h4>
+          <button onclick="backToHostels()" class="btn-red text-xs mb-4"><i class="fas fa-arrow-left mr-2"></i> Back to Hostels</button>
+          <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="empty-state full-width">Loading rooms...</div>
           </div>
         </div>
-      </main>
-    </div>
 
-    <footer class="bg-white p-4 text-center border-t text-sm">
-      © 2025 Prince Alex Design University. All rights reserved.
-    </footer>
+        <!-- Hostel Rules & Notices -->
+        <div id="hostelRulesNotices" class="hostel-rules-card hidden">
+            <h4 class="font-semibold text-orange-700 mb-3">Hostel Rules & Important Notices</h4>
+            <div id="rulesContent">
+                <ul>
+                    <li>Curfew is at 10:00 PM on weekdays and 11:00 PM on weekends.</li>
+                    <li>No guests are allowed after 9:00 PM.</li>
+                    <li>Keep your room and common areas clean.</li>
+                    <li>Report any maintenance issues immediately to the hostel warden.</li>
+                    <li>Silence hours are from 10:00 PM to 6:00 AM.</li>
+                    <li>No cooking is allowed inside rooms. Use designated common kitchens.</li>
+                </ul>
+            </div>
+            <h5 class="font-semibold text-orange-700 mt-4 mb-2">Important Notices:</h5>
+            <div id="hostelNoticesList">
+                <div class="empty-state">No special notices for hostels at this time.</div>
+            </div>
+        </div>
+
+      </div>
+
+      <!-- Announcements -->
+      <div id="announcements" class="dashboard-card hidden">
+        <h3 class="text-lg font-bold text-blue-600 mb-3">Announcements</h3>
+
+        <!-- Filter -->
+        <div class="flex space-x-2 mb-4">
+          <select id="announcementFilter" class="border p-2 rounded">
+            <option value="all">All</option>
+            <option value="Academics">Academics</option>
+            <option value="Finance">Finance</option>
+            <option value="Hostel">Hostel</option>
+            <option value="Events">Events</option>
+            <option value="General">General</option>
+          </select>
+          <button onclick="loadAnnouncements(document.getElementById('announcementFilter').value)" class="btn-red">Filter</button>
+        </div>
+
+        <!-- List -->
+        <div id="announcementList" class="space-y-4">
+            <div class="empty-state">Loading announcements...</div>
+        </div>
+      </div>
+    </main>
   </div>
+
+  <footer class="bg-white p-4 text-center border-t text-sm">
+    © 2025 Prince Alex Design University. All rights reserved.
+  </footer>
 
     <!-- Announcement Read More Modal -->
     <div id="announcementReadMoreModal" class="announcement-modal hidden">
@@ -1271,9 +1257,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     const storage = getStorage(app); // Initialize Firebase Storage
-
-    // Reassigning loadingOverlay to the new #loading div for universal control
-    const loadingOverlay = document.getElementById('loading');
+    const loadingOverlay = document.getElementById('loadingOverlay');
 
     const userEmailSpan = document.getElementById("userEmail");
     const profileForm = document.getElementById("profileForm");
@@ -1390,56 +1374,21 @@
       document.getElementById(id).classList.remove("hidden");
     };
 
-    // Auth check - Universal Loader with Error Handling
+    // Auth check
     onAuthStateChanged(auth, async (user) => {
-        const loadingDiv = document.getElementById("loading");
-        const errorDiv = document.getElementById("errorBox"); // For critical, dashboard-blocking errors
-        const dashboardContentDiv = document.getElementById("dashboardContent");
-        const dashboardWarningBox = document.getElementById("dashboardWarningBox"); // For non-critical warnings within dashboard
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        loadingOverlay.classList.remove('hidden'); // Show loading overlay
+        userEmailSpan.textContent = user.email;
+        // Load dashboard overview data first
+        await loadDashboardOverview(user.uid);
+        // Load profile and settings data on initial auth to ensure they are ready when their sections are displayed
+        await loadProfile(user.uid);
+        await loadSettings(user.uid);
 
-        // Ensure initial states
-        loadingDiv.classList.remove("hidden"); // Show loading spinner
-        errorDiv.classList.add("hidden");
-        dashboardContentDiv.classList.add("hidden");
-        dashboardWarningBox.classList.add("hidden");
-
-        if (!user) {
-            // Not logged in → redirect
-            window.location.href = "login.html";
-        } else {
-            try {
-                const studentDocRef = doc(db, "students", user.uid);
-                const studentSnap = await getDoc(studentDocRef);
-
-                userEmailSpan.textContent = user.email; // Always set email if user exists
-
-                // Load initial data (even if profile is missing, for the warning case)
-                // These functions now internally use `loadingOverlay` which points to `#loading`
-                await loadDashboardOverview(user.uid);
-                await loadProfile(user.uid);
-                await loadSettings(user.uid);
-
-                loadingDiv.classList.add("hidden"); // Hide the main loader now that data is loaded/attempted
-                dashboardContentDiv.classList.remove("hidden"); // Show the dashboard content
-
-                if (!studentSnap.exists()) {
-                    // ⚠ Profile missing but still show dashboard with warning
-                    dashboardWarningBox.innerHTML = `<p class="font-semibold">⚠ Profile not found. Please complete your profile under the 'Profile' section to ensure full functionality.</p>`;
-                    dashboardWarningBox.classList.remove("hidden");
-                } else {
-                    dashboardWarningBox.classList.add("hidden"); // Hide warning if profile is found
-                }
-
-            } catch (err) {
-                // ❌ Critical error fetching initial data → show full-screen error, hide dashboard
-                console.error("Critical error loading dashboard:", err);
-                loadingDiv.classList.add("hidden"); // Hide any lingering loader
-                errorDiv.innerHTML = `<p class="text-lg font-semibold text-red-600">❌ Error loading dashboard: ${getFriendlyErrorMessage(err.code || err.message)}</p>`;
-                errorDiv.classList.remove("hidden"); // Show the critical error overlay
-                dashboardContentDiv.classList.add("hidden"); // Keep dashboard hidden
-                dashboardWarningBox.classList.add("hidden"); // Ensure no warning is shown
-            }
-        }
+        loadingOverlay.classList.add('hidden'); // Hide loading overlay
+      }
     });
 
     // Logout
@@ -1453,18 +1402,7 @@
      * Dashboard Overview Functions
      */
     async function loadDashboardOverview(uid) {
-        // Individual loading calls within sections will now use the shared 'loadingOverlay'
-        // which references the main #loading div.
-        // For sub-section specific loaders, a more localized approach would be needed.
-        // For now, these functions are called after the initial #loading is hidden,
-        // so if they take time, the #loading overlay will reappear.
-        // This implicitly handles loading for these sections through the universal loader.
-
-        // Ensure we handle current user for dashboard overview
-        const user = auth.currentUser;
-        if (!user) return; // Should not happen if onAuthStateChanged works correctly
-
-        const studentDocRef = doc(db, "students", user.uid);
+        const studentDocRef = doc(db, "students", uid);
         const studentSnap = await getDoc(studentDocRef);
         let studentData = {};
         if (studentSnap.exists()) {
@@ -1474,8 +1412,8 @@
              document.getElementById('welcomeMessage').textContent = `Welcome back, ${userEmailSpan.textContent.split('@')[0]}!`;
         }
 
-        await loadQuickStats(user.uid, studentData);
-        await loadUpcomingClasses(user.uid, studentData);
+        await loadQuickStats(uid, studentData);
+        await loadUpcomingClasses(uid, studentData);
         await loadRecentAnnouncements();
     }
 
