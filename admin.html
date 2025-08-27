@@ -3,48 +3,56 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Admin — University Dashboard (Full CRUD)</title>
+<title>Admin — University (Full CRUD)</title>
 
-<!-- Tailwind + FontAwesome -->
+<!-- Tailwind + Font Awesome -->
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
-
-<!-- jsPDF for exports -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
   body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f3f4f6; }
   .card { background:white; border-radius:12px; box-shadow:0 8px 28px rgba(2,6,23,0.06); }
   .small { font-size:.85rem; }
+  .msg { padding:.5rem 1rem; border-radius:8px; margin-bottom: .75rem; }
+  .msg.error { background:#fee2e2; color:#b91c1c; }
+  .msg.success { background:#ecfdf5; color:#065f46; }
+  .msg.info { background:#eef2ff; color:#3730a3; }
 </style>
 </head>
 <body class="min-h-screen">
 
-<!-- Login Screen -->
+<!-- Login / Global messages -->
 <div id="loginView" class="min-h-screen flex items-center justify-center">
   <div class="w-full max-w-md bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-3">Admin Sign In</h1>
-    <p class="text-sm text-slate-500 mb-4">Sign in with an admin account (must exist in <code>admins/{uid}.isAdmin</code>).</p>
-    <div class="space-y-3">
-      <input id="loginEmail" type="email" placeholder="admin@example.com" class="w-full p-2 border rounded" />
-      <input id="loginPassword" type="password" placeholder="Password" class="w-full p-2 border rounded" />
-      <div class="flex gap-2">
-        <button id="btnSignIn" class="flex-1 bg-blue-600 text-white py-2 rounded">Sign in</button>
-        <button id="btnDemo" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded">Demo data</button>
-      </div>
-      <div id="loginMsg" class="text-sm text-red-600"></div>
+    <h1 class="text-2xl font-bold mb-2">Admin Sign In</h1>
+    <p class="text-sm text-slate-500 mb-4">You must have a Firestore doc at <code>admins/{uid}</code> with <code>isAdmin: true</code>.</p>
+
+    <div id="loginMsg" class="msg hidden"></div>
+
+    <label class="block mb-2"><span class="text-sm">Email</span>
+      <input id="loginEmail" type="email" class="w-full mt-1 p-2 border rounded" placeholder="admin@example.com" />
+    </label>
+    <label class="block mb-2"><span class="text-sm">Password</span>
+      <input id="loginPassword" type="password" class="w-full mt-1 p-2 border rounded" placeholder="password" />
+    </label>
+
+    <div class="flex gap-2">
+      <button id="btnSignIn" class="flex-1 bg-blue-600 text-white py-2 rounded">Sign in</button>
+      <button id="btnSeed" class="flex-1 bg-slate-200 py-2 rounded">Seed demo</button>
     </div>
-    <p class="text-xs text-slate-400 mt-4">Note: Admin must have Firestore doc at <code>admins/{uid}</code> with <code>isAdmin: true</code>.</p>
+
+    <p class="text-xs text-slate-400 mt-4">Note: creating auth users from the browser will sign you in as that user; you'll be signed out and must sign back in as admin. For production, use server-side Admin SDK.</p>
   </div>
 </div>
 
-<!-- Dashboard -->
+<!-- App -->
 <div id="appView" class="hidden">
+  <!-- Header -->
   <header class="bg-white border-b sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between p-4">
       <div class="flex items-center gap-3">
         <button id="hamburger" class="md:hidden p-2 rounded hover:bg-gray-100"><i class="fa-solid fa-bars"></i></button>
-        <div class="font-bold text-lg text-blue-700">University Admin</div>
+        <div class="font-bold text-lg text-blue-700">University Admin Portal</div>
       </div>
       <div class="flex items-center gap-3">
         <div id="adminEmail" class="text-sm font-semibold text-slate-700"></div>
@@ -57,21 +65,24 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="w-72 bg-white border-r p-4 hidden md:block">
       <nav class="space-y-2 text-sm">
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-overview"><i class="fa-solid fa-chart-pie mr-2 text-blue-600"></i> Overview</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-students"><i class="fa-solid fa-users mr-2 text-blue-600"></i> Students</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-courses"><i class="fa-solid fa-book mr-2 text-blue-600"></i> Courses</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-timetable"><i class="fa-solid fa-calendar-days mr-2 text-blue-600"></i> Timetable</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-grades"><i class="fa-solid fa-graduation-cap mr-2 text-blue-600"></i> Grades</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-finance"><i class="fa-solid fa-money-bill-wave mr-2 text-blue-600"></i> Finance</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-hostels"><i class="fa-solid fa-hotel mr-2 text-blue-600"></i> Hostels</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-announcements"><i class="fa-solid fa-bullhorn mr-2 text-blue-600"></i> Announcements</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-clearance"><i class="fa-solid fa-check-circle mr-2 text-blue-600"></i> Clearance</button>
-        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-graduation"><i class="fa-solid fa-certificate mr-2 text-blue-600"></i> Graduation</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-overview">Overview</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-students">Students</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-courses">Courses</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-timetable">Timetable</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-grades">Grades</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-finance">Finance</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-hostels">Hostels</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-announcements">Announcements</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-clearance">Clearance</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-graduation">Graduation</button>
+        <button class="navBtn w-full text-left px-3 py-2 rounded hover:bg-slate-50" data-panel="panel-admins">Admins</button>
       </nav>
     </aside>
 
     <!-- Main -->
     <main class="flex-1 p-6">
+      <div id="globalMsg" class="msg hidden"></div>
+
       <!-- Overview -->
       <section id="panel-overview" class="card p-6 mb-6">
         <h2 class="text-xl font-bold mb-2">Overview</h2>
@@ -92,23 +103,27 @@
           </div>
         </div>
 
-        <!-- Add student form -->
+        <div id="studentsMsg" class="msg hidden"></div>
+
+        <!-- Add student -->
         <form id="formAddStudent" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
-          <input id="new_name" placeholder="Full name" class="border p-2 rounded"/>
-          <input id="new_email" placeholder="Email" class="border p-2 rounded"/>
-          <input id="new_regNo" placeholder="Reg No" class="border p-2 rounded"/>
-          <input id="new_tempPassword" placeholder="Temporary password" class="border p-2 rounded" value="changeme123"/>
+          <input id="new_name" placeholder="Full name" class="border p-2 rounded" required/>
+          <input id="new_email" placeholder="Email" class="border p-2 rounded" required/>
+          <input id="new_regNo" placeholder="Reg No" class="border p-2 rounded" />
+          <input id="new_tempPassword" placeholder="Temporary password" class="border p-2 rounded" value="changeme123" />
           <div class="md:col-span-4 flex gap-2">
-            <button class="px-3 py-2 bg-green-600 text-white rounded">Create student account</button>
+            <button type="submit" class="px-3 py-2 bg-green-600 text-white rounded">Create student account</button>
             <button id="btnClearStudentForm" type="button" class="px-3 py-2 bg-gray-100 rounded">Clear</button>
+            <div class="ml-auto text-xs text-slate-500 self-center">Client-side account creation will sign you out — you must sign back in.</div>
           </div>
         </form>
 
         <div id="studentsList" class="space-y-2"></div>
 
-        <!-- Edit modal (simple) -->
+        <!-- Editor -->
         <div id="studentEditor" class="hidden mt-4 p-4 border rounded card">
           <h3 class="font-semibold">Edit Student</h3>
+          <div id="studentEditorMsg" class="msg hidden"></div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
             <input id="edit_name" class="border p-2 rounded" />
             <input id="edit_email" class="border p-2 rounded" readonly />
@@ -136,13 +151,15 @@
           </div>
         </div>
 
+        <div id="coursesMsg" class="msg hidden"></div>
+
         <form id="formCourse" class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
-          <input id="c_code" placeholder="Code (e.g. CSC101)" class="border p-2 rounded" />
+          <input id="c_code" placeholder="Code (CSC101)" class="border p-2 rounded" />
           <input id="c_title" placeholder="Title" class="border p-2 rounded" />
           <input id="c_credits" type="number" placeholder="Credits" class="border p-2 rounded" />
           <div class="flex gap-2">
             <button id="btnAddCourse" class="px-3 py-2 bg-green-600 text-white rounded">Add course</button>
-            <button id="btnClearCourse" class="px-3 py-2 bg-gray-100 rounded">Clear</button>
+            <button id="btnClearCourse" type="button" class="px-3 py-2 bg-gray-100 rounded">Clear</button>
           </div>
         </form>
 
@@ -160,12 +177,11 @@
           </div>
         </div>
 
-        <div class="mb-3">
-          <textarea id="tt_editor" class="w-full h-40 border p-2 rounded" placeholder='Paste JSON array: [{"day":"Monday","time":"09:00","courseCode":"CSC101","venue":"RM1"}]'></textarea>
-          <p class="text-xs text-slate-500 mt-2">Timetable stored at <code>timetable/{studentUid}</code> as { schedule: [...] }.</p>
-        </div>
+        <div id="ttMsg" class="msg hidden"></div>
 
-        <div id="timetablePreview" class="mt-3 text-sm"></div>
+        <textarea id="tt_editor" class="w-full h-44 border p-2 rounded" placeholder='JSON array: [{"day":"Monday","time":"09:00","courseCode":"CSC101","venue":"RM1"}]'></textarea>
+        <p class="text-xs text-slate-500 mt-2">Timetable stored at <code>timetable/{studentUid}</code> as <code>{ schedule: [...] }</code>.</p>
+
       </section>
 
       <!-- Grades -->
@@ -175,10 +191,12 @@
           <div class="flex gap-2">
             <select id="grades_student_select" class="border p-2 rounded"></select>
             <select id="grades_course_select" class="border p-2 rounded"></select>
-            <input id="grades_grade_input" placeholder="Grade e.g. A" class="border p-2 rounded" />
+            <input id="grades_grade_input" placeholder="Grade (A, B+...)" class="border p-2 rounded" />
             <button id="btnAddGrade" class="px-3 py-2 bg-green-600 text-white rounded">Save Grade</button>
           </div>
         </div>
+
+        <div id="gradesMsg" class="msg hidden"></div>
 
         <div id="gradesList" class="space-y-2"></div>
       </section>
@@ -195,6 +213,8 @@
           </div>
         </div>
 
+        <div id="financeMsg" class="msg hidden"></div>
+
         <div id="financeList" class="space-y-2"></div>
       </section>
 
@@ -207,6 +227,8 @@
             <button id="btnAddHostel" class="px-3 py-2 bg-green-600 text-white rounded">Add Hostel</button>
           </div>
         </div>
+
+        <div id="hostelsMsg" class="msg hidden"></div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
           <div>
@@ -258,27 +280,49 @@
         </div>
         <div id="graduationList" class="space-y-3"></div>
       </section>
+
+      <!-- Admins management -->
+      <section id="panel-admins" class="card p-6 mb-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold">Admins</h2>
+          <div class="text-xs text-slate-500">Manage admin users in Firestore (`admins/{uid}`)</div>
+        </div>
+
+        <div id="adminsMsg" class="msg hidden"></div>
+
+        <form id="formAddAdmin" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+          <input id="admin_uid" placeholder="User UID (preferred)" class="border p-2 rounded" />
+          <input id="admin_email" placeholder="Or email (optional)" class="border p-2 rounded" />
+          <div class="flex gap-2">
+            <button class="px-3 py-2 bg-green-600 text-white rounded">Add Admin</button>
+            <button id="btnReloadAdmins" type="button" class="px-3 py-2 bg-slate-200 rounded">Reload</button>
+          </div>
+        </form>
+
+        <div id="adminsList" class="space-y-2"></div>
+      </section>
+
     </main>
   </div>
 
-  <footer class="text-center text-sm text-slate-500 p-4">© 2025 Prince Alex University</footer>
+  <footer class="text-center text-sm text-slate-500 p-4">© 2025 University</footer>
 </div>
 
-<!-- Firebase modular imports (v11) and app logic -->
+<!-- Firebase modular SDK and app logic -->
 <script type="module">
+/* ---------- Firebase imports v11 (modular) ---------- */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut,
-  createUserWithEmailAndPassword, updatePassword
+  createUserWithEmailAndPassword
 } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 import {
   getFirestore, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, collection,
   query, where, orderBy, serverTimestamp, limit, runTransaction
 } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { getStorage, ref as sref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js';
-const { jsPDF } = window.jspdf;
 
-/* ---------- Firebase config (same as student dashboard) ---------- */
+/* ---------- Firebase config (same as your student dashboard) ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
   authDomain: "universityweb-19e1e.firebaseapp.com",
@@ -293,93 +337,104 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-/* ---------- Small helpers ---------- */
+/* ---------- helpers ---------- */
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
-function toast(msg, type='info'){ const el = document.createElement('div'); el.textContent = msg; el.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded ${type==='error'?'bg-red-600 text-white':'bg-slate-800 text-white'}`; document.body.appendChild(el); setTimeout(()=>el.remove(),2200); }
+function showMsg(elSelector, text, type='info'){ const el = $(elSelector); if(!el) return; el.className = `msg ${type}`; el.textContent = text; el.classList.remove('hidden'); setTimeout(()=>{ if(el) el.classList.add('hidden'); }, 8000); }
+function setGlobalMsg(text,type='info'){ const gm = $('#globalMsg'); gm.className = `msg ${type}`; gm.textContent = text; gm.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'}); setTimeout(()=> gm.classList.add('hidden'),8000); }
+function clearMsg(elSelector){ const el = $(elSelector); if(el) { el.classList.add('hidden'); el.textContent=''; } }
 
 /* ---------- UI wiring ---------- */
-const loginView = $('#loginView');
-const appView = $('#appView');
-const adminEmailEl = $('#adminEmail');
+const loginView = $('#loginView'), appView = $('#appView');
 
-$('#btnSignIn').addEventListener('click', async ()=> {
-  $('#loginMsg').textContent = '';
+/* ---------- Sign in ---------- */
+$('#btnSignIn').addEventListener('click', async ()=>{
+  clearMsg('#loginMsg');
   const email = $('#loginEmail').value.trim();
   const pw = $('#loginPassword').value;
-  if(!email || !pw){ $('#loginMsg').textContent = 'Enter email & password'; return; }
+  if(!email || !pw){ showMsg('#loginMsg','Enter email and password','error'); return; }
   try{
     await signInWithEmailAndPassword(auth, email, pw);
-    // onAuthStateChanged checks admin doc and will show dashboard
-  }catch(e){ $('#loginMsg').textContent = e.message || e.code; }
+    // onAuthStateChanged will handle post-login
+  }catch(err){
+    showMsg('#loginMsg', err.message || err.code, 'error');
+  }
 });
 
-// Demo data loader (optional quick seed)
-$('#btnDemo').addEventListener('click', async ()=> {
-  if(!confirm('Create small demo seed (courses + one student + one announcement)?')) return;
+/* Seed demo data */
+$('#btnSeed').addEventListener('click', async ()=>{
+  if(!confirm('Seed small demo?')) return;
   try{
-    await addDoc(collection(db,'courses'), { code:'CSC101', title:'Intro to Computing', credits:3, year:1, semester:1 });
-    const s = await addDoc(collection(db,'students'), { name:'Demo Student', email:'demo@student.com', regNo:'DEM/001/25', createdAt:new Date().toISOString(), initialized:true });
+    await addDoc(collection(db,'courses'), { code:'CSC101', title:'Intro to Computing', credits:3, createdAt: serverTimestamp() });
     await addDoc(collection(db,'announcements'), { title:'Welcome', body:'Demo announcement', createdAt: serverTimestamp() });
-    toast('Demo data seeded');
-  }catch(e){ toast('Demo seed failed: '+e.message,'error'); }
+    const s = await addDoc(collection(db,'students'), { name:'Demo Student', email:'demo@student.com', regNo:'DEM/001/25', createdAt: new Date().toISOString(), initialized:true });
+    setGlobalMsg('Demo seeded (courses, announcement, one student)', 'success');
+    await loadAllLists();
+  }catch(e){ setGlobalMsg('Demo seed failed: '+e.message,'error'); }
 });
 
-/* ---------- Auth state + admin check ---------- */
+/* ---------- Auth state change & admin check ---------- */
 onAuthStateChanged(auth, async (user) => {
-  if(!user){ // show login
-    loginView.classList.remove('hidden');
-    appView.classList.add('hidden');
+  if(!user){
+    loginView.classList.remove('hidden'); appView.classList.add('hidden');
     return;
   }
-  // ensure admin doc
+  // check admins/{uid}.isAdmin
   try{
-    const admSnap = await getDoc(doc(db,'admins', user.uid));
-    if(!admSnap.exists() || admSnap.data().isAdmin !== true){
-      toast('Access denied — not an admin','error');
+    const adminDoc = await getDoc(doc(db,'admins', user.uid));
+    if(!adminDoc.exists() || adminDoc.data().isAdmin !== true){
+      showMsg('#loginMsg','Access denied — this account is not an admin (check admins collection).','error');
       await signOut(auth);
       return;
     }
-  }catch(e){ toast('Admin check failed: '+e.message,'error'); await signOut(auth); return; }
+  }catch(e){
+    showMsg('#loginMsg','Failed admin check: '+(e.message||e.code),'error');
+    await signOut(auth);
+    return;
+  }
 
-  // show dashboard
-  loginView.classList.add('hidden');
-  appView.classList.remove('hidden');
-  adminEmailEl.textContent = user.email || user.uid;
-  // initial loads
-  activateNavigation();
+  // show app
+  loginView.classList.add('hidden'); appView.classList.remove('hidden');
+  $('#adminEmail').textContent = user.email || user.uid;
+  setGlobalMsg('Welcome, admin: '+(user.email || user.uid),'success');
+  activateNav();
   await loadOverview();
-  await loadAllLists(); // loads students, courses, announcements, hostels, selects
+  await loadAllLists();
 });
 
 /* sign out */
-$('#btnSignOut').addEventListener('click', async ()=> { await signOut(auth); });
+$('#btnSignOut').addEventListener('click', async ()=> {
+  try{ await signOut(auth); setGlobalMsg('Signed out','info'); }catch(e){ setGlobalMsg('Sign out failed: '+e.message,'error'); }
+});
 
-/* hamburger for mobile */
+/* hamburger */
 $('#hamburger').addEventListener('click', ()=> $('#sidebar').classList.toggle('hidden'));
 
-/* navigation */
-function activateNavigation(){
-  $$('.navBtn').forEach(btn => {
-    btn.addEventListener('click', (e)=>{
+/* navigation activation */
+function activateNav(){
+  $$('.navBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
       const panel = btn.dataset.panel;
       $$('main section').forEach(s => s.classList.add('hidden'));
-      $('#' + panel).classList.remove('hidden');
+      const target = document.getElementById(panel);
+      if(target) target.classList.remove('hidden');
     });
   });
 }
 
-/* ---------- Load overview ---------- */
+/* ---------- Overview ---------- */
 async function loadOverview(){
-  const sSnap = await getDocs(collection(db,'students'));
-  const cSnap = await getDocs(collection(db,'courses'));
-  const hSnap = await getDocs(collection(db,'hostels'));
-  $('#statStudents').textContent = sSnap.size;
-  $('#statCourses').textContent = cSnap.size;
-  $('#statHostels').textContent = hSnap.size;
+  try{
+    const sSnap = await getDocs(collection(db,'students'));
+    const cSnap = await getDocs(collection(db,'courses'));
+    const hSnap = await getDocs(collection(db,'hostels'));
+    $('#statStudents').textContent = sSnap.size;
+    $('#statCourses').textContent = cSnap.size;
+    $('#statHostels').textContent = hSnap.size;
+  }catch(e){ setGlobalMsg('Overview load failed: '+e.message,'error'); }
 }
 
-/* ---------- Load many lists (students, courses, announcements, hostels) ---------- */
+/* ---------- Load lists (students, courses, announcements, hostels, selects) ---------- */
 async function loadAllLists(){
   await loadStudentsList();
   await loadCoursesList();
@@ -387,194 +442,207 @@ async function loadAllLists(){
   await loadHostelsList();
   await populateStudentSelects();
   await populateCourseSelects();
+  await populateHostelSelects();
+  await loadAdminsList();
+  await loadGraduationRequests();
 }
 
 /* =========================
-   STUDENTS: create / read / update / delete
+   STUDENTS CRUD
    collection: students/{uid}
-   + create auth user (client-side) — see note
+   Also creates Auth user (client-side)
    ========================= */
-async function loadStudentsList(){
-  const container = $('#studentsList');
-  container.innerHTML = '<div class="text-slate-500 p-2">Loading students...</div>';
-  const snaps = await getDocs(collection(db,'students'));
-  container.innerHTML = '';
-  if(snaps.empty){ container.innerHTML = '<div class="text-slate-500 p-2">No students found.</div>'; return; }
-  snaps.forEach(docSnap=>{
-    const d = docSnap.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded flex justify-between items-center';
-    el.innerHTML = `<div><div class="font-semibold">${d.name || '—'}</div><div class="text-xs text-slate-600">${d.regNo || ''} • ${d.email || ''}</div></div>
-      <div class="flex gap-2">
-        <button data-uid="${docSnap.id}" class="btnEditStudent px-2 py-1 border rounded text-sm">Edit</button>
-        <button data-uid="${docSnap.id}" class="btnDeleteStudent px-2 py-1 border rounded text-sm">Delete</button>
-      </div>`;
-    container.appendChild(el);
-  });
-  // attach handlers
-  $$('.btnEditStudent').forEach(b => b.addEventListener('click', async (e)=>{
-    const uid = e.currentTarget.dataset.uid;
-    openEditStudent(uid);
-  }));
-  $$('.btnDeleteStudent').forEach(b => b.addEventListener('click', async (e)=>{
-    const uid = e.currentTarget.dataset.uid;
-    if(!confirm('Delete student Firestore document? This will NOT delete the Firebase Auth user.')) return;
-    await deleteDoc(doc(db,'students',uid));
-    toast('Student doc deleted');
-    await loadStudentsList();
-    await populateStudentSelects();
-  }));
-}
-
-/* Add student form submit (create Auth user client-side) */
 $('#formAddStudent').addEventListener('submit', async (e)=>{
   e.preventDefault();
+  clearMsg('#studentsMsg');
   const name = $('#new_name').value.trim();
   const email = $('#new_email').value.trim();
   const regNo = $('#new_regNo').value.trim();
-  let tempPass = $('#new_tempPassword').value || 'changeme123';
-  if(!name || !email){ toast('Name and email required','error'); return; }
+  const pw = $('#new_tempPassword').value || 'changeme123';
+  if(!name || !email){ showMsg('#studentsMsg','Name & email required','error'); return; }
   try{
-    // Create user client-side (this will sign the browser in as the new user)
-    const cred = await createUserWithEmailAndPassword(auth, email, tempPass);
-    const newUid = cred.user.uid;
-    // Create students/{uid} doc
-    await setDoc(doc(db,'students', newUid), {
-      name, email, regNo, createdAt: new Date().toISOString(), initialized: true
-    });
-    toast('Student created. You will be signed out and must sign-in again as admin.');
-    // SIGNED IN as new user now. Sign out and prompt admin to re-login.
+    // Create auth user (client-side) — note: this will sign the browser in as the new user
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    const uid = cred.user.uid;
+    // create student doc
+    await setDoc(doc(db,'students', uid), { name, email, regNo, createdAt: new Date().toISOString(), initialized: true });
+    setGlobalMsg('Student account created: '+email + '. You will be signed out. Sign back in as admin.', 'success');
+    // sign out (we are signed in as the newly created user)
     await signOut(auth);
-    // Optional: show login view again and present instructions
-    loginView.classList.remove('hidden'); appView.classList.add('hidden');
-    alert('Created user '+email+'. Please sign back in as admin.');
+    // show login view automatically (onAuthStateChanged will flip)
+    return;
   }catch(err){
-    toast('Failed to create student: '+(err.message||err.code),'error');
+    showMsg('#studentsMsg','Failed to create student: '+(err.message||err.code),'error');
   }
 });
 
-/* Student edit flow */
+$('#btnClearStudentForm').addEventListener('click', ()=>{
+  $('#new_name').value=''; $('#new_email').value=''; $('#new_regNo').value=''; $('#new_tempPassword').value='changeme123';
+});
+
+async function loadStudentsList(){
+  const container = $('#studentsList'); container.innerHTML = '<div class="text-slate-500 p-2">Loading students...</div>';
+  try{
+    const snaps = await getDocs(collection(db,'students'));
+    container.innerHTML = '';
+    if(snaps.empty){ container.innerHTML = '<div class="text-slate-500 p-2">No students found.</div>'; return; }
+    snaps.forEach(docSnap=>{
+      const d = docSnap.data();
+      const el = document.createElement('div');
+      el.className = 'p-3 border rounded flex justify-between items-center';
+      el.innerHTML = `<div><div class="font-semibold">${d.name || '—'}</div><div class="text-xs text-slate-600">${d.regNo || ''} • ${d.email || ''}</div></div>
+        <div class="flex gap-2">
+          <button data-uid="${docSnap.id}" class="btnEditStudent px-2 py-1 border rounded text-sm">Edit</button>
+          <button data-uid="${docSnap.id}" class="btnDeleteStudent px-2 py-1 border rounded text-sm">Delete</button>
+        </div>`;
+      container.appendChild(el);
+    });
+    // handlers
+    $$('.btnEditStudent').forEach(b => b.addEventListener('click', async (e)=>{
+      const uid = e.currentTarget.dataset.uid;
+      openEditStudent(uid);
+    }));
+    $$('.btnDeleteStudent').forEach(b => b.addEventListener('click', async (e)=>{
+      const uid = e.currentTarget.dataset.uid;
+      if(!confirm('Delete student Firestore doc? This will NOT delete auth user.')) return;
+      await deleteDoc(doc(db,'students',uid));
+      setGlobalMsg('Student doc deleted','success');
+      await loadStudentsList();
+      await populateStudentSelects();
+    }));
+  }catch(e){ setGlobalMsg('Load students failed: '+e.message,'error'); }
+}
+
+/* edit student flow */
 let editingStudentUid = null;
 async function openEditStudent(uid){
   const snap = await getDoc(doc(db,'students',uid));
-  if(!snap.exists()){ toast('Student not found','error'); return; }
-  const data = snap.data();
+  if(!snap.exists()){ showMsg('#studentEditorMsg','Student not found','error'); return; }
+  const d = snap.data();
   editingStudentUid = uid;
   $('#studentEditor').classList.remove('hidden');
-  $('#edit_name').value = data.name || '';
-  $('#edit_email').value = data.email || '';
-  $('#edit_regNo').value = data.regNo || '';
-  $('#edit_programme').value = data.programme || '';
-  $('#edit_campus').value = data.campus || '';
-  $('#edit_year').value = data.yearOfStudy || '';
-  $('#edit_address').value = data.address || '';
-  // handlers
+  $('#edit_name').value = d.name || '';
+  $('#edit_email').value = d.email || '';
+  $('#edit_regNo').value = d.regNo || '';
+  $('#edit_programme').value = d.programme || '';
+  $('#edit_campus').value = d.campus || '';
+  $('#edit_year').value = d.yearOfStudy || '';
+  $('#edit_address').value = d.address || '';
+  clearMsg('#studentEditorMsg');
+
   $('#btnSaveStudent').onclick = async ()=>{
-    const upd = {
-      name: $('#edit_name').value.trim(),
-      regNo: $('#edit_regNo').value.trim(),
-      programme: $('#edit_programme').value.trim(),
-      campus: $('#edit_campus').value.trim(),
-      yearOfStudy: Number($('#edit_year').value||0),
-      address: $('#edit_address').value.trim()
-    };
-    await updateDoc(doc(db,'students', editingStudentUid), upd);
-    toast('Student updated');
-    $('#studentEditor').classList.add('hidden');
-    await loadStudentsList();
-    await populateStudentSelects();
+    try{
+      const upd = {
+        name: $('#edit_name').value.trim(),
+        regNo: $('#edit_regNo').value.trim(),
+        programme: $('#edit_programme').value.trim(),
+        campus: $('#edit_campus').value.trim(),
+        yearOfStudy: Number($('#edit_year').value||0),
+        address: $('#edit_address').value.trim()
+      };
+      await updateDoc(doc(db,'students', editingStudentUid), upd);
+      showMsg('#studentEditorMsg','Saved','success');
+      await loadStudentsList(); await populateStudentSelects();
+    }catch(e){ showMsg('#studentEditorMsg','Save failed: '+e.message,'error'); }
   };
+
   $('#btnCancelEditStudent').onclick = ()=> { $('#studentEditor').classList.add('hidden'); editingStudentUid = null; };
   $('#btnDeleteStudent').onclick = async ()=>{
     if(!confirm('Delete student doc?')) return;
     await deleteDoc(doc(db,'students', editingStudentUid));
-    toast('Student deleted (doc)');
+    showMsg('#studentEditorMsg','Deleted','success');
     $('#studentEditor').classList.add('hidden'); editingStudentUid = null;
     await loadStudentsList(); await populateStudentSelects();
   };
 }
 
-$('#btnClearStudentForm').addEventListener('click', ()=> {
-  $('#new_name').value=''; $('#new_email').value=''; $('#new_regNo').value=''; $('#new_tempPassword').value='changeme123';
-});
-
 /* =========================
    COURSES CRUD
-   collection: courses
    ========================= */
 $('#btnAddCourse').addEventListener('click', async (e)=>{
   e.preventDefault();
+  clearMsg('#coursesMsg');
   const code = $('#c_code').value.trim(); const title = $('#c_title').value.trim(); const credits = Number($('#c_credits').value||0);
-  if(!code || !title){ toast('Code & title required','error'); return; }
-  await addDoc(collection(db,'courses'), { code, title, credits, createdAt: serverTimestamp() });
-  toast('Course added');
-  $('#c_code').value=''; $('#c_title').value=''; $('#c_credits').value='';
-  await loadCoursesList();
-  await populateCourseSelects();
+  if(!code || !title){ showMsg('#coursesMsg','Code & title required','error'); return; }
+  try{
+    await addDoc(collection(db,'courses'), { code, title, credits, createdAt: serverTimestamp() });
+    showMsg('#coursesMsg','Course added','success');
+    $('#c_code').value=''; $('#c_title').value=''; $('#c_credits').value='';
+    await loadCoursesList();
+    await populateCourseSelects();
+  }catch(e){ showMsg('#coursesMsg','Add failed: '+e.message,'error'); }
 });
+
+$('#btnClearCourse').addEventListener('click', ()=> { $('#c_code').value=''; $('#c_title').value=''; $('#c_credits').value=''; });
 
 async function loadCoursesList(){
   const container = $('#coursesList'); container.innerHTML = '<div class="text-slate-500 p-2">Loading courses...</div>';
-  const snaps = await getDocs(collection(db,'courses'));
-  container.innerHTML = '';
-  if(snaps.empty){ container.innerHTML = '<div class="text-slate-500 p-2">No courses.</div>'; return; }
-  snaps.forEach(snap=>{
-    const d = snap.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded flex justify-between items-center';
-    el.innerHTML = `<div><div class="font-semibold">${d.code} — ${d.title}</div><div class="text-xs text-slate-600">${d.credits||0} credits</div></div>
-      <div class="flex gap-2">
-        <button data-id="${snap.id}" class="editCourse px-2 py-1 border rounded text-sm">Edit</button>
-        <button data-id="${snap.id}" class="delCourse px-2 py-1 border rounded text-sm">Delete</button>
-      </div>`;
-    container.appendChild(el);
-  });
-  // attach handlers
-  $$('.delCourse').forEach(b => b.addEventListener('click', async (e)=>{
-    const id = e.currentTarget.dataset.id;
-    if(!confirm('Delete course?')) return;
-    await deleteDoc(doc(db,'courses',id));
-    toast('Course deleted');
-    await loadCoursesList();
-    await populateCourseSelects();
-  }));
-  $$('.editCourse').forEach(b => b.addEventListener('click', async (e)=>{
-    const id = e.currentTarget.dataset.id;
-    const sSnap = await getDoc(doc(db,'courses',id));
-    const data = sSnap.data();
-    $('#c_code').value = data.code || ''; $('#c_title').value = data.title || ''; $('#c_credits').value = data.credits || '';
-    $('#btnAddCourse').textContent = 'Update Course';
-    $('#btnAddCourse').onclick = async (ev)=>{
-      ev.preventDefault();
-      await updateDoc(doc(db,'courses',id), { code: $('#c_code').value.trim(), title: $('#c_title').value.trim(), credits: Number($('#c_credits').value||0) });
-      toast('Course updated');
-      $('#btnAddCourse').textContent = 'Add course';
-      $('#c_code').value=''; $('#c_title').value=''; $('#c_credits').value='';
+  try{
+    const snaps = await getDocs(collection(db,'courses'));
+    container.innerHTML = '';
+    if(snaps.empty){ container.innerHTML = '<div class="text-slate-500 p-2">No courses.</div>'; return; }
+    snaps.forEach(snap=>{
+      const d = snap.data();
+      const el = document.createElement('div');
+      el.className = 'p-3 border rounded flex justify-between items-center';
+      el.innerHTML = `<div><div class="font-semibold">${d.code} — ${d.title}</div><div class="text-xs text-slate-600">${d.credits||0} credits</div></div>
+        <div class="flex gap-2">
+          <button data-id="${snap.id}" class="editCourse px-2 py-1 border rounded text-sm">Edit</button>
+          <button data-id="${snap.id}" class="delCourse px-2 py-1 border rounded text-sm">Delete</button>
+        </div>`;
+      container.appendChild(el);
+    });
+    $$('.delCourse').forEach(b => b.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id;
+      if(!confirm('Delete course?')) return;
+      await deleteDoc(doc(db,'courses',id));
+      showMsg('#coursesMsg','Course deleted','success');
       await loadCoursesList(); await populateCourseSelects();
-      // restore handler
-      $('#btnAddCourse').onclick = async (ev2) => { ev2.preventDefault(); /* handled earlier */ };
-    };
-  }));
+    }));
+    $$('.editCourse').forEach(b => b.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id;
+      const sSnap = await getDoc(doc(db,'courses',id));
+      const data = sSnap.data();
+      $('#c_code').value = data.code || ''; $('#c_title').value = data.title || ''; $('#c_credits').value = data.credits || '';
+      $('#btnAddCourse').textContent = 'Update course';
+      $('#btnAddCourse').onclick = async (ev)=>{
+        ev.preventDefault();
+        await updateDoc(doc(db,'courses',id), { code: $('#c_code').value.trim(), title: $('#c_title').value.trim(), credits: Number($('#c_credits').value||0) });
+        showMsg('#coursesMsg','Course updated','success');
+        $('#btnAddCourse').textContent = 'Add course';
+        $('#c_code').value=''; $('#c_title').value=''; $('#c_credits').value='';
+        await loadCoursesList(); await populateCourseSelects();
+        // restore original handler by reloading page handlers (simple approach)
+        location.reload();
+      };
+    }));
+  }catch(e){ showMsg('#coursesMsg','Load failed: '+e.message,'error'); }
 }
 
 /* =========================
-   TIMETABLE (per student)
+   TIMETABLE
    doc: timetable/{uid} => { schedule: [...] }
    ========================= */
 $('#btnLoadTT').addEventListener('click', async ()=>{
+  clearMsg('#ttMsg');
   const uid = $('#tt_student_select').value;
-  if(!uid){ toast('Pick a student','error'); return; }
-  const snap = await getDoc(doc(db,'timetable',uid));
-  $('#tt_editor').value = JSON.stringify(snap.exists()? snap.data().schedule || [] : [], null, 2);
-  $('#timetablePreview').innerHTML = '<div class="text-slate-500 p-2">Loaded timetable (edit JSON to change)</div>';
+  if(!uid){ showMsg('#ttMsg','Pick a student','error'); return; }
+  try{
+    const snap = await getDoc(doc(db,'timetable',uid));
+    $('#tt_editor').value = JSON.stringify(snap.exists()? snap.data().schedule || [] : [], null, 2);
+    showMsg('#ttMsg','Timetable loaded (edit JSON then Save)','success');
+  }catch(e){ showMsg('#ttMsg','Load failed: '+e.message,'error'); }
 });
 $('#btnSaveTT').addEventListener('click', async ()=>{
+  clearMsg('#ttMsg');
   const uid = $('#tt_student_select').value;
-  if(!uid){ toast('Pick a student','error'); return; }
-  let parsed;
-  try{ parsed = JSON.parse($('#tt_editor').value); if(!Array.isArray(parsed)) throw new Error('Must be array'); }catch(e){ toast('Invalid JSON: '+e.message,'error'); return; }
-  await setDoc(doc(db,'timetable',uid), { schedule: parsed, updatedAt: serverTimestamp() });
-  toast('Timetable saved');
+  if(!uid){ showMsg('#ttMsg','Pick a student','error'); return; }
+  try{
+    const parsed = JSON.parse($('#tt_editor').value || '[]');
+    if(!Array.isArray(parsed)) { showMsg('#ttMsg','JSON must be an array','error'); return; }
+    await setDoc(doc(db,'timetable',uid), { schedule: parsed, updatedAt: serverTimestamp() });
+    showMsg('#ttMsg','Saved timetable','success');
+  }catch(e){ showMsg('#ttMsg','Save failed: '+e.message,'error'); }
 });
 
 /* =========================
@@ -582,408 +650,355 @@ $('#btnSaveTT').addEventListener('click', async ()=>{
    structure: grades/{studentUid}/results/{courseId}
    ========================= */
 $('#btnAddGrade').addEventListener('click', async ()=>{
+  clearMsg('#gradesMsg');
   const sid = $('#grades_student_select').value; const cid = $('#grades_course_select').value; const grade = $('#grades_grade_input').value.trim();
-  if(!sid || !cid || !grade){ toast('Select student, course and grade','error'); return; }
-  const courseSnap = await getDoc(doc(db,'courses',cid));
-  const title = courseSnap.exists() ? courseSnap.data().title : '';
-  // mapping simple grade=>points
-  const gpaMap = { 'A+':4.0,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'D':1.0,'E':0.7,'F':0.0 };
-  const points = gpaMap[grade] ?? 0;
-  await setDoc(doc(db,'grades',sid,'results',cid), { code: cid, title, grade, gpaPoints: points, savedAt: serverTimestamp() });
-  toast('Grade saved');
-  await loadGradesForStudent(sid);
+  if(!sid || !cid || !grade){ showMsg('#gradesMsg','Select student, course, and enter grade','error'); return; }
+  try{
+    const courseSnap = await getDoc(doc(db,'courses',cid));
+    const title = courseSnap.exists() ? courseSnap.data().title : '';
+    const gpaMap = { 'A+':4.0,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'D':1.0,'E':0.7,'F':0.0 };
+    const points = gpaMap[grade] ?? 0;
+    await setDoc(doc(db,'grades',sid,'results',cid), { code: cid, title, grade, gpaPoints: points, savedAt: serverTimestamp() });
+    showMsg('#gradesMsg','Grade saved','success');
+    await loadGradesForStudent(sid);
+  }catch(e){ showMsg('#gradesMsg','Save failed: '+e.message,'error'); }
 });
 
 async function loadGradesForStudent(sid){
   const out = $('#gradesList'); out.innerHTML = '';
   if(!sid){ out.innerHTML = '<div class="text-slate-500 p-2">Select student</div>'; return; }
-  const snaps = await getDocs(collection(db,'grades',sid,'results'));
-  if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No grades</div>'; return; }
-  snaps.forEach(s=>{
-    const r = s.data();
-    out.innerHTML += `<div class="p-2 border rounded flex justify-between items-center"><div>${r.code} • ${r.title || ''} • ${r.grade}</div><div><button class="delGrade px-2 py-1 border rounded text-sm" data-id="${s.id}" data-sid="${sid}">Delete</button></div></div>`;
-  });
-  $$('.delGrade').forEach(b => b.addEventListener('click', async (e)=> {
-    const id = e.currentTarget.dataset.id, sid = e.currentTarget.dataset.sid;
-    if(!confirm('Delete grade?')) return;
-    await deleteDoc(doc(db,'grades',sid,'results',id));
-    toast('Grade deleted');
-    loadGradesForStudent(sid);
-  }));
+  try{
+    const snaps = await getDocs(collection(db,'grades',sid,'results'));
+    if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No grades</div>'; return; }
+    snaps.forEach(s=>{
+      const r = s.data();
+      out.innerHTML += `<div class="p-2 border rounded flex justify-between items-center"><div>${r.code} • ${r.title || ''} • ${r.grade}</div><div><button class="delGrade px-2 py-1 border rounded text-sm" data-id="${s.id}" data-sid="${sid}">Delete</button></div></div>`;
+    });
+    $$('.delGrade').forEach(b => b.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id, sid = e.currentTarget.dataset.sid;
+      if(!confirm('Delete grade?')) return;
+      await deleteDoc(doc(db,'grades',sid,'results',id));
+      showMsg('#gradesMsg','Deleted','success');
+      await loadGradesForStudent(sid);
+    }));
+  }catch(e){ showMsg('#gradesMsg','Load failed: '+e.message,'error'); }
 }
-
-/* reload grades when student selection changes */
-$('#grades_student_select').addEventListener('change', ()=> {
-  const sid = $('#grades_student_select').value;
-  loadGradesForStudent(sid);
-});
+$('#grades_student_select').addEventListener('change', ()=> loadGradesForStudent($('#grades_student_select').value));
 
 /* =========================
    FINANCE
-   structure: finance/{studentUid}/transactions/{txId}
-              finance/{studentUid}/balance/summary (doc id 'summary')
+   finance/{uid}/transactions/{txId}
+   finance/{uid}/balance/summary (doc 'summary')
    ========================= */
 $('#btnAddTransaction').addEventListener('click', async ()=>{
+  clearMsg('#financeMsg');
   const sid = $('#finance_student_select').value; const amount = Number($('#finance_amount').value||0); const type = $('#finance_type').value;
-  if(!sid || !amount){ toast('Pick student and amount','error'); return; }
-  await addDoc(collection(db,'finance', sid, 'transactions'), { amount, type, createdAt: serverTimestamp(), createdBy: adminEmailEl.textContent });
-  // update summary
-  const sumRef = doc(db,'finance', sid, 'balance', 'summary');
-  await runTransaction(db, async tx => {
-    const snap = await tx.get(sumRef);
-    const cur = snap.exists() ? snap.data() : { amount:0, paid:0 };
-    if(type === 'payment') tx.set(sumRef, { amount: cur.amount || 0, paid: (cur.paid || 0) + amount }, { merge:true });
-    else tx.set(sumRef, { amount: (cur.amount || 0) + amount, paid: cur.paid || 0 }, { merge:true });
-  });
-  toast('Transaction recorded');
-  await loadFinanceForStudent(sid);
+  if(!sid || !amount){ showMsg('#financeMsg','Select student and amount','error'); return; }
+  try{
+    await addDoc(collection(db,'finance',sid,'transactions'), { amount, type, createdAt: serverTimestamp(), createdBy: $('#adminEmail').textContent });
+    const sumRef = doc(db,'finance',sid,'balance','summary');
+    await runTransaction(db, async tx => {
+      const s = await tx.get(sumRef);
+      const cur = s.exists()? s.data() : { amount:0, paid:0 };
+      if(type==='payment') tx.set(sumRef, { amount: cur.amount||0, paid: (cur.paid||0) + amount }, { merge:true });
+      else tx.set(sumRef, { amount: (cur.amount||0) + amount, paid: cur.paid||0 }, { merge:true });
+    });
+    showMsg('#financeMsg','Transaction recorded','success');
+    await loadFinanceForStudent(sid);
+  }catch(e){ showMsg('#financeMsg','Transaction failed: '+e.message,'error'); }
 });
 
-/* load finance list */
 async function loadFinanceForStudent(sid){
   const out = $('#financeList'); out.innerHTML = '';
   if(!sid){ out.innerHTML = '<div class="text-slate-500 p-2">Select student</div>'; return; }
-  const txs = await getDocs(collection(db,'finance',sid,'transactions'));
-  if(txs.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No transactions</div>'; return; }
-  txs.forEach(t=>{
-    const d = t.data();
-    out.innerHTML += `<div class="p-2 border rounded">${d.type} • KES ${Number(d.amount).toLocaleString()} • ${d.createdAt?.toDate ? d.createdAt.toDate().toLocaleDateString() : ''}</div>`;
-  });
+  try{
+    const txs = await getDocs(collection(db,'finance',sid,'transactions'));
+    if(txs.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No transactions</div>'; return; }
+    txs.forEach(t=>{
+      const d = t.data();
+      out.innerHTML += `<div class="p-2 border rounded">${d.type} • KES ${Number(d.amount).toLocaleString()} • ${d.createdAt?.toDate? d.createdAt.toDate().toLocaleDateString() : ''}</div>`;
+    });
+  }catch(e){ showMsg('#financeMsg','Load failed: '+e.message,'error'); }
 }
-
-/* when student select changes in finance */
-$('#finance_student_select').addEventListener('change', ()=> {
-  loadFinanceForStudent($('#finance_student_select').value);
-});
+$('#finance_student_select').addEventListener('change', ()=> loadFinanceForStudent($('#finance_student_select').value));
 
 /* =========================
    HOSTELS & ROOMS
    hostels/{hid}, hostels/{hid}/rooms/{rid}
    ========================= */
 $('#btnAddHostel').addEventListener('click', async ()=>{
+  clearMsg('#hostelsMsg');
   const name = $('#hostel_name').value.trim();
-  if(!name){ toast('Provide hostel name','error'); return; }
-  await addDoc(collection(db,'hostels'), { name, description:'', availableCount:0, createdAt: serverTimestamp() });
-  $('#hostel_name').value='';
-  toast('Hostel added');
-  await loadHostelsList();
-  await populateHostelSelects();
+  if(!name){ showMsg('#hostelsMsg','Provide hostel name','error'); return; }
+  try{
+    await addDoc(collection(db,'hostels'), { name, description:'', availableCount:0, createdAt: serverTimestamp() });
+    $('#hostel_name').value='';
+    showMsg('#hostelsMsg','Hostel added','success');
+    await loadHostelsList(); await populateHostelSelects();
+  }catch(e){ showMsg('#hostelsMsg','Failed: '+e.message,'error'); }
 });
 
 $('#btnAddRoom').addEventListener('click', async ()=>{
-  const hid = $('#hostel_select_for_room').value;
-  const roomNo = $('#room_no').value.trim(); const cap = Number($('#room_capacity').value||1); const price = Number($('#room_price').value||0);
-  if(!hid || !roomNo){ toast('Pick hostel and room no','error'); return; }
-  await addDoc(collection(db,'hostels', hid, 'rooms'), { roomNo, capacity: cap, price, status:'available', createdAt: serverTimestamp() });
-  // increment availableCount
-  await runTransaction(db, async tx => {
-    const hRef = doc(db,'hostels', hid);
-    const hSnap = await tx.get(hRef);
-    tx.update(hRef, { availableCount: (hSnap.data().availableCount || 0) + 1 });
-  });
-  toast('Room added');
-  $('#room_no').value=''; $('#room_capacity').value=''; $('#room_price').value='';
-  await loadHostelsList(); await populateHostelSelects();
+  clearMsg('#hostelsMsg');
+  const hid = $('#hostel_select_for_room').value; const roomNo = $('#room_no').value.trim(); const cap = Number($('#room_capacity').value||1); const price = Number($('#room_price').value||0);
+  if(!hid || !roomNo){ showMsg('#hostelsMsg','Pick hostel and room no','error'); return; }
+  try{
+    await addDoc(collection(db,'hostels',hid,'rooms'), { roomNo, capacity: cap, price, status:'available', createdAt: serverTimestamp() });
+    await runTransaction(db, async tx => {
+      const hRef = doc(db,'hostels',hid);
+      const hSnap = await tx.get(hRef);
+      tx.update(hRef, { availableCount: (hSnap.data().availableCount || 0) + 1 });
+    });
+    $('#room_no').value=''; $('#room_capacity').value=''; $('#room_price').value='';
+    showMsg('#hostelsMsg','Room added','success');
+    await loadHostelsList(); await populateHostelSelects();
+  }catch(e){ showMsg('#hostelsMsg','Add room failed: '+e.message,'error'); }
 });
 
 async function loadHostelsList(){
   const out = $('#hostelsList'); out.innerHTML = '<div class="text-slate-500 p-2">Loading hostels...</div>';
-  const snap = await getDocs(collection(db,'hostels'));
-  out.innerHTML = '';
-  if(snap.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No hostels</div>'; return; }
-  snap.forEach(h=>{
-    const d = h.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded';
-    el.innerHTML = `<div class="flex justify-between items-start"><div><div class="font-semibold">${d.name}</div><div class="text-xs text-slate-600">Available: ${d.availableCount||0}</div></div><div class="flex gap-2"><button data-id="${h.id}" class="viewRooms px-2 py-1 border rounded">Rooms</button><button data-id="${h.id}" class="delHostel px-2 py-1 border rounded">Delete</button></div></div><div id="rooms-${h.id}" class="mt-2"></div>`;
-    out.appendChild(el);
-  });
-  // handlers
-  $$('.delHostel').forEach(b => b.addEventListener('click', async (e)=>{
-    const hid = e.currentTarget.dataset.id;
-    if(!confirm('Delete hostel doc? This will not delete rooms subcollection automatically.')) return;
-    await deleteDoc(doc(db,'hostels',hid));
-    toast('Hostel removed');
-    await loadHostelsList(); await populateHostelSelects();
-  }));
-  $$('.viewRooms').forEach(b => b.addEventListener('click', async (e)=>{
-    const hid = e.currentTarget.dataset.id;
-    const roomsOut = $('#rooms-'+hid); roomsOut.innerHTML = '<div class="text-slate-500 p-2">Loading rooms...</div>';
-    const rSnap = await getDocs(collection(db,'hostels',hid,'rooms'));
-    roomsOut.innerHTML = '';
-    if(rSnap.empty){ roomsOut.innerHTML = '<div class="text-slate-500 p-2">No rooms</div>'; return; }
-    rSnap.forEach(r=>{
-      const rr = r.data();
-      roomsOut.innerHTML += `<div class="p-2 border rounded mb-2 flex justify-between items-center"><div><strong>Room ${rr.roomNo}</strong><div class="text-xs text-slate-600">Cap ${rr.capacity} • KES ${rr.price}</div></div><div class="flex gap-2"><button data-h="${hid}" data-r="${r.id}" class="toggleRoom px-2 py-1 border rounded">${rr.status==='available'?'Mark booked':'Mark available'}</button><button data-h="${hid}" data-r="${r.id}" class="delRoom px-2 py-1 border rounded">Delete</button></div></div>`;
+  try{
+    const snap = await getDocs(collection(db,'hostels'));
+    out.innerHTML = '';
+    if(snap.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No hostels</div>'; return; }
+    snap.forEach(h=>{
+      const d = h.data();
+      const el = document.createElement('div');
+      el.className = 'p-3 border rounded';
+      el.innerHTML = `<div class="flex justify-between items-start"><div><div class="font-semibold">${d.name}</div><div class="text-xs text-slate-600">Available: ${d.availableCount||0}</div></div><div class="flex gap-2"><button data-id="${h.id}" class="viewRooms px-2 py-1 border rounded">Rooms</button><button data-id="${h.id}" class="delHostel px-2 py-1 border rounded">Delete</button></div></div><div id="rooms-${h.id}" class="mt-2"></div>`;
+      out.appendChild(el);
     });
-    // attach inside handlers
-    $$('.toggleRoom').forEach(btn => btn.addEventListener('click', async (ev)=>{
-      const hid = ev.currentTarget.dataset.h; const rid = ev.currentTarget.dataset.r;
-      const rRef = doc(db,'hostels',hid,'rooms',rid); const rSnap = await getDoc(rRef);
-      const newStatus = rSnap.data().status === 'available' ? 'booked' : 'available';
-      await updateDoc(rRef, { status: newStatus });
-      // update availableCount
-      const hRef = doc(db,'hostels',hid);
-      await runTransaction(db, async tx=>{
-        const hS = await tx.get(hRef);
-        const cur = hS.data().availableCount || 0;
-        await tx.update(hRef, { availableCount: newStatus==='available' ? cur+1 : Math.max(0, cur-1) });
+    // handlers
+    $$('.delHostel').forEach(b => b.addEventListener('click', async (e)=>{
+      const hid = e.currentTarget.dataset.id;
+      if(!confirm('Delete hostel doc? Rooms subcollection will remain unless deleted separately.')) return;
+      await deleteDoc(doc(db,'hostels',hid));
+      showMsg('#hostelsMsg','Hostel removed','success');
+      await loadHostelsList(); await populateHostelSelects();
+    }));
+    $$('.viewRooms').forEach(b => b.addEventListener('click', async (e)=>{
+      const hid = e.currentTarget.dataset.id;
+      const roomsOut = $('#rooms-'+hid); roomsOut.innerHTML = '<div class="text-slate-500 p-2">Loading rooms...</div>';
+      const rSnap = await getDocs(collection(db,'hostels',hid,'rooms'));
+      roomsOut.innerHTML = '';
+      if(rSnap.empty){ roomsOut.innerHTML = '<div class="text-slate-500 p-2">No rooms</div>'; return; }
+      rSnap.forEach(r=>{
+        const rr = r.data();
+        roomsOut.innerHTML += `<div class="p-2 border rounded mb-2 flex justify-between items-center"><div><strong>Room ${rr.roomNo}</strong><div class="text-xs text-slate-600">Cap ${rr.capacity} • KES ${rr.price}</div></div><div class="flex gap-2"><button data-h="${hid}" data-r="${r.id}" class="toggleRoom px-2 py-1 border rounded">${rr.status==='available'?'Mark booked':'Mark available'}</button><button data-h="${hid}" data-r="${r.id}" class="delRoom px-2 py-1 border rounded">Delete</button></div></div>`;
       });
-      toast('Room status toggled');
-      await loadHostelsList(); await populateHostelSelects();
+      $$('.toggleRoom').forEach(btn => btn.addEventListener('click', async (ev)=>{
+        const hid = ev.currentTarget.dataset.h; const rid = ev.currentTarget.dataset.r;
+        const rRef = doc(db,'hostels',hid,'rooms',rid); const rSnap = await getDoc(rRef);
+        const newStatus = rSnap.data().status === 'available' ? 'booked' : 'available';
+        await updateDoc(rRef, { status: newStatus });
+        const hRef = doc(db,'hostels',hid);
+        await runTransaction(db, async tx=>{
+          const hS = await tx.get(hRef); const cur = hS.data().availableCount || 0;
+          tx.update(hRef, { availableCount: newStatus==='available' ? cur+1 : Math.max(0, cur-1) });
+        });
+        showMsg('#hostelsMsg','Room status toggled','success');
+        await loadHostelsList(); await populateHostelSelects();
+      }));
+      $$('.delRoom').forEach(btn => btn.addEventListener('click', async (ev)=>{
+        const hid = ev.currentTarget.dataset.h; const rid = ev.currentTarget.dataset.r;
+        if(!confirm('Delete room?')) return;
+        await deleteDoc(doc(db,'hostels',hid,'rooms',rid));
+        showMsg('#hostelsMsg','Room deleted','success');
+        await loadHostelsList(); await populateHostelSelects();
+      }));
     }));
-    $$('.delRoom').forEach(btn => btn.addEventListener('click', async (ev)=>{
-      const hid = ev.currentTarget.dataset.h; const rid = ev.currentTarget.dataset.r;
-      if(!confirm('Delete room?')) return;
-      await deleteDoc(doc(db,'hostels',hid,'rooms',rid));
-      toast('Room deleted');
-      await loadHostelsList(); await populateHostelSelects();
-    }));
-  }));
+  }catch(e){ showMsg('#hostelsMsg','Load failed: '+e.message,'error'); }
 }
 
 /* =========================
    ANNOUNCEMENTS
-   collection: announcements
    ========================= */
 $('#btnPostAnnouncement').addEventListener('click', async ()=>{
+  clearMsg('#announcementsList'); clearMsg('#announcementsList');
   const title = $('#ann_title').value.trim(); const body = $('#ann_body').value.trim();
-  if(!title || !body){ toast('Title and message required','error'); return; }
-  await addDoc(collection(db,'announcements'), { title, body, createdAt: serverTimestamp(), author: adminEmailEl.textContent });
-  $('#ann_title').value=''; $('#ann_body').value='';
-  toast('Announcement posted');
-  await loadAnnouncementsList();
+  if(!title || !body){ setGlobalMsg('Title and message required','error'); return; }
+  try{
+    await addDoc(collection(db,'announcements'), { title, body, createdAt: serverTimestamp(), author: $('#adminEmail').textContent });
+    $('#ann_title').value=''; $('#ann_body').value='';
+    setGlobalMsg('Announcement posted','success');
+    await loadAnnouncementsList();
+  }catch(e){ setGlobalMsg('Post failed: '+e.message,'error'); }
 });
 
 async function loadAnnouncementsList(){
   const out = $('#announcementsList'); out.innerHTML = '<div class="text-slate-500 p-2">Loading announcements...</div>';
-  const snaps = await getDocs(query(collection(db,'announcements'), orderBy('createdAt','desc')));
-  out.innerHTML = '';
-  if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No announcements</div>'; return; }
-  snaps.forEach(snap=>{
-    const d = snap.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded';
-    el.innerHTML = `<div class="flex justify-between items-start"><div><strong>${d.title}</strong><div class="text-xs text-slate-500">${d.author||''} • ${d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString() : ''}</div></div><div><button data-id="${snap.id}" class="delAnn px-2 py-1 border rounded">Delete</button></div></div><div class="mt-2 text-sm">${d.body}</div>`;
-    out.appendChild(el);
-  });
-  $$('.delAnn').forEach(b => b.addEventListener('click', async (e)=>{
-    const id = e.currentTarget.dataset.id;
-    if(!confirm('Delete announcement?')) return;
-    await deleteDoc(doc(db,'announcements',id));
-    toast('Deleted');
-    await loadAnnouncementsList();
-  }));
+  try{
+    const snaps = await getDocs(query(collection(db,'announcements'), orderBy('createdAt','desc')));
+    out.innerHTML = '';
+    if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No announcements</div>'; return; }
+    snaps.forEach(snap=>{
+      const d = snap.data();
+      const el = document.createElement('div');
+      el.className = 'p-3 border rounded';
+      el.innerHTML = `<div class="flex justify-between items-start"><div><strong>${d.title}</strong><div class="text-xs text-slate-500">${d.author||''} • ${d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString() : ''}</div></div><div><button data-id="${snap.id}" class="delAnn px-2 py-1 border rounded">Delete</button></div></div><div class="mt-2 text-sm">${d.body}</div>`;
+      out.appendChild(el);
+    });
+    $$('.delAnn').forEach(b => b.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id; if(!confirm('Delete announcement?')) return;
+      await deleteDoc(doc(db,'announcements',id)); setGlobalMsg('Announcement deleted','success'); await loadAnnouncementsList();
+    }));
+  }catch(e){ setGlobalMsg('Load announcements failed: '+e.message,'error'); }
 }
 
 /* =========================
    CLEARANCE
-   doc: clearance/{studentUid} => { library, finance, hostel, department }
+   doc: clearance/{studentUid}
    ========================= */
 $('#btnLoadClearance').addEventListener('click', async ()=>{
+  clearMsg('#clearanceEditor');
   const sid = $('#clearance_student_select').value;
-  if(!sid){ toast('Pick student','error'); return; }
-  const snap = await getDoc(doc(db,'clearance',sid));
-  const out = $('#clearanceEditor'); out.innerHTML = '';
-  const data = snap.exists() ? snap.data() : { library:'pending', finance:'pending', hostel:'pending', department:'pending' };
-  out.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-    <label class="small">Library <input id="clear_lib" value="${data.library||'pending'}" class="border p-2 rounded"/></label>
-    <label class="small">Finance <input id="clear_fin" value="${data.finance||'pending'}" class="border p-2 rounded"/></label>
-    <label class="small">Hostel <input id="clear_hos" value="${data.hostel||'pending'}" class="border p-2 rounded"/></label>
-    <label class="small">Department <input id="clear_dept" value="${data.department||'pending'}" class="border p-2 rounded"/></label>
-  </div>
-  <div class="mt-3"><button id="btnSaveClearance" class="px-3 py-2 bg-blue-600 text-white rounded">Save clearance</button></div>`;
-  $('#btnSaveClearance').onclick = async ()=> {
-    await setDoc(doc(db,'clearance',sid), { library: $('#clear_lib').value, finance: $('#clear_fin').value, hostel: $('#clear_hos').value, department: $('#clear_dept').value }, { merge:true });
-    toast('Clearance saved'); loadClearanceSelectIfNeeded();
-  };
+  if(!sid){ setGlobalMsg('Pick student','error'); return; }
+  try{
+    const snap = await getDoc(doc(db,'clearance',sid));
+    const d = snap.exists()? snap.data() : { library:'pending', finance:'pending', hostel:'pending', department:'pending' };
+    const out = $('#clearanceEditor');
+    out.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+      <label class="small">Library <input id="clear_lib" value="${d.library||'pending'}" class="border p-2 rounded"/></label>
+      <label class="small">Finance <input id="clear_fin" value="${d.finance||'pending'}" class="border p-2 rounded"/></label>
+      <label class="small">Hostel <input id="clear_hos" value="${d.hostel||'pending'}" class="border p-2 rounded"/></label>
+      <label class="small">Department <input id="clear_dept" value="${d.department||'pending'}" class="border p-2 rounded"/></label>
+    </div><div class="mt-3"><button id="btnSaveClearance" class="px-3 py-2 bg-blue-600 text-white rounded">Save clearance</button></div>`;
+    $('#btnSaveClearance').onclick = async ()=> {
+      await setDoc(doc(db,'clearance',sid), { library: $('#clear_lib').value, finance: $('#clear_fin').value, hostel: $('#clear_hos').value, department: $('#clear_dept').value }, { merge:true });
+      setGlobalMsg('Clearance saved','success');
+    };
+  }catch(e){ setGlobalMsg('Load clearance failed: '+e.message,'error'); }
 });
 
 /* =========================
    GRADUATION REQUESTS
-   collection: graduationRequests (doc id = studentUid or auto id)
+   collection: graduationRequests
    ========================= */
-$('#btnReloadGrad').addEventListener('click', async ()=> loadGraduationRequests());
+$('#btnReloadGrad').addEventListener('click', ()=> loadGraduationRequests());
 async function loadGraduationRequests(){
   const out = $('#graduationList'); out.innerHTML = '<div class="text-slate-500 p-2">Loading requests...</div>';
-  const snaps = await getDocs(collection(db,'graduationRequests'));
-  out.innerHTML = '';
-  if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No requests</div>'; return; }
-  snaps.forEach(snap=>{
-    const d = snap.data();
-    out.innerHTML += `<div class="p-3 border rounded flex justify-between items-start"><div><div class="font-semibold">${snap.id}</div><div class="text-xs text-slate-600">${d.status||'pending'} • ${d.requestedAt?.toDate? d.requestedAt.toDate().toLocaleString() : ''}</div><div class="mt-2">${d.reason||''}</div></div><div class="flex gap-2"><button data-id="${snap.id}" data-act="approve" class="px-2 py-1 bg-green-600 text-white rounded">Approve</button><button data-id="${snap.id}" data-act="reject" class="px-2 py-1 bg-red-600 text-white rounded">Reject</button></div></div>`;
-  });
-  $$('[data-act="approve"]').forEach(b=> b.addEventListener('click', async (e)=> { const id=e.currentTarget.dataset.id; await updateDoc(doc(db,'graduationRequests',id), { status:'approved', decidedAt: serverTimestamp() }); toast('Approved'); loadGraduationRequests(); }));
-  $$('[data-act="reject"]').forEach(b=> b.addEventListener('click', async (e)=> { const id=e.currentTarget.dataset.id; await updateDoc(doc(db,'graduationRequests',id), { status:'rejected', decidedAt: serverTimestamp() }); toast('Rejected'); loadGraduationRequests(); }));
+  try{
+    const snaps = await getDocs(collection(db,'graduationRequests'));
+    out.innerHTML = '';
+    if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No requests</div>'; return; }
+    snaps.forEach(snap=>{
+      const d = snap.data();
+      const el = document.createElement('div');
+      el.className = 'p-3 border rounded flex justify-between items-start';
+      el.innerHTML = `<div><div class="font-semibold">${snap.id}</div><div class="text-xs text-slate-600">${d.status||'pending'} • ${d.requestedAt?.toDate? d.requestedAt.toDate().toLocaleString() : ''}</div><div class="mt-2">${d.reason||''}</div></div>
+        <div class="flex gap-2"><button data-id="${snap.id}" data-act="approve" class="px-2 py-1 bg-green-600 text-white rounded">Approve</button><button data-id="${snap.id}" data-act="reject" class="px-2 py-1 bg-red-600 text-white rounded">Reject</button></div>`;
+      out.appendChild(el);
+    });
+    $$('[data-act="approve"]').forEach(b=> b.addEventListener('click', async (e)=> { const id=e.currentTarget.dataset.id; await updateDoc(doc(db,'graduationRequests',id), { status:'approved', decidedAt: serverTimestamp() }); setGlobalMsg('Approved','success'); loadGraduationRequests(); }));
+    $$('[data-act="reject"]').forEach(b=> b.addEventListener('click', async (e)=> { const id=e.currentTarget.dataset.id; await updateDoc(doc(db,'graduationRequests',id), { status:'rejected', decidedAt: serverTimestamp() }); setGlobalMsg('Rejected','info'); loadGraduationRequests(); }));
+  }catch(e){ setGlobalMsg('Load grad requests failed: '+e.message,'error'); }
 }
 
 /* =========================
-   Utilities: populate selects
+   ADMINS management
+   collection: admins/{uid} => { isAdmin: true, email: ... }
+   ========================= */
+$('#formAddAdmin').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  clearMsg('#adminsMsg');
+  const uid = $('#admin_uid').value.trim();
+  const email = $('#admin_email').value.trim();
+  if(!uid && !email){ showMsg('#adminsMsg','Provide UID or email','error'); return; }
+  try{
+    // Preferred: use UID to set admin. If only email is provided, attempt to find matching user in students or users collection -- but without Admin SDK email->uid is not guaranteed.
+    let adminUid = uid;
+    if(!adminUid && email){
+      // try to find student doc with email (if users were stored in students)
+      const snaps = await getDocs(query(collection(db,'students'), where('email','==', email), limit(1)));
+      if(!snaps.empty) adminUid = snaps.docs[0].id;
+      else {
+        // fallback: create an admins doc with email as key (not ideal). We'll store by generated id
+        const docRef = await addDoc(collection(db,'admins'), { isAdmin:true, email });
+        showMsg('#adminsMsg','Added admin record (no uid) with id: '+docRef.id,'success');
+        await loadAdminsList();
+        return;
+      }
+    }
+    if(adminUid){
+      await setDoc(doc(db,'admins', adminUid), { isAdmin:true, email: email || null }, { merge:true });
+      showMsg('#adminsMsg','Admin granted for UID: '+adminUid,'success');
+      $('#admin_uid').value=''; $('#admin_email').value='';
+      await loadAdminsList();
+    }
+  }catch(e){ showMsg('#adminsMsg','Failed to add admin: '+e.message,'error'); }
+});
+
+$('#btnReloadAdmins').addEventListener('click', ()=> loadAdminsList());
+
+async function loadAdminsList(){
+  const out = $('#adminsList'); out.innerHTML = '<div class="text-slate-500 p-2">Loading admins...</div>';
+  try{
+    // get all docs in admins collection
+    const snaps = await getDocs(collection(db,'admins'));
+    out.innerHTML = '';
+    if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No admins.</div>'; return; }
+    snaps.forEach(snap=>{
+      const d = snap.data();
+      const el = document.createElement('div');
+      el.className = 'p-3 border rounded flex justify-between items-center';
+      el.innerHTML = `<div><div class="font-semibold">${snap.id}</div><div class="text-xs text-slate-600">${d.email || ''}</div></div><div><button data-id="${snap.id}" class="revokeAdmin px-2 py-1 border rounded text-sm">Revoke</button></div>`;
+      out.appendChild(el);
+    });
+    $$('.revokeAdmin').forEach(b => b.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id;
+      if(!confirm('Remove admin rights for UID '+id+'?')) return;
+      await deleteDoc(doc(db,'admins', id));
+      setGlobalMsg('Admin removed: '+id,'success');
+      await loadAdminsList();
+    }));
+  }catch(e){ showMsg('#adminsMsg','Admins load failed: '+e.message,'error'); }
+}
+
+/* =========================
+   Utility: populating selects
    ========================= */
 async function populateStudentSelects(){
-  const sels = ['#tt_student_select', '#grades_student_select', '#finance_student_select', '#clearance_student_select'];
-  const lists = await getDocs(collection(db,'students'));
-  sels.forEach(sel => { const el = $(sel); el.innerHTML = '<option value=\"\">Select student</option>'; lists.forEach(snap => { const d = snap.data(); el.insertAdjacentHTML('beforeend', `<option value=\"${snap.id}\">${d.name || snap.id} (${d.regNo || ''})</option>`); }); });
+  const selectors = ['#tt_student_select','#grades_student_select','#finance_student_select','#clearance_student_select'];
+  try{
+    const snaps = await getDocs(collection(db,'students'));
+    selectors.forEach(sel => {
+      const el = $(sel);
+      if(!el) return;
+      el.innerHTML = '<option value="">Select student</option>';
+      snaps.forEach(snap => {
+        const d = snap.data();
+        el.insertAdjacentHTML('beforeend', `<option value="${snap.id}">${(d.name||snap.id)} ${(d.regNo ? ' • '+d.regNo : '')}</option>`);
+      });
+    });
+  }catch(e){ setGlobalMsg('Populate students failed: '+e.message,'error'); }
 }
 async function populateCourseSelects(){
-  const sel = $('#grades_course_select'); sel.innerHTML = '<option value=\"\">Select course</option>';
-  const snap = await getDocs(collection(db,'courses'));
-  snap.forEach(s => sel.insertAdjacentHTML('beforeend', `<option value=\"${s.id}\">${s.data().code || s.id} — ${s.data().title||''}</option>`));
+  const el = $('#grades_course_select');
+  if(!el) return;
+  try{
+    const snaps = await getDocs(collection(db,'courses'));
+    el.innerHTML = '<option value="">Select course</option>';
+    snaps.forEach(s => el.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.data().code||s.id} — ${s.data().title||''}</option>`));
+  }catch(e){ setGlobalMsg('Populate courses failed: '+e.message,'error'); }
 }
 async function populateHostelSelects(){
-  const el = $('#hostel_select_for_room'); el.innerHTML = '<option value=\"\">Select hostel</option>';
-  const snap = await getDocs(collection(db,'hostels'));
-  snap.forEach(s => el.insertAdjacentHTML('beforeend', `<option value=\"${s.id}\">${s.data().name || s.id}</option>`));
+  const el = $('#hostel_select_for_room');
+  if(!el) return;
+  try{
+    const snaps = await getDocs(collection(db,'hostels'));
+    el.innerHTML = '<option value="">Select hostel</option>';
+    snaps.forEach(s => el.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.data().name || s.id}</option>`));
+  }catch(e){ setGlobalMsg('Populate hostels failed: '+e.message,'error'); }
 }
 
-/* small wrappers for convenience */
-async function loadCoursesList(){ await loadCoursesListInner(); }
-async function loadCoursesListInner(){ /* already implemented above by same name, but ensure call works */ 
-  // previous function defined earlier; nothing to do
-}
-async function loadHostelsList(){ await loadHostelsListInner(); }
-async function loadHostelsListInner(){ /* implemented above */ }
-
-/* wrapper to call all populate routines */
-async function loadHostelsListAndSelects(){
-  await loadHostelsList();
-  await populateHostelSelects();
-}
-
-/* initial load helper used in onAuthStateChanged */
-async function loadAllLists(){
-  await loadStudentsList();
-  await loadCoursesList();
-  await loadAnnouncementsList();
-  await loadHostelsList();
-  await populateStudentSelects();
-  await populateCourseSelects();
-  await populateHostelSelects();
-}
-
-/* Because of function hoisting issues, ensure these functions exist for calls above */
-async function loadCoursesList(){ 
-  // implement a simple call to update courses list area by reusing earlier logic
-  const container = $('#coursesList'); container.innerHTML = '<div class=\"text-slate-500 p-2\">Loading courses...</div>';
-  const snaps = await getDocs(collection(db,'courses'));
-  container.innerHTML = '';
-  if(snaps.empty){ container.innerHTML = '<div class=\"text-slate-500 p-2\">No courses.</div>'; return; }
-  snaps.forEach(snap=>{
-    const d = snap.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded flex justify-between items-center';
-    el.innerHTML = `<div><div class=\"font-semibold\">${d.code} — ${d.title}</div><div class=\"text-xs text-slate-600\">${d.credits||0} credits</div></div>
-      <div class=\"flex gap-2\">
-        <button data-id=\"${snap.id}\" class=\"editCourse px-2 py-1 border rounded text-sm\">Edit</button>
-        <button data-id=\"${snap.id}\" class=\"delCourse px-2 py-1 border rounded text-sm\">Delete</button>
-      </div>`;
-    container.appendChild(el);
-  });
-  $$('.delCourse').forEach(b => b.addEventListener('click', async (e)=>{
-    const id = e.currentTarget.dataset.id;
-    if(!confirm('Delete course?')) return;
-    await deleteDoc(doc(db,'courses',id));
-    toast('Course deleted'); await loadCoursesList(); await populateCourseSelects();
-  }));
-  $$('.editCourse').forEach(b => b.addEventListener('click', async (e)=>{
-    const id = e.currentTarget.dataset.id;
-    const sSnap = await getDoc(doc(db,'courses',id));
-    const data = sSnap.data();
-    $('#c_code').value = data.code || ''; $('#c_title').value = data.title || ''; $('#c_credits').value = data.credits || '';
-    $('#btnAddCourse').textContent = 'Update Course';
-    $('#btnAddCourse').onclick = async (ev)=>{
-      ev.preventDefault();
-      await updateDoc(doc(db,'courses',id), { code: $('#c_code').value.trim(), title: $('#c_title').value.trim(), credits: Number($('#c_credits').value||0) });
-      toast('Course updated'); $('#btnAddCourse').textContent = 'Add course'; $('#c_code').value=''; $('#c_title').value=''; $('#c_credits').value=''; await loadCoursesList(); await populateCourseSelects();
-      $('#btnAddCourse').onclick = null;
-    };
-  }));
-}
-
-/* hostels load inner implementation */
-async function loadHostelsListInner(){
-  const out = $('#hostelsList'); out.innerHTML = '<div class="text-slate-500 p-2">Loading hostels...</div>';
-  const snap = await getDocs(collection(db,'hostels'));
-  out.innerHTML = '';
-  if(snap.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No hostels</div>'; return; }
-  snap.forEach(h=>{
-    const d = h.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded';
-    el.innerHTML = `<div class="flex justify-between items-start"><div><div class="font-semibold">${d.name}</div><div class="text-xs text-slate-600">Available: ${d.availableCount||0}</div></div><div class="flex gap-2"><button data-id="${h.id}" class="viewRooms px-2 py-1 border rounded">Rooms</button><button data-id="${h.id}" class="delHostel px-2 py-1 border rounded">Delete</button></div></div><div id="rooms-${h.id}" class="mt-2"></div>`;
-    out.appendChild(el);
-  });
-  // re-attach handlers as earlier...
-  $$('.delHostel').forEach(b => b.addEventListener('click', async (e)=>{
-    const hid = e.currentTarget.dataset.id;
-    if(!confirm('Delete hostel doc?')) return;
-    await deleteDoc(doc(db,'hostels',hid));
-    toast('Hostel removed'); await loadHostelsListInner(); await populateHostelSelects();
-  }));
-  $$('.viewRooms').forEach(b => b.addEventListener('click', async (e)=>{
-    const hid = e.currentTarget.dataset.id;
-    const roomsOut = $('#rooms-'+hid); roomsOut.innerHTML = '<div class="text-slate-500 p-2">Loading rooms...</div>';
-    const rSnap = await getDocs(collection(db,'hostels',hid,'rooms'));
-    roomsOut.innerHTML = '';
-    if(rSnap.empty){ roomsOut.innerHTML = '<div class="text-slate-500 p-2">No rooms</div>'; return; }
-    rSnap.forEach(r=>{
-      const rr = r.data();
-      roomsOut.innerHTML += `<div class="p-2 border rounded mb-2 flex justify-between items-center"><div><strong>Room ${rr.roomNo}</strong><div class="text-xs text-slate-600">Cap ${rr.capacity} • KES ${rr.price}</div></div><div class="flex gap-2"><button data-h="${hid}" data-r="${r.id}" class="toggleRoom px-2 py-1 border rounded">${rr.status==='available'?'Mark booked':'Mark available'}</button><button data-h="${hid}" data-r="${r.id}" class="delRoom px-2 py-1 border rounded">Delete</button></div></div>`;
-    });
-    $$('.toggleRoom').forEach(btn => btn.addEventListener('click', async (ev)=>{
-      const hid = ev.currentTarget.dataset.h; const rid = ev.currentTarget.dataset.r;
-      const rRef = doc(db,'hostels',hid,'rooms',rid); const rSnap = await getDoc(rRef);
-      const newStatus = rSnap.data().status === 'available' ? 'booked' : 'available';
-      await updateDoc(rRef, { status: newStatus });
-      // adjust count
-      const hRef = doc(db,'hostels',hid);
-      await runTransaction(db, async tx => {
-        const hS = await tx.get(hRef);
-        const cur = hS.data().availableCount || 0;
-        tx.update(hRef, { availableCount: newStatus==='available' ? cur+1 : Math.max(0, cur-1) });
-      });
-      toast('Room toggled'); await loadHostelsListInner(); await populateHostelSelects();
-    }));
-    $$('.delRoom').forEach(btn => btn.addEventListener('click', async (ev)=>{
-      const hid = ev.currentTarget.dataset.h; const rid = ev.currentTarget.dataset.r;
-      if(!confirm('Delete room?')) return;
-      await deleteDoc(doc(db,'hostels',hid,'rooms',rid));
-      toast('Room deleted'); await loadHostelsListInner(); await populateHostelSelects();
-    }));
-  }));
-}
-
-/* ensure announcements load exists */
-async function loadAnnouncementsList(){
-  const out = $('#announcementsList'); out.innerHTML = '<div class="text-slate-500 p-2">Loading announcements...</div>';
-  const snaps = await getDocs(collection(db,'announcements'));
-  out.innerHTML = '';
-  if(snaps.empty){ out.innerHTML = '<div class="text-slate-500 p-2">No announcements</div>'; return; }
-  snaps.forEach(snap=>{
-    const d = snap.data();
-    const el = document.createElement('div');
-    el.className = 'p-3 border rounded flex justify-between items-start';
-    el.innerHTML = `<div><strong>${d.title}</strong><div class="text-xs text-slate-500">${d.author || ''}</div><div class="mt-2">${d.body}</div></div><div><button data-id="${snap.id}" class="delAnn px-2 py-1 border rounded">Delete</button></div>`;
-    out.appendChild(el);
-  });
-  $$('.delAnn').forEach(b => b.addEventListener('click', async (e)=>{
-    const id = e.currentTarget.dataset.id;
-    if(!confirm('Delete announcement?')) return;
-    await deleteDoc(doc(db,'announcements',id));
-    toast('Deleted'); await loadAnnouncementsList();
-  }));
-}
-
-/* =========================
-   Utility: quick reload buttons
-   ========================= */
+/* Expose some reloaders on button clicks */
 $('#btnReloadStudents').addEventListener('click', ()=> loadStudentsList());
 $('#btnReloadCourses').addEventListener('click', ()=> loadCoursesList());
 $('#btnReloadGrad').addEventListener('click', ()=> loadGraduationRequests());
 
-/* populate selects at start (if user already authenticated) */
-onAuthStateChanged(auth, async (u)=>{
-  if(u){
+/* Ensure initial population after auth (if already logged in) */
+onAuthStateChanged(auth, async (user) => {
+  if(user){
     await populateStudentSelects(); await populateCourseSelects(); await populateHostelSelects();
   }
 });
