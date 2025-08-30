@@ -9,9 +9,8 @@
     // Firebase Configuration and Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, deleteUser, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc, deleteDoc, orderBy, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc, deleteDoc, orderBy, serverTimestamp, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-    import { deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
@@ -51,11 +50,6 @@
     function toggleLoading(isLoading) {
       document.getElementById('loadingOverlay').classList.toggle('hidden', !isLoading);
     }
-    
-    // Generic modal close function
-    window.closeModal = (modalId) => {
-      document.getElementById(modalId).classList.add('hidden');
-    };
 
     // --- AUTHENTICATION CHECK ---
     onAuthStateChanged(auth, async (user) => {
@@ -324,301 +318,55 @@
     }
     document.getElementById("btnLoadTimetable").onclick = loadTimetable;
 
-    // --- HOSTEL MANAGEMENT ---
-    let allStudents = [];
-    let allHostels = [];
-
+    // Hostels
     async function loadHostels() {
-      const hostelsList = document.getElementById('hostelsList');
-      const bookingsTableBody = document.getElementById('bookingsTableBody');
-      const studentSearchInput = document.getElementById('studentSearch');
-      hostelsList.innerHTML = '<p class="text-center p-4">Loading hostels...</p>';
-      bookingsTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Loading student bookings...</td></tr>';
-      
       try {
-        // Fetch all students and hostels
+        const bookingsList = document.getElementById('bookingsList');
+        bookingsList.innerHTML = '';
         const studentsSnap = await getDocs(collection(db, 'students'));
-        allStudents = studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const hostelsSnap = await getDocs(collection(db, 'hostels'));
-        allHostels = await Promise.all(hostelsSnap.docs.map(async doc => {
-          const hostel = doc.data();
-          const roomsSnap = await getDocs(collection(db, `hostels/${doc.id}/rooms`));
-          const rooms = roomsSnap.docs.map(rDoc => ({ id: rDoc.id, ...rDoc.data() }));
-          const totalOccupants = rooms.reduce((sum, room) => sum + room.occupants, 0);
-          return { id: doc.id, ...hostel, rooms, totalOccupants };
-        }));
-
-        renderHostelsList(allHostels);
-        renderBookingsTable(allStudents);
-
-        studentSearchInput.addEventListener('input', filterBookings);
-        
-      } catch (err) {
-        showPopup(`Error loading hostel data: ${err.message}`, 'error');
-      }
-    }
-
-    function renderHostelsList(hostels) {
-      const hostelsList = document.getElementById('hostelsList');
-      hostelsList.innerHTML = '';
-      if (hostels.length === 0) {
-        hostelsList.innerHTML = '<p class="text-center p-4 text-gray-500">No hostels found.</p>';
-        return;
-      }
-      hostels.forEach(hostel => {
-        const occupancy = hostel.totalOccupants;
-        const capacity = hostel.capacity;
-        const available = capacity - occupancy;
-        const occupancyPercentage = capacity > 0 ? (occupancy / capacity) * 100 : 0;
-        hostelsList.innerHTML += `
-          <div class="bg-white p-4 rounded-lg shadow">
-            <h4 class="font-semibold text-lg">${hostel.name}</h4>
-            <p class="text-sm text-gray-600">Gender: ${hostel.gender}</p>
-            <p class="text-sm text-gray-600">Capacity: ${capacity} | Available: ${available}</p>
-            <div class="w-full bg-gray-200 rounded-full h-2.5 my-2">
-              <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${occupancyPercentage}%"></div>
-            </div>
-            <button onclick="viewHostelRooms('${hostel.id}')" class="bg-slate-500 text-white px-3 py-1 rounded text-sm mt-2">View Rooms</button>
-          </div>
-        `;
-      });
-    }
-
-    function renderBookingsTable(students) {
-      const bookingsTableBody = document.getElementById('bookingsTableBody');
-      const bookedStudents = students.filter(s => s.hostelBooking);
-      bookingsTableBody.innerHTML = '';
-      if (bookedStudents.length === 0) {
-        bookingsTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">No students have booked a room.</td></tr>';
-        return;
-      }
-      bookedStudents.forEach(student => {
-        const booking = student.hostelBooking;
-        bookingsTableBody.innerHTML += `
-          <tr class="hover:bg-gray-50">
-            <td class="p-2 border-b">${student.name || '-'}</td>
-            <td class="p-2 border-b">${student.email || '-'}</td>
-            <td class="p-2 border-b">${booking.hostelName || '-'}</td>
-            <td class="p-2 border-b">${booking.roomNumber || '-'}</td>
-            <td class="p-2 border-b">
-              <button onclick="openCancelBookingModal('${student.id}', '${student.name}')" class="bg-red-500 text-white px-3 py-1 rounded">Cancel Booking</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    function filterBookings() {
-      const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
-      const filteredStudents = allStudents.filter(s =>
-        s.name?.toLowerCase().includes(searchTerm) ||
-        s.email?.toLowerCase().includes(searchTerm)
-      );
-      renderBookingsTable(filteredStudents);
-    }
-
-    window.openBookRoomModal = async () => {
-      document.getElementById('bookRoomModal').classList.remove('hidden');
-      const studentSearch = document.getElementById('bookStudentSearch');
-      studentSearch.value = '';
-      document.getElementById('studentSearchResults').innerHTML = '';
-      
-      const hostelSelect = document.getElementById('bookHostelSelect');
-      hostelSelect.innerHTML = '<option value="">Select a Hostel...</option>';
-      const roomSelect = document.getElementById('bookRoomSelect');
-      roomSelect.innerHTML = '<option value="">Select a Hostel first...</option>';
-
-      allHostels.forEach(hostel => {
-        if (hostel.totalOccupants < hostel.capacity) {
-          hostelSelect.innerHTML += `<option value="${hostel.id}">${hostel.name} (${hostel.gender})</option>`;
+        let hasBookings = false;
+        studentsSnap.forEach(doc => {
+          const student = doc.data();
+          if (student.hostelBooking) {
+            hasBookings = true;
+            const booking = student.hostelBooking;
+            bookingsList.innerHTML += `
+              <li class="p-4 border rounded shadow flex justify-between items-center">
+                <div>
+                  <h4 class="font-semibold">${student.name || doc.id}</h4>
+                  <p class="text-sm text-gray-600">Hostel: ${booking.hostelName}</p>
+                  <p class="text-sm text-gray-600">Room: ${booking.number}</p>
+                  <p class="text-sm text-gray-600">Status: ${booking.status}</p>
+                </div>
+                <button onclick="cancelStudentBooking('${doc.id}', '${booking.hostelId}', '${booking.roomId}')" class="bg-red-500 text-white px-3 py-1 rounded">Cancel Booking</button>
+              </li>
+            `;
+          }
+        });
+        if (!hasBookings) {
+          bookingsList.innerHTML = '<li class="p-4 text-center text-gray-500">No current hostel bookings.</li>';
         }
-      });
-    };
-
-    document.getElementById('bookStudentSearch').addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      const resultsDiv = document.getElementById('studentSearchResults');
-      resultsDiv.innerHTML = '';
-      if (searchTerm.length < 2) return;
-      
-      const filteredStudents = allStudents.filter(s =>
-        (s.name?.toLowerCase().includes(searchTerm) || s.email?.toLowerCase().includes(searchTerm)) && !s.hostelBooking
-      );
-      
-      if (filteredStudents.length === 0) {
-        resultsDiv.innerHTML = '<p class="p-2 text-sm text-gray-500">No students found or all have a booking.</p>';
-        return;
-      }
-      
-      filteredStudents.forEach(student => {
-        resultsDiv.innerHTML += `
-          <div onclick="selectStudentForBooking('${student.id}', '${student.name}')" class="p-2 hover:bg-gray-100 cursor-pointer text-sm border-b last:border-b-0">
-            ${student.name} (${student.email})
-          </div>
-        `;
-      });
-    });
-
-    window.selectStudentForBooking = (studentId, studentName) => {
-      document.getElementById('selectedStudentName').textContent = studentName;
-      document.getElementById('bookRoomForm').dataset.studentId = studentId;
-    };
-
-    document.getElementById('bookHostelSelect').addEventListener('change', async (e) => {
-      const hostelId = e.target.value;
-      const roomSelect = document.getElementById('bookRoomSelect');
-      roomSelect.innerHTML = '<option value="">Loading rooms...</option>';
-      
-      if (!hostelId) {
-        roomSelect.innerHTML = '<option value="">Select a Hostel first...</option>';
-        return;
-      }
-      
-      try {
-        const roomsSnap = await getDocs(collection(db, `hostels/${hostelId}/rooms`));
-        const rooms = roomsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        roomSelect.innerHTML = '<option value="">Select a Room...</option>';
-        rooms.forEach(room => {
-          if (room.occupants < room.capacity) {
-            roomSelect.innerHTML += `<option value="${room.id}">${room.number} (${room.occupants}/${room.capacity})</option>`;
-          }
-        });
       } catch (err) {
-        showPopup(`Error loading rooms: ${err.message}`, 'error');
+        showPopup(`Error loading hostel bookings: ${err.message}`, 'error');
       }
-    });
+    }
 
-    document.getElementById('bookRoomForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const studentId = e.target.dataset.studentId;
-      if (!studentId) return showPopup('Please select a student.', 'error');
-      
-      const hostelId = document.getElementById('bookHostelSelect').value;
-      const roomId = document.getElementById('bookRoomSelect').value;
-      
-      if (!hostelId || !roomId) return showPopup('Please select a hostel and room.', 'error');
-      
-      toggleLoading(true);
+    window.cancelStudentBooking = async (studentId, hostelId, roomId) => {
       try {
-        const studentRef = doc(db, 'students', studentId);
-        const roomRef = doc(db, `hostels/${hostelId}/rooms`, roomId);
-        const hostelRef = doc(db, 'hostels', hostelId);
-
-        await runTransaction(db, async (transaction) => {
-          const studentDoc = await transaction.get(studentRef);
-          const roomDoc = await transaction.get(roomRef);
-          const hostelDoc = await transaction.get(hostelRef);
-
-          if (!studentDoc.exists() || !roomDoc.exists() || !hostelDoc.exists()) {
-            throw new Error("Student, hostel, or room document does not exist.");
-          }
-          
-          if (studentDoc.data().hostelBooking) {
-            throw new Error("Student already has a booking.");
-          }
-
-          if (roomDoc.data().occupants >= roomDoc.data().capacity) {
-            throw new Error("Room is full.");
-          }
-
-          const newRoomOccupants = roomDoc.data().occupants + 1;
-          const newHostelAvailable = hostelDoc.data().available - 1;
-
-          transaction.update(studentRef, {
-            hostelBooking: {
-              hostelId: hostelDoc.id,
-              hostelName: hostelDoc.data().name,
-              roomId: roomDoc.id,
-              roomNumber: roomDoc.data().number,
-              status: 'Booked',
-              timestamp: serverTimestamp()
-            }
-          });
-          transaction.update(roomRef, { occupants: newRoomOccupants });
-          transaction.update(hostelRef, { available: newHostelAvailable });
-        });
-        
-        showPopup('Room booked successfully!', 'success');
-        closeModal('bookRoomModal');
-        loadHostels();
-      } catch (err) {
-        showPopup(`Error booking room: ${err.message}`, 'error');
-      } finally {
-        toggleLoading(false);
-      }
-    });
-
-    window.openCancelBookingModal = (studentId, studentName) => {
-      document.getElementById('cancelStudentName').textContent = studentName;
-      document.getElementById('confirmCancelBtn').dataset.studentId = studentId;
-      document.getElementById('cancelBookingModal').classList.remove('hidden');
-    };
-
-    window.cancelStudentBooking = async () => {
-      const studentId = document.getElementById('confirmCancelBtn').dataset.studentId;
-      
-      toggleLoading(true);
-      try {
-        const studentRef = doc(db, "students", studentId);
-        const studentDoc = await getDoc(studentRef);
-
-        if (!studentDoc.exists() || !studentDoc.data().hostelBooking) {
-          throw new Error("Student has no active booking to cancel.");
+        await updateDoc(doc(db, "students", studentId), { hostelBooking: null });
+        const roomRef = doc(db, "hostels", hostelId, "rooms", roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+          const occupants = roomSnap.data().occupants;
+          await updateDoc(roomRef, { occupants: occupants > 0 ? occupants - 1 : 0 });
         }
-
-        const booking = studentDoc.data().hostelBooking;
-        const roomRef = doc(db, "hostels", booking.hostelId, "rooms", booking.roomId);
-        const hostelRef = doc(db, "hostels", booking.hostelId);
-        
-        await runTransaction(db, async (transaction) => {
-            const roomDoc = await transaction.get(roomRef);
-            const hostelDoc = await transaction.get(hostelRef);
-            
-            if (roomDoc.exists() && hostelDoc.exists()) {
-                const newOccupants = roomDoc.data().occupants > 0 ? roomDoc.data().occupants - 1 : 0;
-                const newAvailable = hostelDoc.data().available + 1;
-                transaction.update(roomRef, { occupants: newOccupants });
-                transaction.update(hostelRef, { available: newAvailable });
-            }
-            transaction.update(studentRef, { hostelBooking: deleteField() });
-        });
-
         showPopup('Booking canceled successfully!', 'success');
-        closeModal('cancelBookingModal');
         loadHostels();
       } catch (err) {
         showPopup(`Error canceling booking: ${err.message}`, 'error');
-      } finally {
-        toggleLoading(false);
       }
     };
     
-    // View Hostel Rooms Modal
-    window.viewHostelRooms = async (hostelId) => {
-      const roomGrid = document.getElementById('roomGrid');
-      const hostel = allHostels.find(h => h.id === hostelId);
-      if (!hostel) return showPopup('Hostel not found.', 'error');
-      
-      document.getElementById('roomsHostelName').textContent = hostel.name;
-      roomGrid.innerHTML = '';
-      
-      hostel.rooms.forEach(room => {
-        const isFull = room.occupants === room.capacity;
-        const color = isFull ? 'bg-red-200' : 'bg-green-200';
-        const borderColor = isFull ? 'border-red-500' : 'border-green-500';
-        
-        roomGrid.innerHTML += `
-          <div class="p-4 border ${borderColor} rounded-lg text-center ${color}">
-            <h5 class="font-semibold text-xl">Room ${room.number}</h5>
-            <p class="text-sm">${room.occupants} / ${room.capacity}</p>
-            <p class="text-xs text-gray-600">${isFull ? 'Full' : 'Available'}</p>
-          </div>
-        `;
-      });
-      document.getElementById('viewRoomsModal').classList.remove('hidden');
-    };
-
     // Finance
     let allStudentsData = []; // Cache all students
     
@@ -1095,7 +843,7 @@
         showPopup(`Error deleting student data: ${err.message}`, 'error');
       }
     };
-    
+
     </script>
 </head>
 <body class="bg-gray-100 flex h-screen overflow-hidden">
@@ -1297,92 +1045,15 @@
       </section>
 
       <section id="section-hostels" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Hostel Management</h2>
-        
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-          <h3 class="font-semibold text-xl mb-4">Hostels Overview</h3>
-          <div id="hostelsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <p class="text-center p-4">Loading hostels...</p>
-          </div>
-        </div>
-
+        <h2 class="text-2xl font-bold mb-6">Hostels Management</h2>
         <div class="bg-white p-6 rounded-lg shadow">
-          <h3 class="font-semibold text-xl mb-4">Student Bookings</h3>
-          <div class="flex justify-between items-center mb-4">
-            <input type="text" id="studentSearch" placeholder="Search by name or email" class="p-2 border rounded w-full md:w-1/3">
-            <button onclick="openBookRoomModal()" class="bg-blue-600 text-white p-2 rounded">Book Room for a Student</button>
-          </div>
-          <table class="min-w-full bg-white border-collapse border">
-            <thead>
-              <tr>
-                <th class="p-2 border bg-gray-200 text-left">Student Name</th>
-                <th class="p-2 border bg-gray-200 text-left">Email</th>
-                <th class="p-2 border bg-gray-200 text-left">Hostel Name</th>
-                <th class="p-2 border bg-gray-200 text-left">Room Number</th>
-                <th class="p-2 border bg-gray-200 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="bookingsTableBody">
-              <tr><td colspan="5" class="text-center p-4">Loading student bookings...</td></tr>
-            </tbody>
-          </table>
+          <h3 class="text-xl font-semibold mb-4">Current Hostel Bookings</h3>
+          <ul id="bookingsList" class="space-y-4">
+            <li class="p-4 text-center text-gray-500">Loading...</li>
+          </ul>
         </div>
       </section>
       
-      <div id="viewRoomsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">Rooms for <span id="roomsHostelName"></span></h3>
-            <button onclick="closeModal('viewRoomsModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
-          </div>
-          <div id="roomGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            </div>
-        </div>
-      </div>
-
-      <div id="bookRoomModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">Book a Room for a Student</h3>
-            <button onclick="closeModal('bookRoomModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
-          </div>
-          <form id="bookRoomForm" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium">Search Student (by name or email)</label>
-              <input type="text" id="bookStudentSearch" placeholder="Start typing to search..." class="w-full mt-1 p-2 border rounded">
-              <p id="selectedStudentName" class="mt-2 text-sm text-gray-700 font-semibold"></p>
-              <div id="studentSearchResults" class="bg-white border rounded shadow mt-1 max-h-40 overflow-y-auto"></div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium">Select Hostel</label>
-              <select id="bookHostelSelect" class="w-full p-2 border rounded" required>
-                <option value="">Loading hostels...</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium">Select Room</label>
-              <select id="bookRoomSelect" class="w-full p-2 border rounded" required>
-                <option value="">Select a Hostel first...</option>
-              </select>
-            </div>
-            <div class="flex justify-end gap-2">
-              <button type="button" onclick="closeModal('bookRoomModal')" class="bg-gray-300 text-gray-800 p-2 rounded">Cancel</button>
-              <button type="submit" class="bg-blue-600 text-white p-2 rounded">Book Room</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div id="cancelBookingModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-              <p class="text-lg font-semibold mb-4">Are you sure you want to cancel the booking for <span id="cancelStudentName"></span>?</p>
-              <div class="flex justify-center gap-4">
-                  <button onclick="closeModal('cancelBookingModal')" class="bg-gray-300 text-gray-800 p-2 rounded">No, Don't Cancel</button>
-                  <button id="confirmCancelBtn" onclick="cancelStudentBooking()" class="bg-red-600 text-white p-2 rounded">Yes, Cancel Booking</button>
-              </div>
-          </div>
-      </div>
-
       <section id="section-finance" class="hidden">
         <h2 class="text-2xl font-bold mb-6">Finance Management</h2>
         <div class="bg-white p-6 rounded-lg shadow">
