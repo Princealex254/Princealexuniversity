@@ -12,12 +12,10 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-  <!-- Popup (6s auto-hide) -->
   <div id="popup" class="fixed top-4 left-1/2 -translate-x-1/2 hidden z-50 max-w-xl w-full px-4">
     <div id="popupInner" class="p-3 rounded shadow text-white flex justify-between items-center"></div>
   </div>
 
-  <!-- Header -->
   <header class="bg-gradient-to-r from-sky-600 to-indigo-600 text-white p-4 flex items-center justify-between">
     <div class="flex items-center gap-4">
       <button id="hamburger" class="md:hidden p-2 bg-white/10 rounded">☰</button>
@@ -27,7 +25,6 @@
   </header>
 
   <div class="flex">
-    <!-- Sidebar -->
     <aside id="sidebar" class="hidden md:block w-64 bg-white border-r min-h-screen p-4 space-y-3">
       <nav>
         <button class="side-link block w-full text-left p-2 rounded" data-view="dashboard">🏠 Dashboard</button>
@@ -47,9 +44,7 @@
       </nav>
     </aside>
 
-    <!-- Main -->
     <main class="flex-1 p-6 overflow-y-auto">
-      <!-- DASHBOARD -->
       <section id="view-dashboard" class="view">
         <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -72,7 +67,6 @@
         </div>
       </section>
 
-      <!-- STUDENTS -->
       <section id="view-students" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Students</h2>
@@ -83,7 +77,6 @@
           </div>
         </div>
 
-        <!-- table -->
         <div class="overflow-x-auto bg-white rounded shadow">
           <table class="w-full text-sm">
             <thead class="bg-gray-100">
@@ -103,7 +96,6 @@
           </table>
         </div>
 
-        <!-- form -->
         <div class="mt-6 bg-white rounded shadow p-4">
           <h3 class="font-semibold mb-2">Add / Edit Student</h3>
           <form id="studentForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -125,7 +117,6 @@
         </div>
       </section>
 
-      <!-- ADMINS -->
       <section id="view-admins" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Admins</h2>
@@ -144,7 +135,6 @@
         </div>
       </section>
 
-      <!-- CLEARANCE -->
       <section id="view-clearance" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Clearance Requests</h2>
@@ -164,7 +154,6 @@
         </div>
       </section>
 
-      <!-- COURSES -->
       <section id="view-courseReg" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Courses (courses collection)</h2>
@@ -196,13 +185,12 @@
         </div>
       </section>
 
-      <!-- REGISTRATIONS (for examCard / course assignments) -->
       <section id="view-registrations" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Registrations (registrations/{uid}/courses)</h2>
           <div class="flex gap-2">
-            <input id="reg_uid" placeholder="Student UID" class="border p-2 rounded" />
-            <button id="reg_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+            <input id="reg_search" placeholder="Search email / admissionNo" class="border p-2 rounded" />
+            <button id="reg_search_btn" class="bg-sky-600 text-white px-3 py-2 rounded">Search</button>
           </div>
         </div>
 
@@ -217,13 +205,12 @@
         </div>
       </section>
 
-      <!-- EXAM CARD (view and export) -->
       <section id="view-examCard" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Exam Card</h2>
           <div class="flex gap-2">
-            <input id="exam_uid" placeholder="Student UID" class="border p-2 rounded" />
-            <button id="exam_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+            <input id="exam_search" placeholder="Search email / admissionNo" class="border p-2 rounded" />
+            <button id="exam_search_btn" class="bg-sky-600 text-white px-3 py-2 rounded">Search</button>
           </div>
         </div>
 
@@ -235,7 +222,6 @@
         </div>
       </section>
 
-      <!-- FINANCE -->
       <section id="view-finance" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Finance</h2>
@@ -273,13 +259,12 @@
         </div>
       </section>
 
-      <!-- GRADES -->
       <section id="view-grades" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Grades</h2>
           <div class="flex gap-2">
-            <input id="grades_uid" placeholder="Student UID" class="border p-2 rounded" />
-            <button id="grades_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+            <input id="grades_search" placeholder="Search email / admissionNo" class="border p-2 rounded" />
+            <button id="grades_search_btn" class="bg-sky-600 text-white px-3 py-2 rounded">Search</button>
           </div>
         </div>
 
@@ -304,7 +289,6 @@
         </div>
       </section>
 
-      <!-- GRADUATION -->
       <section id="view-graduation" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Graduation Requests</h2>
@@ -318,7 +302,6 @@
         </div>
       </section>
 
-      <!-- HOSTELS -->
       <section id="view-hostels" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Hostels & Rooms</h2>
@@ -362,13 +345,12 @@
         </div>
       </section>
 
-      <!-- TIMETABLE -->
       <section id="view-timetable" class="view hidden">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-2xl font-semibold">Timetable</h2>
           <div class="flex gap-2">
-            <input id="timetable_uid" placeholder="Student UID" class="border p-2 rounded" />
-            <button id="timetable_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+            <input id="timetable_search" placeholder="Search email / admissionNo" class="border p-2 rounded" />
+            <button id="timetable_search_btn" class="bg-sky-600 text-white px-3 py-2 rounded">Search</button>
           </div>
         </div>
 
@@ -381,7 +363,6 @@
         </div>
       </section>
 
-      <!-- PROFILE -->
       <section id="view-profile" class="view hidden">
         <h2 class="text-2xl font-semibold mb-4">Profile Management</h2>
         <div class="flex gap-2 mb-4">
@@ -391,7 +372,6 @@
         <div id="profile_result" class="bg-white rounded shadow p-4 hidden"></div>
       </section>
 
-      <!-- SETTINGS -->
       <section id="view-settings" class="view hidden">
         <h2 class="text-2xl font-semibold mb-4">Settings</h2>
         <div class="bg-white p-4 rounded shadow">
@@ -407,7 +387,6 @@
     </main>
   </div>
 
-  <!-- Firebase & App Logic -->
   <script type="module">
     // Firebase imports (modular)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -821,10 +800,14 @@
     document.getElementById('course_clear').addEventListener('click', ()=> document.getElementById('courseForm').reset());
 
     /* ========== REGISTRATIONS (registrations/{uid}/courses) ========== */
-    document.getElementById('reg_load').addEventListener('click', async ()=>{
-      const uid = document.getElementById('reg_uid').value.trim();
-      if (!uid) return showPopup('Enter student UID','error');
+    document.getElementById('reg_search_btn').addEventListener('click', async ()=>{
+      const q = document.getElementById('reg_search').value.trim();
+      if (!q) return showPopup('Enter a search term (email/admissionNo)','error');
       try {
+        const student = await findStudentByQuery(q);
+        if (!student) return showPopup('No student found with that email or admission number','error');
+        const uid = student.id;
+
         const snap = await getDocs(collection(db,'registrations',uid,'courses'));
         const list = document.getElementById('reg_list');
         list.innerHTML = '';
@@ -835,14 +818,15 @@
             const div = document.createElement('div');
             div.className = 'flex justify-between items-center border-b p-2';
             div.innerHTML = `<div>${escapeHtml(v.registeredAt?.toDate?.() ? v.registeredAt.toDate().toLocaleString() : d.id)}</div>
-              <div><button data-id="${d.id}" class="reg_del bg-red-600 text-white px-2 py-1 rounded text-xs">Drop</button></div>`;
+              <div><button data-id="${d.id}" data-uid="${uid}" class="reg_del bg-red-600 text-white px-2 py-1 rounded text-xs">Drop</button></div>`;
             list.appendChild(div);
           });
           document.querySelectorAll('.reg_del').forEach(btn=>{
             btn.addEventListener('click', async ()=>{
-              await deleteDoc(doc(db,'registrations',uid,'courses',btn.dataset.id));
+              const studentUid = btn.dataset.uid;
+              await deleteDoc(doc(db,'registrations',studentUid,'courses',btn.dataset.id));
               showPopup('Dropped course','success');
-              document.getElementById('reg_load').click();
+              document.getElementById('reg_search_btn').click();
             });
           });
         }
@@ -850,22 +834,30 @@
       } catch (e) { console.error(e); showPopup('Error loading registrations: '+e.message,'error'); }
     });
     document.getElementById('reg_add').addEventListener('click', async ()=>{
-      const uid = document.getElementById('reg_uid').value.trim();
+      const q = document.getElementById('reg_search').value.trim();
       const courseId = document.getElementById('reg_courseId').value.trim();
-      if (!uid || !courseId) return showPopup('Enter UID and courseId','error');
+      if (!q || !courseId) return showPopup('Search for a student and enter a courseId','error');
       try {
+        const student = await findStudentByQuery(q);
+        if (!student) return showPopup('No student found to register course for','error');
+        const uid = student.id;
+
         await setDoc(doc(db,'registrations',uid,'courses',courseId), { registeredAt: serverTimestamp() });
         showPopup('Course registered','success');
         document.getElementById('reg_courseId').value = '';
-        document.getElementById('reg_load').click();
+        document.getElementById('reg_search_btn').click();
       } catch (e) { console.error(e); showPopup('Error registering: '+e.message,'error'); }
     });
 
-    /* ========== EXAM CARD (load registered courses) ========== */
-    document.getElementById('exam_load').addEventListener('click', async ()=>{
-      const uid = document.getElementById('exam_uid').value.trim();
-      if (!uid) return showPopup('Enter student UID','error');
+    /* ========== EXAM CARD (view and export) ========== */
+    document.getElementById('exam_search_btn').addEventListener('click', async ()=>{
+      const q = document.getElementById('exam_search').value.trim();
+      if (!q) return showPopup('Enter a search term (email/admissionNo)','error');
       try {
+        const student = await findStudentByQuery(q);
+        if (!student) return showPopup('No student found with that email or admission number','error');
+        const uid = student.id;
+
         const snap = await getDocs(collection(db,'registrations',uid,'courses'));
         const table = document.getElementById('exam_table');
         table.innerHTML = '';
@@ -930,11 +922,15 @@
 
     /* ========== GRADES ========== */
     let gradesLoadedUid = '';
-    document.getElementById('grades_load').addEventListener('click', async ()=>{
-      const uid = document.getElementById('grades_uid').value.trim();
-      if (!uid) return showPopup('Enter UID','error');
-      gradesLoadedUid = uid;
+    document.getElementById('grades_search_btn').addEventListener('click', async ()=>{
+      const q = document.getElementById('grades_search').value.trim();
+      if (!q) return showPopup('Enter a search term (email/admissionNo)','error');
       try {
+        const student = await findStudentByQuery(q);
+        if (!student) return showPopup('No student found with that email or admission number','error');
+        const uid = student.id;
+        gradesLoadedUid = uid;
+
         const snap = await getDocs(collection(db,'grades',uid,'results'));
         const out = [];
         snap.forEach(d=> out.push(d.data()));
@@ -959,7 +955,7 @@
       try {
         await setDoc(doc(db,'grades',gradesLoadedUid,'results',id), payload, { merge:true });
         showPopup('Result saved','success');
-        document.getElementById('grades_load').click();
+        document.getElementById('grades_search_btn').click();
       } catch (e) { console.error(e); showPopup('Error saving result: '+e.message,'error'); }
     });
 
@@ -1170,10 +1166,14 @@
     });
 
     /* ========== TIMETABLE (timetable/{uid}) ========== */
-    document.getElementById('timetable_load').addEventListener('click', async ()=>{
-      const uid = document.getElementById('timetable_uid').value.trim();
-      if (!uid) return showPopup('Enter UID','error');
+    document.getElementById('timetable_search_btn').addEventListener('click', async ()=>{
+      const q = document.getElementById('timetable_search').value.trim();
+      if (!q) return showPopup('Enter a search term (email/admissionNo)','error');
       try {
+        const student = await findStudentByQuery(q);
+        if (!student) return showPopup('No student found with that email or admission number','error');
+        const uid = student.id;
+        
         const snap = await getDoc(doc(db,'timetable',uid));
         if (!snap.exists()) {
           document.getElementById('timetable_json').value = '[]';
@@ -1186,9 +1186,13 @@
       } catch (e) { console.error(e); showPopup('Error loading timetable: '+e.message,'error'); }
     });
     document.getElementById('timetable_save').addEventListener('click', async ()=>{
-      const uid = document.getElementById('timetable_uid').value.trim();
-      if (!uid) return showPopup('Enter UID','error');
+      const q = document.getElementById('timetable_search').value.trim();
+      if (!q) return showPopup('Enter a search term first','error');
       try {
+        const student = await findStudentByQuery(q);
+        if (!student) return showPopup('No student found to save timetable for','error');
+        const uid = student.id;
+
         const schedule = JSON.parse(document.getElementById('timetable_json').value || '[]');
         await setDoc(doc(db,'timetable',uid), { schedule, updatedAt: serverTimestamp() }, { merge:true });
         showPopup('Timetable saved','success');
@@ -1268,6 +1272,19 @@
     /* ========== Utilities & initial load ========== */
     function escapeHtml(s='') {
       return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    }
+    
+    async function findStudentByQuery(queryStr) {
+      const q = queryStr.trim();
+      if (!q) return null;
+      let snapshot = await getDocs(query(collection(db, 'students'), where('email', '==', q)));
+      if (snapshot.empty) {
+        snapshot = await getDocs(query(collection(db, 'students'), where('admissionNo', '==', q)));
+      }
+      if (snapshot.empty) {
+        snapshot = await getDocs(query(collection(db, 'students'), where('regNo', '==', q)));
+      }
+      return snapshot.empty ? null : snapshot.docs[0];
     }
 
     // initial
