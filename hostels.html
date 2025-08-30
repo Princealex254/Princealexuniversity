@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Hostels</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+  <section id="hostels" class="p-6 bg-white rounded shadow">
+    <h2 class="text-xl font-bold mb-4">Hostels</h2>
+
+    <!-- Popup Notification -->
+    <div id="popup" class="hidden fixed top-6 right-6 z-50 px-4 py-3 rounded shadow text-white"></div>
+
+    <!-- Current Booking -->
+    <div id="currentBooking" class="mb-6">
+      <h4 class="font-semibold mb-2">Your Current Booking</h4>
+      <div id="bookingDetails" class="p-4 border rounded text-sm text-slate-600">Loading...</div>
+    </div>
+
+    <!-- List of Hostels -->
+    <div>
+      <h4 class="font-semibold mb-3">Available Hostels</h4>
+      <div id="hostelList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="text-slate-500 p-4 border rounded">Loading hostels...</div>
+      </div>
+    </div>
+
+    <!-- Rooms Section -->
+    <div id="roomList" class="mt-6 hidden">
+      <h4 id="roomsForHostelTitle" class="font-semibold mb-3">Rooms</h4>
+      <button id="btnBackToHostels" class="px-3 py-1 border rounded mb-3">← Back</button>
+      <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let selectedHostelId = null;
+
+// Popup Helper
+function showPopup(message, type="success") {
+  const popup = document.getElementById("popup");
+  popup.className = "fixed top-6 right-6 z-50 px-4 py-3 rounded shadow text-white " +
+    (type === "success" ? "bg-green-600" : "bg-red-600");
+  popup.innerHTML = message + 
+    `<button onclick="this.parentElement.classList.add('hidden')" class="ml-3 underline">OK</button>`;
+  popup.classList.remove("hidden");
+  setTimeout(()=>popup.classList.add("hidden"), 6000);
+}
+
+// Load Booking + Hostels
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
+  currentUser = user;
+  await loadBooking();
+  await loadHostels();
+});
+
+// Load current booking
+async function loadBooking() {
+  const ref = doc(db, "students", currentUser.uid);
+  const snap = await getDoc(ref);
+  const cont = document.getElementById("bookingDetails");
+
+  if (snap.exists() && snap.data().hostelBooking) {
+    const b = snap.data().hostelBooking;
+    cont.innerHTML = `
+      <div class="p-3 border rounded bg-slate-50">
+        <p><strong>Hostel:</strong> ${b.hostelName}</p>
+        <p><strong>Room:</strong> ${b.number}</p>
+        <p class="text-green-600 font-semibold">Status: ${b.status}</p>
+        <button id="btnCancelBooking" class="mt-2 px-3 py-1 bg-red-600 text-white rounded">Cancel Booking</button>
+      </div>`;
+    document.getElementById("btnCancelBooking").onclick = () => cancelBooking(b.hostelId, b.roomId);
+  } else {
+    cont.innerHTML = `<div class="text-slate-500">No booking yet.</div>`;
+  }
+}
+
+// Load hostels list
+async function loadHostels() {
+  const snap = await getDocs(collection(db, "hostels"));
+  const list = document.getElementById("hostelList");
+  list.innerHTML = "";
+
+  if (snap.empty) {
+    list.innerHTML = `<div class="text-slate-500 p-4 border rounded">No hostels available.</div>`;
+    return;
+  }
+
+  snap.forEach(docSnap => {
+    const h = docSnap.data();
+    const percent = h.capacity > 0 ? Math.round(((h.capacity - (h.available||0)) / h.capacity) * 100) : 0;
+    list.innerHTML += `
+      <div class="p-4 bg-white border rounded shadow-sm">
+        <h3 class="font-bold">${h.name} (${h.gender})</h3>
+        <p class="text-sm text-slate-500">Capacity: ${h.capacity} | Available: ${h.available||0}</p>
+        <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+          <div class="bg-blue-600 h-2 rounded-full" style="width: ${percent}%"></div>
+        </div>
+        <button class="mt-3 px-3 py-1 bg-blue-600 text-white rounded" onclick="viewRooms('${docSnap.id}','${h.name}')">View Rooms</button>
+      </div>`;
+  });
+}
+
+// View rooms
+window.viewRooms = async function(hostelId, hostelName) {
+  selectedHostelId = hostelId;
+  document.getElementById("hostelList").classList.add("hidden");
+  const roomList = document.getElementById("roomList");
+  const roomsCont = document.getElementById("roomsContainer");
+  roomList.classList.remove("hidden");
+  document.getElementById("roomsForHostelTitle").innerText = "Rooms in " + hostelName;
+  roomsCont.innerHTML = "Loading rooms...";
+
+  const snap = await getDocs(collection(db, "hostels", hostelId, "rooms"));
+  roomsCont.innerHTML = "";
+  if (snap.empty) {
+    roomsCont.innerHTML = `<div class="text-slate-500">No rooms available.</div>`;
+    return;
+  }
+  snap.forEach(rSnap => {
+    const r = rSnap.data();
+    roomsCont.innerHTML += `
+      <div class="p-4 border rounded bg-slate-50">
+        <p><strong>Room ${r.number}</strong></p>
+        <p class="text-sm text-slate-500">${r.occupants||0}/${r.capacity} Occupied</p>
+        <button class="mt-2 px-3 py-1 bg-green-600 text-white rounded" 
+          onclick="bookRoom('${hostelId}','${hostelName}','${rSnap.id}','${r.number}',${r.capacity},${r.occupants||0})">
+          Book
+        </button>
+      </div>`;
+  });
+}
+
+// Back to hostels list
+document.getElementById("btnBackToHostels").onclick = () => {
+  document.getElementById("roomList").classList.add("hidden");
+  document.getElementById("hostelList").classList.remove("hidden");
+};
+
+// Book Room
+window.bookRoom = async function(hostelId, hostelName, roomId, roomNo, capacity, occupants) {
+  if (occupants >= capacity) {
+    showPopup("Room is full!", "error");
+    return;
+  }
+  try {
+    await updateDoc(doc(db, "students", currentUser.uid), {
+      hostelBooking: {
+        hostelId, hostelName,
+        roomId, number: roomNo,
+        status: "Active",
+        startDate: new Date()
+      }
+    });
+    await updateDoc(doc(db, "hostels", hostelId, "rooms", roomId), {
+      occupants: occupants + 1
+    });
+    showPopup("✅ Room booked successfully!");
+    await loadBooking();
+  } catch (err) {
+    showPopup("Error booking room: " + err.message, "error");
+  }
+};
+
+// Cancel Booking
+async function cancelBooking(hostelId, roomId) {
+  try {
+    const stuRef = doc(db, "students", currentUser.uid);
+    const stuSnap = await getDoc(stuRef);
+    if (stuSnap.exists() && stuSnap.data().hostelBooking) {
+      await updateDoc(stuRef, { hostelBooking: null });
+      const roomRef = doc(db, "hostels", hostelId, "rooms", roomId);
+      const roomSnap = await getDoc(roomRef);
+      if (roomSnap.exists()) {
+        const r = roomSnap.data();
+        await updateDoc(roomRef, { occupants: Math.max(0, (r.occupants||1)-1) });
+      }
+    }
+    showPopup("Booking cancelled", "success");
+    await loadBooking();
+  } catch (err) {
+    showPopup("Error cancelling: " + err.message, "error");
+  }
+}
+</script>
+</body>
+</html>

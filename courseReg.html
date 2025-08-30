@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Course Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+
+  <!-- ✅ Popup Message -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
+    <span id="popupText" class="text-sm"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  </div>
+
+  <section class="max-w-6xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-6">Course Registration</h2>
+
+    <!-- 🔎 Search -->
+    <div class="mb-4 flex justify-between">
+      <input id="searchBox" type="text" placeholder="Search by code or name..." 
+             class="w-1/2 border rounded px-3 py-2"/>
+      <button id="btnReload" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Reload Courses
+      </button>
+    </div>
+
+    <!-- 📚 Available Courses -->
+    <h3 class="font-semibold mb-2">Available Courses</h3>
+    <div class="overflow-x-auto mb-8">
+      <table class="w-full border">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Code</th>
+            <th class="p-2 border">Name</th>
+            <th class="p-2 border">Department</th>
+            <th class="p-2 border">Semester</th>
+            <th class="p-2 border">Year</th>
+            <th class="p-2 border">Action</th>
+          </tr>
+        </thead>
+        <tbody id="courseList"></tbody>
+      </table>
+    </div>
+
+    <!-- 📝 Registered Courses -->
+    <h3 class="font-semibold mb-2">My Registered Courses</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full border">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Code</th>
+            <th class="p-2 border">Name</th>
+            <th class="p-2 border">Department</th>
+            <th class="p-2 border">Semester</th>
+            <th class="p-2 border">Year</th>
+            <th class="p-2 border">Action</th>
+          </tr>
+        </thead>
+        <tbody id="myCourses"></tbody>
+      </table>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { 
+  getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ✅ Popup system
+function showPopup(msg, type="success") {
+  const box = document.getElementById("popupMsg");
+  const text = document.getElementById("popupText");
+  const closeBtn = document.getElementById("popupClose");
+  text.textContent = msg;
+  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
+    (type==="success" ? "bg-green-500 text-white" : "bg-red-500 text-white");
+  box.classList.remove("hidden");
+  closeBtn.onclick = ()=> box.classList.add("hidden");
+  setTimeout(()=> box.classList.add("hidden"), 5000);
+}
+
+let currentUser;
+
+// 🔎 Search filter
+document.getElementById("searchBox").addEventListener("input", ()=>{
+  const term=document.getElementById("searchBox").value.toLowerCase();
+  document.querySelectorAll("#courseList tr").forEach(tr=>{
+    const text=tr.textContent.toLowerCase();
+    tr.style.display=text.includes(term)?"":"none";
+  });
+});
+
+onAuthStateChanged(auth, async user=>{
+  if(!user) return;
+  currentUser=user;
+  loadCourses();
+  loadMyCourses();
+});
+
+// 📚 Load all courses
+async function loadCourses(){
+  try {
+    const snap=await getDocs(collection(db,"courses"));
+    const tbody=document.getElementById("courseList");
+    tbody.innerHTML="";
+    snap.forEach(docSnap=>{
+      const c=docSnap.data();
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td class="p-2 border">${c.courseCode}</td>
+        <td class="p-2 border">${c.courseName}</td>
+        <td class="p-2 border">${c.department}</td>
+        <td class="p-2 border">${c.semester}</td>
+        <td class="p-2 border">${c.yearOfStudy}</td>
+        <td class="p-2 border text-center">
+          <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+            onclick="registerCourse('${docSnap.id}')">Register</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  } catch(err){
+    showPopup("Error loading courses: " + err.message,"error");
+  }
+}
+
+// 📝 Load registered courses
+async function loadMyCourses(){
+  try {
+    const regCol=collection(db,"registrations",currentUser.uid,"courses");
+    const snap=await getDocs(regCol);
+    const tbody=document.getElementById("myCourses");
+    tbody.innerHTML="";
+    for(const d of snap.docs){
+      const courseDoc=await getDoc(doc(db,"courses",d.id));
+      const c=courseDoc.data();
+      if(c){
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td class="p-2 border">${c.courseCode}</td>
+          <td class="p-2 border">${c.courseName}</td>
+          <td class="p-2 border">${c.department}</td>
+          <td class="p-2 border">${c.semester}</td>
+          <td class="p-2 border">${c.yearOfStudy}</td>
+          <td class="p-2 border text-center">
+            <button class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+              onclick="dropCourse('${d.id}')">Drop</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+    }
+  } catch(err){
+    showPopup("Error loading registered courses: " + err.message,"error");
+  }
+}
+
+// ➕ Register
+window.registerCourse=async(courseId)=>{
+  try {
+    await setDoc(doc(db,"registrations",currentUser.uid,"courses",courseId),{
+      registeredAt: serverTimestamp()
+    });
+    showPopup("Course registered successfully!","success");
+    loadMyCourses();
+  } catch(err){
+    showPopup("Error registering: " + err.message,"error");
+  }
+};
+
+// ❌ Drop
+window.dropCourse=async(courseId)=>{
+  try {
+    await deleteDoc(doc(db,"registrations",currentUser.uid,"courses",courseId));
+    showPopup("Course dropped successfully!","success");
+    loadMyCourses();
+  } catch(err){
+    showPopup("Error dropping: " + err.message,"error");
+  }
+};
+
+// 🔄 Reload button
+document.getElementById("btnReload").onclick=()=> loadCourses();
+</script>
+</body>
+</html>

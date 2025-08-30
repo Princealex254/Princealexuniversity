@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Grades & Transcript</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="p-6 bg-gray-50">
+
+  <!-- ✅ Popup Message -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
+    <span id="popupText" class="text-sm"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  </div>
+
+  <section class="max-w-6xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-6">Grades & Transcript</h2>
+
+    <!-- 🔽 Filters -->
+    <div class="mb-6 flex gap-4">
+      <div>
+        <label class="block text-sm font-medium">Year</label>
+        <select id="yearSelect" class="border rounded px-3 py-2">
+          <option value="">Select</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Semester</label>
+        <select id="semSelect" class="border rounded px-3 py-2">
+          <option value="">Select</option>
+          <option>1</option><option>2</option>
+        </select>
+      </div>
+      <button id="btnLoadGrades" class="self-end bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Load Grades
+      </button>
+    </div>
+
+    <!-- 📊 Grades Table -->
+    <div class="overflow-x-auto mb-6">
+      <table id="gradesTable" class="w-full border hidden">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Code</th>
+            <th class="p-2 border">Title</th>
+            <th class="p-2 border">Credits</th>
+            <th class="p-2 border">Grade</th>
+            <th class="p-2 border">Points</th>
+          </tr>
+        </thead>
+        <tbody id="gradesTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- GPA Summary -->
+    <div id="gpaSection" class="hidden mb-6">
+      <p><strong>Semester GPA:</strong> <span id="semesterGpa">-</span></p>
+      <p><strong>Cumulative GPA:</strong> <span id="cumulativeGpa">-</span></p>
+    </div>
+
+    <!-- 📥 Download -->
+    <button id="btnDownloadTranscript" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 hidden">
+      Download Transcript (PDF)
+    </button>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ✅ Popup system
+function showPopup(msg, type="success") {
+  const box = document.getElementById("popupMsg");
+  const text = document.getElementById("popupText");
+  const closeBtn = document.getElementById("popupClose");
+
+  text.textContent = msg;
+  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
+    (type==="success" ? "bg-green-500 text-white" : "bg-red-500 text-white");
+
+  box.classList.remove("hidden");
+  closeBtn.onclick = ()=> box.classList.add("hidden");
+  setTimeout(()=> box.classList.add("hidden"), 5000);
+}
+
+let currentUser, allResults=[];
+
+onAuthStateChanged(auth, user=>{
+  if(!user){ showPopup("You must be logged in","error"); return; }
+  currentUser=user;
+});
+
+// 📊 Load Grades
+document.getElementById("btnLoadGrades").onclick=async()=>{
+  const year=document.getElementById("yearSelect").value;
+  const sem=document.getElementById("semSelect").value;
+  if(!year || !sem) return showPopup("Please select Year and Semester","error");
+
+  try {
+    const snap=await getDocs(collection(db,"grades",currentUser.uid,"results"));
+    const tbody=document.getElementById("gradesTbody");
+    tbody.innerHTML="";
+    allResults=[];
+    let totalPoints=0, totalCredits=0;
+
+    snap.forEach(docSnap=>{
+      const r=docSnap.data();
+      if(r.year==year && r.semester==sem){
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td class="p-2 border">${r.code}</td>
+          <td class="p-2 border">${r.title}</td>
+          <td class="p-2 border">${r.credits}</td>
+          <td class="p-2 border">${r.grade}</td>
+          <td class="p-2 border">${r.gpaPoints}</td>`;
+        tbody.appendChild(tr);
+        allResults.push(r);
+
+        const points=(r.gpaPoints||0)*(r.credits||0);
+        totalPoints+=points;
+        totalCredits+=(r.credits||0);
+      }
+    });
+
+    if(allResults.length===0){
+      document.getElementById("gradesTable").classList.add("hidden");
+      document.getElementById("gpaSection").classList.add("hidden");
+      document.getElementById("btnDownloadTranscript").classList.add("hidden");
+      return showPopup("No grades available for selected Year & Semester","error");
+    }
+
+    const semGpa=(totalPoints/totalCredits).toFixed(2);
+    document.getElementById("semesterGpa").textContent=semGpa;
+    document.getElementById("cumulativeGpa").textContent=semGpa; // extend later for full CGPA
+
+    document.getElementById("gradesTable").classList.remove("hidden");
+    document.getElementById("gpaSection").classList.remove("hidden");
+    document.getElementById("btnDownloadTranscript").classList.remove("hidden");
+    showPopup("Grades loaded successfully","success");
+
+  } catch(err){
+    showPopup("Error loading grades: " + err.message,"error");
+  }
+};
+
+// 📥 Download Transcript
+document.getElementById("btnDownloadTranscript").onclick=()=>{
+  if(allResults.length===0) return showPopup("No grades to export","error");
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const docp=new jsPDF();
+
+    docp.text("Transcript",14,20);
+    const rows=allResults.map(r=>[r.code,r.title,r.credits,r.grade,r.gpaPoints]);
+    docp.autoTable({
+      head:[["Code","Title","Credits","Grade","Points"]],
+      body:rows,
+      startY:30
+    });
+    docp.save("transcript.pdf");
+    showPopup("Transcript downloaded successfully","success");
+  } catch(err){
+    showPopup("Error generating transcript: "+err.message,"error");
+  }
+};
+</script>
+</body>
+</html>

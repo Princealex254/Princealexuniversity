@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Account Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+
+  <!-- ✅ Popup Message -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
+    <span id="popupText" class="text-sm"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  </div>
+
+  <section class="max-w-2xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-4">Account Settings</h2>
+
+    <!-- Update Email -->
+    <div class="mb-6">
+      <h3 class="font-semibold mb-2">Update Email</h3>
+      <input id="newEmail" type="email" placeholder="Enter new email" 
+             class="border rounded p-2 w-full"/>
+      <button id="btnUpdateEmail" 
+              class="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Update Email
+      </button>
+    </div>
+
+    <!-- Update Password -->
+    <div class="mb-6">
+      <h3 class="font-semibold mb-2">Update Password</h3>
+      <label class="block text-sm">New Password</label>
+      <input id="newPassword" type="password" class="border rounded p-2 w-full"/>
+      <label class="block text-sm mt-2">Confirm Password</label>
+      <input id="confirmPassword" type="password" class="border rounded p-2 w-full"/>
+      <button id="btnUpdatePassword" 
+              class="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Update Password
+      </button>
+    </div>
+
+    <!-- Password Reset -->
+    <div class="mb-6">
+      <h3 class="font-semibold mb-2">Password Reset</h3>
+      <button id="btnResetPassword" 
+              class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+        Send Reset Email
+      </button>
+    </div>
+
+    <!-- Two-Factor Authentication Placeholder -->
+    <div class="mb-6 border-t pt-4">
+      <h3 class="font-semibold mb-2">Two-Factor Authentication (2FA)</h3>
+      <p class="text-sm text-slate-600">Coming soon: Add SMS or Email 2FA for extra security.</p>
+    </div>
+
+    <!-- Security Overview -->
+    <div class="mb-6 border-t pt-4">
+      <h3 class="font-semibold mb-2">Security Overview</h3>
+      <p class="text-sm text-slate-600">Last login: <span id="lastLogin">Loading...</span></p>
+      <p class="text-sm text-slate-600">Email verified: <span id="emailVerified">Loading...</span></p>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="mt-6 border-t pt-4">
+      <h3 class="font-semibold mb-2 text-red-600">Danger Zone</h3>
+      <button id="btnDeleteAccount" 
+              class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+        Delete Account
+      </button>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { 
+  getAuth, onAuthStateChanged, updateEmail, updatePassword, sendPasswordResetEmail, deleteUser 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ✅ Popup message function
+function showPopup(msg, type="success") {
+  const box = document.getElementById("popupMsg");
+  const text = document.getElementById("popupText");
+  const closeBtn = document.getElementById("popupClose");
+
+  text.textContent = msg;
+  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
+    (type==="success" 
+      ? "bg-green-500 text-white" 
+      : "bg-red-500 text-white");
+
+  box.classList.remove("hidden");
+
+  // Close manually
+  closeBtn.onclick = ()=> box.classList.add("hidden");
+
+  // Auto-hide after 5s
+  setTimeout(()=> box.classList.add("hidden"), 5000);
+}
+
+let currentUser;
+
+onAuthStateChanged(auth, async user=>{
+  if(!user) return;
+  currentUser = user;
+
+  // Security Overview
+  document.getElementById("lastLogin").textContent = user.metadata.lastSignInTime || "N/A";
+  document.getElementById("emailVerified").textContent = user.emailVerified ? "Yes" : "No";
+});
+
+// 🔹 Update Email
+document.getElementById("btnUpdateEmail").onclick = async ()=>{
+  const em = document.getElementById("newEmail").value;
+  if(!em) return showPopup("Please enter a new email.","error");
+
+  try {
+    await updateEmail(currentUser, em);
+    await updateDoc(doc(db, "students", currentUser.uid), { email: em });
+    showPopup("Email updated successfully!","success");
+  } catch(err) {
+    showPopup("Error updating email: " + err.message,"error");
+  }
+};
+
+// 🔹 Update Password
+document.getElementById("btnUpdatePassword").onclick = async ()=>{
+  const newPass=document.getElementById("newPassword").value;
+  const confirmPass=document.getElementById("confirmPassword").value;
+  if(!newPass || !confirmPass) return showPopup("Please fill in both password fields.","error");
+  if(newPass!==confirmPass) return showPopup("Passwords do not match.","error");
+  if(newPass.length < 6) return showPopup("Password must be at least 6 characters.","error");
+
+  try {
+    await updatePassword(currentUser, newPass);
+    showPopup("Password changed successfully!","success");
+  } catch(err) {
+    showPopup("Error updating password: " + err.message,"error");
+  }
+};
+
+// 🔹 Send Reset Email
+document.getElementById("btnResetPassword").onclick = async ()=>{
+  try {
+    await sendPasswordResetEmail(auth, currentUser.email);
+    showPopup("Password reset email sent to " + currentUser.email,"success");
+  } catch(err) {
+    showPopup("Error sending reset email: " + err.message,"error");
+  }
+};
+
+// 🔹 Delete Account
+document.getElementById("btnDeleteAccount").onclick = async ()=>{
+  if(!confirm("Are you sure you want to delete your account? This cannot be undone.")) return;
+  try {
+    await deleteUser(currentUser);
+    await updateDoc(doc(db, "students", currentUser.uid), { active: false });
+    showPopup("Account deleted successfully.","success");
+  } catch(err) {
+    showPopup("Error deleting account: " + err.message,"error");
+  }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Exam Card</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="p-6 bg-gray-50">
+
+  <!-- ✅ Popup Message -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
+    <span id="popupText" class="text-sm"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  </div>
+
+  <section class="max-w-5xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-6">Exam Card</h2>
+
+    <!-- Placeholder -->
+    <p id="examInfo" class="text-gray-500 mb-4">Loading exam card…</p>
+
+    <!-- Exam Table -->
+    <div class="overflow-x-auto mb-6">
+      <table id="examTable" class="w-full border hidden">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Code</th>
+            <th class="p-2 border">Title</th>
+            <th class="p-2 border">Credits</th>
+            <th class="p-2 border">Venue</th>
+            <th class="p-2 border">Date</th>
+          </tr>
+        </thead>
+        <tbody id="examTbody"></tbody>
+      </table>
+    </div>
+
+    <button id="btnDownloadExamCard" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 hidden">
+      Download Exam Card (PDF)
+    </button>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ✅ Popup system
+function showPopup(msg, type="success") {
+  const box = document.getElementById("popupMsg");
+  const text = document.getElementById("popupText");
+  const closeBtn = document.getElementById("popupClose");
+
+  text.textContent = msg;
+  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
+    (type==="success" ? "bg-green-500 text-white" : "bg-red-500 text-white");
+
+  box.classList.remove("hidden");
+  closeBtn.onclick = ()=> box.classList.add("hidden");
+  setTimeout(()=> box.classList.add("hidden"), 5000);
+}
+
+let currentUser, allExamRows=[], studentInfo={};
+
+onAuthStateChanged(auth, async user=>{
+  if(!user){ 
+    showPopup("You must be logged in to view exam card","error");
+    return; 
+  }
+  currentUser=user;
+  await loadStudentInfo();
+  await loadExamCard();
+});
+
+// 📘 Load student info (for PDF header)
+async function loadStudentInfo(){
+  try {
+    const snap=await getDoc(doc(db,"students",currentUser.uid));
+    if(snap.exists()){
+      studentInfo=snap.data();
+    }
+  } catch(err){
+    showPopup("Error loading student info: "+err.message,"error");
+  }
+}
+
+// 📘 Load Exam Card
+async function loadExamCard(){
+  try {
+    const regSnap=await getDocs(collection(db,"registrations",currentUser.uid,"courses"));
+    const tbody=document.getElementById("examTbody");
+    tbody.innerHTML="";
+    allExamRows=[];
+
+    if(regSnap.empty){
+      document.getElementById("examInfo").textContent="No registered courses found.";
+      document.getElementById("examTable").classList.add("hidden");
+      document.getElementById("btnDownloadExamCard").classList.add("hidden");
+      return showPopup("No registered courses for exam card","error");
+    }
+
+    for(const docSnap of regSnap.docs){
+      const courseId=docSnap.id;
+      const cSnap=await getDoc(doc(db,"courses",courseId));
+      const c=cSnap.exists()?cSnap.data():{ code:courseId, title:"Unknown", credits:"-" };
+
+      const row=[
+        c.code||courseId,
+        c.title||"Unknown",
+        c.credits||"-",
+        c.venue||"TBA",
+        c.examDate||"TBA"
+      ];
+      allExamRows.push(row);
+
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td class="p-2 border">${row[0]}</td>
+        <td class="p-2 border">${row[1]}</td>
+        <td class="p-2 border">${row[2]}</td>
+        <td class="p-2 border">${row[3]}</td>
+        <td class="p-2 border">${row[4]}</td>`;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById("examInfo").classList.add("hidden");
+    document.getElementById("examTable").classList.remove("hidden");
+    document.getElementById("btnDownloadExamCard").classList.remove("hidden");
+    showPopup("Exam card loaded successfully","success");
+
+  } catch(err){
+    showPopup("Error loading exam card: "+err.message,"error");
+  }
+}
+
+// 📥 Download Exam Card PDF (with finance clearance check)
+document.getElementById("btnDownloadExamCard").onclick=async()=>{
+  if(allExamRows.length===0) return showPopup("No exam card to export","error");
+
+  // 🔎 Check finance clearance
+  try {
+    const fSnap=await getDoc(doc(db,"finance",currentUser.uid));
+    if(fSnap.exists() && fSnap.data().balance>0){
+      return showPopup(`You cannot download exam card. Outstanding balance: Ksh ${fSnap.data().balance}`,"error");
+    }
+  } catch(err){
+    return showPopup("Error checking finance clearance: "+err.message,"error");
+  }
+
+  try {
+    const { jsPDF }=window.jspdf;
+    const docp=new jsPDF();
+
+    // ✅ Add student info header
+    docp.setFontSize(14);
+    docp.text("Exam Card",14,18);
+    docp.setFontSize(10);
+    docp.text(`Name: ${studentInfo.name||"Student"}`,14,28);
+    docp.text(`Reg No: ${studentInfo.regNo||"-"}`,14,34);
+    docp.text(`Programme: ${studentInfo.programme||"-"}`,14,40);
+
+    // ✅ Exam table
+    docp.autoTable({
+      head:[["Code","Title","Credits","Venue","Date"]],
+      body:allExamRows,
+      startY:50
+    });
+
+    docp.save("examcard.pdf");
+    showPopup("Exam card downloaded successfully","success");
+  } catch(err){
+    showPopup("Error generating exam card: "+err.message,"error");
+  }
+};
+</script>
+</body>
+</html>

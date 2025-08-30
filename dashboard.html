@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Student Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex h-screen bg-gray-100">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform -translate-x-full transition-transform lg:translate-x-0 z-50">
+    <div class="flex items-center justify-between p-4 border-b border-blue-700">
+      <h2 class="text-lg font-bold">Dashboard</h2>
+      <!-- Close btn (mobile only) -->
+      <button id="closeSidebar" class="lg:hidden text-white text-2xl">&times;</button>
+    </div>
+    <nav class="p-4 space-y-2">
+      <a href="home.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Home</a>
+      <a href="profile.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Profile</a>
+      <a href="settings.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Settings</a>
+      <a href="courseReg.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Course Registration</a>
+      <a href="timetable.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Timetable</a>
+      <a href="grades.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Grades</a>
+      <a href="examCard.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Exam Card</a>
+      <a href="graduation.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Graduation</a>
+      <a href="clearance.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Clearance</a>
+      <a href="finance.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Finance</a>
+      <a href="hostels.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Hostels</a>
+      <a href="announcements.html" target="contentFrame" class="block px-3 py-2 rounded hover:bg-blue-700">Announcements</a>
+      <button id="logoutBtn" class="block w-full text-left px-3 py-2 rounded bg-red-600 hover:bg-red-700 mt-4">Logout</button>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <div class="flex-1 flex flex-col">
+    <!-- Top bar -->
+    <header class="flex items-center justify-between bg-white shadow p-4 lg:ml-64">
+      <button id="openSidebar" class="lg:hidden text-2xl text-blue-800">&#9776;</button>
+      <h1 class="text-xl font-semibold">Welcome to Student Portal</h1>
+    </header>
+
+    <!-- iFrame container -->
+    <main class="flex-1 p-4 bg-gray-100 lg:ml-64">
+      <iframe id="contentFrame" name="contentFrame" src="home.html" class="w-full h-full rounded shadow bg-white"></iframe>
+    </main>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Auth check
+onAuthStateChanged(auth, user=>{
+  if(!user) window.location.href="index.html";
+});
+
+// Logout
+document.getElementById("logoutBtn").onclick=()=>signOut(auth).then(()=>window.location.href="index.html");
+
+// Sidebar toggle
+const sidebar=document.getElementById("sidebar");
+document.getElementById("openSidebar").onclick=()=>{ sidebar.classList.remove("-translate-x-full"); };
+document.getElementById("closeSidebar").onclick=()=>{ sidebar.classList.add("-translate-x-full"); };
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>My Timetable</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+
+  <!-- ✅ Popup Message -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
+    <span id="popupText" class="text-sm"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  </div>
+
+  <section class="max-w-6xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-6">My Timetable</h2>
+
+    <!-- Year & Semester Select -->
+    <div class="mb-6 flex gap-4">
+      <div>
+        <label class="block text-sm font-medium">Year</label>
+        <select id="yearSelect" class="border rounded px-3 py-2">
+          <option value="">Select</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Semester</label>
+        <select id="semSelect" class="border rounded px-3 py-2">
+          <option value="">Select</option>
+          <option>1</option><option>2</option>
+        </select>
+      </div>
+      <button id="btnLoadTimetable" class="self-end bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Load Timetable
+      </button>
+    </div>
+
+    <!-- Timetable Grid -->
+    <div class="overflow-x-auto">
+      <table id="timetableTable" class="w-full border hidden">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Time</th>
+            <th class="p-2 border">Monday</th>
+            <th class="p-2 border">Tuesday</th>
+            <th class="p-2 border">Wednesday</th>
+            <th class="p-2 border">Thursday</th>
+            <th class="p-2 border">Friday</th>
+          </tr>
+        </thead>
+        <tbody id="timetableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ✅ Popup system
+function showPopup(msg, type="success") {
+  const box = document.getElementById("popupMsg");
+  const text = document.getElementById("popupText");
+  const closeBtn = document.getElementById("popupClose");
+
+  text.textContent = msg;
+  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
+    (type==="success" ? "bg-green-500 text-white" : "bg-red-500 text-white");
+
+  box.classList.remove("hidden");
+  closeBtn.onclick = ()=> box.classList.add("hidden");
+  setTimeout(()=> box.classList.add("hidden"), 5000);
+}
+
+let currentUser;
+
+onAuthStateChanged(auth, user=>{
+  if(!user){
+    showPopup("You must be logged in to view timetable","error");
+    return;
+  }
+  currentUser=user;
+});
+
+// 📅 Load Timetable
+document.getElementById("btnLoadTimetable").onclick = async ()=>{
+  const year=document.getElementById("yearSelect").value;
+  const sem=document.getElementById("semSelect").value;
+  if(!year || !sem){
+    return showPopup("Please select Year and Semester","error");
+  }
+
+  try {
+    const ref=doc(db,"timetable",currentUser.uid);
+    const snap=await getDoc(ref);
+
+    if(!snap.exists() || !snap.data().schedule){
+      document.getElementById("timetableTable").classList.add("hidden");
+      showPopup("No timetable available for selected year/semester","error");
+      return;
+    }
+
+    const schedule=snap.data().schedule;
+    const tbody=document.getElementById("timetableBody");
+    tbody.innerHTML="";
+
+    // extract unique time slots
+    const times=[...new Set(schedule.map(s=>s.time))].sort();
+    const days=["Monday","Tuesday","Wednesday","Thursday","Friday"];
+
+    times.forEach(time=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td class="p-2 border font-semibold">${time}</td>`;
+      days.forEach(day=>{
+        const cell=document.createElement("td");
+        cell.className="p-2 border text-sm";
+        const entry=schedule.find(s=>s.time===time && s.day===day);
+        if(entry){
+          cell.innerHTML=`<div class="font-bold">${entry.courseCode}</div>
+                          <div class="text-xs">${entry.venue}</div>`;
+        } else {
+          cell.innerHTML="-";
+        }
+        tr.appendChild(cell);
+      });
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("timetableTable").classList.remove("hidden");
+    showPopup("Timetable loaded successfully","success");
+
+  } catch(err){
+    showPopup("Error loading timetable: " + err.message,"error");
+  }
+};
+</script>
+</body>
+</html>

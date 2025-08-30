@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+
+  <!-- ✅ Popup Message -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
+    <span id="popupText" class="text-sm"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  </div>
+
+  <section class="max-w-3xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-4">My Profile</h2>
+
+    <form id="profileForm" class="space-y-4">
+      <!-- Editable fields -->
+      <div>
+        <label class="block text-sm font-medium">Full Name</label>
+        <input type="text" id="pf_name" class="w-full border rounded px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Address</label>
+        <input type="text" id="pf_address" class="w-full border rounded px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Date of Birth</label>
+        <input type="date" id="pf_dob" class="w-full border rounded px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Gender</label>
+        <select id="pf_gender" class="w-full border rounded px-3 py-2">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Profile Photo</label>
+        <input type="file" id="pf_photo" accept="image/*" class="w-full" />
+        <img id="pf_photo_preview" src="" alt="Profile photo" class="mt-2 w-32 h-32 rounded-full object-cover hidden"/>
+      </div>
+
+      <!-- Notifications -->
+      <div class="border-t pt-4">
+        <h3 class="font-semibold mb-2">Notification Preferences</h3>
+        <label class="flex items-center"><input type="checkbox" id="pf_notify_ann" class="mr-2">Announcements</label>
+        <label class="flex items-center"><input type="checkbox" id="pf_notify_fees" class="mr-2">Fees</label>
+        <label class="flex items-center"><input type="checkbox" id="pf_notify_grades" class="mr-2">Grades</label>
+      </div>
+
+      <!-- Read-only fields -->
+      <div class="border-t pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div><strong>Email:</strong> <span id="pf_email"></span></div>
+        <div><strong>Campus:</strong> <span id="pf_campus"></span></div>
+        <div><strong>Programme:</strong> <span id="pf_programme"></span></div>
+        <div><strong>Reg No:</strong> <span id="pf_regNo"></span></div>
+        <div><strong>Year:</strong> <span id="pf_year"></span></div>
+        <div><strong>Semester:</strong> <span id="pf_semester"></span></div>
+        <div><strong>Created:</strong> <span id="pf_createdAt"></span></div>
+        <div><strong>Last Visited Ann:</strong> <span id="pf_lastVisitedAnnouncements"></span></div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="pt-4">
+        <button type="button" id="btnSaveProfile" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Profile</button>
+      </div>
+    </form>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+let currentUser, studentRef;
+
+// ✅ Popup message system
+function showPopup(msg, type="success") {
+  const box = document.getElementById("popupMsg");
+  const text = document.getElementById("popupText");
+  const closeBtn = document.getElementById("popupClose");
+
+  text.textContent = msg;
+  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
+    (type==="success" 
+      ? "bg-green-500 text-white" 
+      : "bg-red-500 text-white");
+
+  box.classList.remove("hidden");
+  closeBtn.onclick = ()=> box.classList.add("hidden");
+  setTimeout(()=> box.classList.add("hidden"), 5000);
+}
+
+onAuthStateChanged(auth, async user=>{
+  if(!user) return;
+  currentUser = user;
+  studentRef = doc(db, "students", user.uid);
+
+  try {
+    const snap = await getDoc(studentRef);
+    if(snap.exists()){
+      const data=snap.data();
+
+      // Editable
+      document.getElementById("pf_name").value = data.name || "";
+      document.getElementById("pf_address").value = data.address || "";
+      document.getElementById("pf_dob").value = data.dob || "";
+      document.getElementById("pf_gender").value = data.gender || "";
+
+      if(data.profilePhotoURL){
+        const img=document.getElementById("pf_photo_preview");
+        img.src=data.profilePhotoURL;
+        img.classList.remove("hidden");
+      }
+
+      document.getElementById("pf_notify_ann").checked = data.notificationPreferences?.announcements || false;
+      document.getElementById("pf_notify_fees").checked = data.notificationPreferences?.fees || false;
+      document.getElementById("pf_notify_grades").checked = data.notificationPreferences?.grades || false;
+
+      // Read-only
+      document.getElementById("pf_email").textContent = data.email || user.email || "-";
+      document.getElementById("pf_campus").textContent = data.campus || "-";
+      document.getElementById("pf_programme").textContent = data.programme || "-";
+      document.getElementById("pf_regNo").textContent = data.regNo || "-";
+      document.getElementById("pf_year").textContent = data.year || "-";
+      document.getElementById("pf_semester").textContent = data.semester || "-";
+      document.getElementById("pf_createdAt").textContent = data.createdAt?.toDate? data.createdAt.toDate().toLocaleString():"-";
+      document.getElementById("pf_lastVisitedAnnouncements").textContent = data.lastVisitedAnnouncements || "-";
+    }
+  } catch (err) {
+    showPopup("Error loading profile: " + err.message, "error");
+  }
+});
+
+// Save profile
+document.getElementById("btnSaveProfile").onclick = async ()=>{
+  if(!currentUser) return;
+
+  try {
+    const updates = {
+      name: document.getElementById("pf_name").value,
+      address: document.getElementById("pf_address").value,
+      dob: document.getElementById("pf_dob").value,
+      gender: document.getElementById("pf_gender").value,
+      notificationPreferences: {
+        announcements: document.getElementById("pf_notify_ann").checked,
+        fees: document.getElementById("pf_notify_fees").checked,
+        grades: document.getElementById("pf_notify_grades").checked
+      }
+    };
+
+    // Handle photo upload
+    const photoFile=document.getElementById("pf_photo").files[0];
+    if(photoFile){
+      const photoRef = ref(storage, `students/${currentUser.uid}/profile.jpg`);
+      await uploadBytes(photoRef, photoFile);
+      const url = await getDownloadURL(photoRef);
+      updates.profilePhotoURL = url;
+
+      // Update preview immediately
+      const img=document.getElementById("pf_photo_preview");
+      img.src=url;
+      img.classList.remove("hidden");
+    }
+
+    await updateDoc(studentRef, updates);
+    showPopup("Profile updated successfully!","success");
+
+  } catch(err) {
+    showPopup("Error updating profile: " + err.message,"error");
+  }
+};
+</script>
+</body>
+</html>

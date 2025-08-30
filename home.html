@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+  <section>
+    <!-- Welcome -->
+    <div class="mb-6">
+      <h2 id="welcomeText" class="text-2xl font-bold">Welcome!</h2>
+      <p class="text-slate-600">Here’s a quick look at your semester.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="p-4 bg-white shadow rounded text-center">
+        <h3 class="text-lg font-semibold">Courses</h3>
+        <p id="statCourses" class="text-2xl text-blue-600">-</p>
+      </div>
+      <div class="p-4 bg-white shadow rounded text-center">
+        <h3 class="text-lg font-semibold">Balance</h3>
+        <p id="statBalance" class="text-2xl text-red-600">-</p>
+      </div>
+      <div class="p-4 bg-white shadow rounded text-center">
+        <h3 class="text-lg font-semibold">GPA</h3>
+        <p id="statGpa" class="text-2xl text-green-600">-</p>
+      </div>
+      <div class="p-4 bg-white shadow rounded text-center">
+        <h3 class="text-lg font-semibold">Hostel</h3>
+        <p id="statHostel" class="text-2xl text-purple-600">-</p>
+      </div>
+    </div>
+
+    <!-- Announcements Preview -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-lg">Latest Announcements</h3>
+        <a href="announcements.html" target="contentFrame" class="text-blue-600 text-sm">View All</a>
+      </div>
+      <div id="annPreview" class="space-y-2 text-sm text-slate-700">
+        <p>Loading...</p>
+      </div>
+    </div>
+
+    <!-- Next Exam -->
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold text-lg mb-2">Next Exam</h3>
+      <div id="nextExam" class="text-slate-700">Loading...</div>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+onAuthStateChanged(auth, async user=>{
+  if(!user) return;
+
+  // ✅ Fetch name from "students" collection
+  const studentRef = doc(db, "students", user.uid);
+  const studentSnap = await getDoc(studentRef);
+  if (studentSnap.exists()) {
+    const studentData = studentSnap.data();
+    document.getElementById("welcomeText").textContent = "Welcome back, " + (studentData.name || "Student");
+  } else {
+    document.getElementById("welcomeText").textContent = "Welcome back, Student";
+  }
+
+  // Load stats
+  const coursesSnap = await getDocs(collection(db,"registrations",user.uid,"courses"));
+  document.getElementById("statCourses").textContent = coursesSnap.size;
+
+  const financeSnap = await getDocs(collection(db,"finance",user.uid,"transactions"));
+  let balance=0;
+  financeSnap.forEach(d=>{ const t=d.data(); balance+=(t.type==="credit"?t.amount:-t.amount); });
+  document.getElementById("statBalance").textContent = balance;
+
+  const gpaSnap = await getDoc(doc(db,"grades",user.uid));
+  document.getElementById("statGpa").textContent = gpaSnap.exists()? (gpaSnap.data().cumulativeGpa||"-") : "-";
+
+  const hostelSnap = await getDoc(doc(db,"hostels",user.uid));
+  document.getElementById("statHostel").textContent = hostelSnap.exists()? (hostelSnap.data().status||"-") : "-";
+
+  // Latest announcements
+  const annSnap=await getDocs(query(collection(db,"announcements"), orderBy("createdAt","desc"), limit(3)));
+  const annDiv=document.getElementById("annPreview");
+  annDiv.innerHTML="";
+  if(annSnap.empty) annDiv.textContent="No announcements.";
+  annSnap.forEach(a=>{
+    const d=a.data();
+    annDiv.innerHTML+=`<div class="p-2 border rounded bg-gray-50">
+      <strong>${d.title||"Untitled"}</strong><br/>
+      <span class="text-slate-600">${d.message||""}</span>
+    </div>`;
+  });
+
+  // Next exam (basic example: fetch first course with examDate)
+  const examSnap=await getDocs(collection(db,"registrations",user.uid,"courses"));
+  let nextExam="No exams found.";
+  for(const c of examSnap.docs){
+    const courseDoc=await getDoc(doc(db,"courses",c.id));
+    if(courseDoc.exists()){
+      const ex=courseDoc.data();
+      if(ex.examDate){ nextExam=`${ex.code} - ${ex.examDate}`; break; }
+    }
+  }
+  document.getElementById("nextExam").textContent=nextExam;
+});
+</script>
+</body>
+</html>

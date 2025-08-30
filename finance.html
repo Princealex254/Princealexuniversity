@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Finance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+  <section class="p-6 bg-white rounded shadow max-w-6xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Finance Dashboard</h2>
+
+    <!-- Alerts -->
+    <div id="alertBox" class="hidden p-3 mb-4 rounded text-white"></div>
+
+    <!-- Totals -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="p-4 border rounded bg-blue-50">
+        <div class="text-sm text-slate-600">Total Fees</div>
+        <div id="f_total" class="text-xl font-semibold">KES 0</div>
+      </div>
+      <div class="p-4 border rounded bg-green-50">
+        <div class="text-sm text-slate-600">Total Paid</div>
+        <div id="f_paid" class="text-xl font-semibold">KES 0</div>
+      </div>
+      <div class="p-4 border rounded">
+        <div class="text-sm text-slate-600">Balance</div>
+        <div id="f_balance" class="text-xl font-semibold">KES 0</div>
+        <span id="f_status" class="text-sm"></span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="mb-6">
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div id="progressBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+      </div>
+      <p id="progressText" class="text-sm text-slate-500 mt-1">0% of fees cleared</p>
+    </div>
+
+    <!-- Transactions -->
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold">Transactions</h3>
+      <button id="btnDownload" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Download Statement</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 text-left">Date</th>
+            <th class="p-2 text-left">Method</th>
+            <th class="p-2 text-left">Reference</th>
+            <th class="p-2 text-right">Amount</th>
+            <th class="p-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody id="transactionsList">
+          <tr><td colspan="5" class="p-3 text-center text-slate-500">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser=null;
+let studentProfile=null;
+let transactions=[];
+let feeBreakdown=null;
+
+const $ = (id)=>document.getElementById(id);
+
+onAuthStateChanged(auth, async user=>{
+  if(!user) return;
+  currentUser=user;
+  await loadFinance();
+});
+
+async function loadFinance(){
+  const uid=currentUser.uid;
+
+  // Student Profile
+  const studentSnap = await getDoc(doc(db,"students",uid));
+  if(studentSnap.exists()) studentProfile=studentSnap.data();
+
+  // Fee Breakdown
+  const fbSnap = await getDoc(doc(db,"finance",uid,"feeBreakdown","details"));
+  if(fbSnap.exists()) feeBreakdown=fbSnap.data();
+
+  // Summary + Dynamic Balance
+  const summarySnap = await getDoc(doc(db,"finance",uid,"summary","totals"));
+  let totalFees=0,totalPaid=0;
+  if(summarySnap.exists()){
+    const s=summarySnap.data();
+    totalFees=s.totalFees||0;
+  }
+
+  // Transactions
+  const txnSnap = await getDocs(collection(db,"finance",uid,"transactions"));
+  const tbody=$("transactionsList");
+  tbody.innerHTML="";
+  transactions=[];
+  if(txnSnap.empty){
+    tbody.innerHTML=`<tr><td colspan="5" class="p-3 text-center text-slate-500">No transactions yet.</td></tr>`;
+  }else{
+    txnSnap.forEach(d=>{
+      const t=d.data();
+      transactions.push(t);
+      if(t.status==="Confirmed") totalPaid+=(t.amount||0);
+      tbody.innerHTML+=`
+        <tr class="border-b">
+          <td class="p-2">${t.date?.toDate? t.date.toDate().toLocaleDateString():"-"}</td>
+          <td class="p-2">${t.method||"-"}</td>
+          <td class="p-2">${t.reference||"-"}</td>
+          <td class="p-2 text-right">KES ${(t.amount||0).toLocaleString()}</td>
+          <td class="p-2">${t.status||"Pending"}</td>
+        </tr>`;
+    });
+  }
+
+  const balance=totalFees-totalPaid;
+
+  // Update summary UI
+  $("f_total").textContent="KES "+totalFees.toLocaleString();
+  $("f_paid").textContent="KES "+totalPaid.toLocaleString();
+  $("f_balance").textContent="KES "+balance.toLocaleString();
+
+  // Status coloring
+  const statusEl=$("f_status");
+  if(balance<=0){
+    statusEl.textContent="✅ Cleared";
+    statusEl.className="text-green-600 font-medium";
+  }else{
+    statusEl.textContent="⚠ Pending";
+    statusEl.className="text-yellow-600 font-medium";
+    showAlert("You still have a pending balance. Please clear before exams.","warning");
+  }
+
+  // Progress bar
+  let percent=totalFees? Math.min(100,(totalPaid/totalFees*100).toFixed(0)):0;
+  $("progressBar").style.width=percent+"%";
+  $("progressText").textContent=percent+"% of fees cleared";
+}
+
+// Alerts
+function showAlert(msg,type){
+  const box=$("alertBox");
+  box.textContent=msg;
+  box.classList.remove("hidden");
+  box.className="p-3 mb-4 rounded text-white "+(type==="warning"?"bg-yellow-500":"bg-red-500");
+  setTimeout(()=>{box.classList.add("hidden")},6000);
+}
+
+// Generate PDF
+$("btnDownload").addEventListener("click", ()=>{
+  const docPdf=new jsPDF();
+  let y=15;
+
+  docPdf.setFontSize(16);
+  docPdf.text("Finance Statement",105,y,null,null,"center");
+  y+=10;
+
+  if(studentProfile){
+    docPdf.setFontSize(12);
+    docPdf.text(`Name: ${studentProfile.fullName||""}`,15,y); y+=7;
+    docPdf.text(`Reg No: ${studentProfile.regNo||""}`,15,y); y+=7;
+    docPdf.text(`Programme: ${studentProfile.programme||""}`,15,y); y+=7;
+    docPdf.text(`Email: ${currentUser.email}`,15,y); y+=10;
+  }
+
+  if(feeBreakdown){
+    docPdf.setFontSize(14);
+    docPdf.text("Fee Breakdown",15,y); y+=7;
+    docPdf.setFontSize(10);
+    Object.keys(feeBreakdown).forEach(k=>{
+      docPdf.text(`${k}: KES ${feeBreakdown[k].toLocaleString()}`,15,y); y+=6;
+    });
+    y+=8;
+  }
+
+  docPdf.setFontSize(14);
+  docPdf.text("Transactions",15,y); y+=8;
+  docPdf.setFontSize(10);
+  transactions.forEach((t,i)=>{
+    docPdf.text(`${i+1}. ${t.date?.toDate? t.date.toDate().toLocaleDateString():"-"} | ${t.method||"-"} | ${t.reference||"-"} | KES ${(t.amount||0).toLocaleString()} | ${t.status||"Pending"}`,15,y);
+    y+=6;
+    if(y>270){docPdf.addPage(); y=15;}
+  });
+
+  y+=10;
+  docPdf.setFontSize(12);
+  docPdf.text(`Total Fees: KES ${($("f_total").textContent)}`,15,y); y+=7;
+  docPdf.text(`Total Paid: KES ${($("f_paid").textContent)}`,15,y); y+=7;
+  docPdf.text(`Balance: KES ${($("f_balance").textContent)}`,15,y); y+=7;
+
+  docPdf.save("Finance_Statement.pdf");
+});
+</script>
+</body>
+</html>

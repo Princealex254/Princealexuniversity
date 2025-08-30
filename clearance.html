@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Clearance Request</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+  <section class="p-6 bg-white rounded shadow max-w-3xl mx-auto relative">
+    <h2 class="text-2xl font-bold mb-6">Clearance Request</h2>
+
+    <!-- Popup Alert -->
+    <div id="alertBox" class="hidden fixed top-6 left-1/2 transform -translate-x-1/2 w-full max-w-md p-4 rounded shadow-lg text-white z-50">
+      <div class="flex justify-between items-center">
+        <span id="alertMessage"></span>
+        <button id="alertDismiss" class="ml-4 px-3 py-1 bg-white/20 rounded">Okay</button>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form id="clearanceForm" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Full Name</label>
+          <input id="fullName" type="text" readonly class="w-full mt-1 p-2 border rounded bg-gray-100"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Registration No</label>
+          <input id="regNo" type="text" readonly class="w-full mt-1 p-2 border rounded bg-gray-100"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Programme</label>
+          <input id="programme" type="text" readonly class="w-full mt-1 p-2 border rounded bg-gray-100"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Year/Semester</label>
+          <input id="yearSem" type="text" readonly class="w-full mt-1 p-2 border rounded bg-gray-100"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Email</label>
+          <input id="email" type="text" readonly class="w-full mt-1 p-2 border rounded bg-gray-100"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Clearance Reason <span class="text-red-600">*</span></label>
+        <select id="reason" required class="w-full mt-1 p-2 border rounded">
+          <option value="">Select Reason</option>
+          <option>Graduation</option>
+          <option>Transfer</option>
+          <option>Discontinuation</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Remarks <span class="text-red-600">*</span></label>
+        <textarea id="remarks" rows="3" required class="w-full mt-1 p-2 border rounded"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Contact Phone (optional)</label>
+        <input id="phone" type="text" class="w-full mt-1 p-2 border rounded"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium">Upload Evidence (optional)</label>
+        <input id="evidence" type="file" class="mt-1"/>
+      </div>
+
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Request</button>
+    </form>
+
+    <!-- Status Grid -->
+    <div id="statusGrid" class="mt-8 hidden">
+      <h3 class="text-lg font-semibold mb-3">Clearance Progress</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="departmentsStatus"></div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+    </div>
+  </section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+let currentUser = null;
+let existingRequest = null;
+
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
+  currentUser = user;
+  document.getElementById("email").value = user.email;
+
+  // Load student profile
+  const profileSnap = await getDoc(doc(db, "students", user.uid));
+  if (profileSnap.exists()) {
+    const p = profileSnap.data();
+    document.getElementById("fullName").value = p.fullName || "";
+    document.getElementById("regNo").value = p.regNo || "";
+    document.getElementById("programme").value = p.programme || "";
+    document.getElementById("yearSem").value = p.yearSem || "";
+  }
+
+  // Load existing request
+  const reqSnap = await getDoc(doc(db, "clearanceRequests", user.uid));
+  if (reqSnap.exists()) {
+    existingRequest = reqSnap.data();
+    document.getElementById("reason").value = existingRequest.reason || "";
+    document.getElementById("remarks").value = existingRequest.remarks || "";
+    document.getElementById("phone").value = existingRequest.phone || "";
+    renderStatus(existingRequest.departments);
+  }
+});
+
+function renderStatus(departments) {
+  const grid = document.getElementById("departmentsStatus");
+  grid.innerHTML = "";
+  Object.entries(departments).forEach(([dept, status]) => {
+    let color = status === "Cleared" ? "green" : status === "Rejected" ? "red" : "yellow";
+    grid.innerHTML += `<div class="p-3 border rounded text-center">
+      <div class="font-medium">${dept}</div>
+      <span class="mt-1 inline-block px-2 py-1 text-xs rounded-full bg-${color}-100 text-${color}-800">${status}</span>
+    </div>`;
+  });
+  document.getElementById("statusGrid").classList.remove("hidden");
+}
+
+function showAlert(msg, type="success") {
+  const box = document.getElementById("alertBox");
+  const msgEl = document.getElementById("alertMessage");
+  msgEl.textContent = msg;
+  box.className = `fixed top-6 left-1/2 transform -translate-x-1/2 w-full max-w-md p-4 rounded shadow-lg text-white z-50 ${type==="success" ? "bg-green-600" : "bg-red-600"}`;
+  box.classList.remove("hidden");
+
+  // Auto-hide after 6s
+  let timeout = setTimeout(()=> box.classList.add("hidden"), 6000);
+
+  document.getElementById("alertDismiss").onclick = ()=>{
+    clearTimeout(timeout);
+    box.classList.add("hidden");
+  };
+}
+
+function toggleLoading(show) {
+  document.getElementById("loadingOverlay").classList[show ? "remove" : "add"]("hidden");
+}
+
+document.getElementById("clearanceForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  try {
+    const reason = document.getElementById("reason").value.trim();
+    const remarks = document.getElementById("remarks").value.trim();
+
+    // Validation
+    if (!reason) {
+      showAlert("Please select a clearance reason", "error");
+      return;
+    }
+    if (!remarks) {
+      showAlert("Please provide remarks", "error");
+      return;
+    }
+
+    toggleLoading(true);
+
+    const phone = document.getElementById("phone").value;
+    const evidenceFile = document.getElementById("evidence").files[0];
+
+    let evidenceURL = existingRequest?.evidenceURL || "";
+    if (evidenceFile) {
+      const fileRef = storageRef(storage, `clearanceEvidence/${currentUser.uid}/${evidenceFile.name}`);
+      await uploadBytes(fileRef, evidenceFile);
+      evidenceURL = await getDownloadURL(fileRef);
+    }
+
+    const data = {
+      studentId: currentUser.uid,
+      email: currentUser.email,
+      reason, remarks, phone,
+      evidenceURL,
+      status: "Pending",
+      createdAt: serverTimestamp(),
+      departments: existingRequest?.departments || {
+        Finance:"Pending", Library:"Pending", Hostel:"Pending", Dean:"Pending"
+      }
+    };
+
+    if (existingRequest) {
+      await updateDoc(doc(db,"clearanceRequests",currentUser.uid), data);
+      showAlert("Clearance request updated!", "success");
+    } else {
+      await setDoc(doc(db,"clearanceRequests",currentUser.uid), data);
+      showAlert("Clearance request submitted!", "success");
+    }
+
+    renderStatus(data.departments);
+    existingRequest = data;
+  } catch (err) {
+    console.error(err);
+    showAlert("Error submitting request", "error");
+  } finally {
+    toggleLoading(false);
+  }
+});
+</script>
+</body>
+</html>
