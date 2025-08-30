@@ -1,17 +1,420 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
+  <meta charset="utf-8" />
+  <title>Full Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* small visual nicety */
+    .side-link.active { background: rgba(255,255,255,0.08); }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Popup (6s auto-hide) -->
+  <div id="popup" class="fixed top-4 left-1/2 -translate-x-1/2 hidden z-50 max-w-xl w-full px-4">
+    <div id="popupInner" class="p-3 rounded shadow text-white flex justify-between items-center"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-sky-600 to-indigo-600 text-white p-4 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <button id="hamburger" class="md:hidden p-2 bg-white/10 rounded">☰</button>
+      <div class="text-lg font-bold">University Admin Dashboard</div>
+    </div>
+    <div class="text-sm">Connected Project: <span id="projectLabel" class="font-medium">universityweb</span></div>
+  </header>
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="hidden md:block w-64 bg-white border-r min-h-screen p-4 space-y-3">
+      <nav>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="dashboard">🏠 Dashboard</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="students">👨‍🎓 Students</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="admins">🛡️ Admins</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="clearance">✅ Clearance</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="courseReg">📚 Courses</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="registrations">📝 Registrations</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="examCard">📄 Exam Cards</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="finance">💳 Finance</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="grades">🧮 Grades</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="graduation">🎓 Graduation</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="hostels">🏨 Hostels</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="timetable">📅 Timetable</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="profile">🔎 Profile</button>
+        <button class="side-link block w-full text-left p-2 rounded" data-view="settings">⚙️ Settings</button>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view">
+        <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="p-4 bg-white rounded shadow">
+            <div class="text-sm text-gray-500">Total students</div>
+            <div id="stat_total_students" class="text-2xl font-semibold">—</div>
+          </div>
+          <div class="p-4 bg-white rounded shadow">
+            <div class="text-sm text-gray-500">Active students</div>
+            <div id="stat_active_students" class="text-2xl font-semibold">—</div>
+          </div>
+          <div class="p-4 bg-white rounded shadow">
+            <div class="text-sm text-gray-500">Admins</div>
+            <div id="stat_admins" class="text-2xl font-semibold">—</div>
+          </div>
+          <div class="p-4 bg-white rounded shadow">
+            <div class="text-sm text-gray-500">Pending clearance</div>
+            <div id="stat_pending_clearance" class="text-2xl font-semibold">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STUDENTS -->
+      <section id="view-students" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Students</h2>
+          <div class="flex gap-2">
+            <input id="students_search" placeholder="Search name / admissionNo / email" class="border p-2 rounded" />
+            <button id="students_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+            <button id="students_new" class="bg-gray-200 px-3 py-2 rounded">New</button>
+          </div>
+        </div>
+
+        <!-- table -->
+        <div class="overflow-x-auto bg-white rounded shadow">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="p-2 border">Name</th>
+                <th class="p-2 border">Admission No</th>
+                <th class="p-2 border">Email</th>
+                <th class="p-2 border">Programme</th>
+                <th class="p-2 border">Year</th>
+                <th class="p-2 border">Active</th>
+                <th class="p-2 border">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="students_tbody">
+              <tr><td colspan="7" class="p-4 text-center text-gray-500">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- form -->
+        <div class="mt-6 bg-white rounded shadow p-4">
+          <h3 class="font-semibold mb-2">Add / Edit Student</h3>
+          <form id="studentForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input id="stu_id" type="hidden" />
+            <input id="stu_name" placeholder="name" class="border p-2 rounded" />
+            <input id="stu_admissionNo" placeholder="admissionNo (LMC/94/16)" class="border p-2 rounded" />
+            <input id="stu_email" placeholder="email" class="border p-2 rounded" />
+            <input id="stu_regNo" placeholder="regNo" class="border p-2 rounded" />
+            <input id="stu_programme" placeholder="programme" class="border p-2 rounded" />
+            <input id="stu_yearOfStudy" type="number" placeholder="yearOfStudy (2025)" class="border p-2 rounded" />
+            <input id="stu_campus" placeholder="campus (Main)" class="border p-2 rounded" />
+            <input id="stu_address" placeholder="address" class="border p-2 rounded" />
+            <label class="flex items-center gap-2"><input id="stu_isActive" type="checkbox" /> isActive</label>
+            <div class="md:col-span-3 flex gap-2">
+              <button id="stu_save" type="button" class="bg-green-600 text-white px-4 py-2 rounded">Save</button>
+              <button id="stu_clear" type="button" class="bg-gray-200 px-4 py-2 rounded">Clear</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ADMINS -->
+      <section id="view-admins" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Admins</h2>
+          <button id="admins_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+        </div>
+
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <form id="adminForm" class="flex gap-2">
+            <input id="admin_email" placeholder="admin email" class="border p-2 rounded flex-1" />
+            <button id="admin_add" type="button" class="bg-green-600 text-white px-4 py-2 rounded">Add Admin</button>
+          </form>
+        </div>
+
+        <div id="admins_list" class="bg-white p-4 rounded shadow">
+          Loading admins…
+        </div>
+      </section>
+
+      <!-- CLEARANCE -->
+      <section id="view-clearance" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Clearance Requests</h2>
+          <button id="clearance_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+        </div>
+        <div class="bg-white rounded shadow overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100"><tr>
+              <th class="p-2 border">Student Email</th>
+              <th class="p-2 border">Reason</th>
+              <th class="p-2 border">Status</th>
+              <th class="p-2 border">Departments</th>
+              <th class="p-2 border">Actions</th>
+            </tr></thead>
+            <tbody id="clearance_tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- COURSES -->
+      <section id="view-courseReg" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Courses (courses collection)</h2>
+          <div class="flex gap-2">
+            <button id="courses_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded shadow p-4 mb-4">
+          <form id="courseForm" class="grid md:grid-cols-4 gap-3">
+            <input id="course_id" type="hidden"/>
+            <input id="course_courseCode" placeholder="courseCode" class="border p-2 rounded" />
+            <input id="course_courseName" placeholder="courseName" class="border p-2 rounded" />
+            <input id="course_department" placeholder="department" class="border p-2 rounded" />
+            <input id="course_semester" placeholder="semester" class="border p-2 rounded" />
+            <input id="course_yearOfStudy" placeholder="yearOfStudy" class="border p-2 rounded" />
+            <div class="md:col-span-4 flex gap-2">
+              <button id="course_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Course</button>
+              <button id="course_clear" class="bg-gray-200 px-4 py-2 rounded">Clear</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white rounded shadow overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100"><tr><th class="p-2 border">Code</th><th class="p-2 border">Name</th><th class="p-2 border">Dept</th><th class="p-2 border">Sem</th><th class="p-2 border">Year</th><th class="p-2 border">Actions</th></tr></thead>
+            <tbody id="courses_tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- REGISTRATIONS (for examCard / course assignments) -->
+      <section id="view-registrations" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Registrations (registrations/{uid}/courses)</h2>
+          <div class="flex gap-2">
+            <input id="reg_uid" placeholder="Student UID" class="border p-2 rounded" />
+            <button id="reg_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+          </div>
+        </div>
+
+        <div id="reg_panel" class="hidden bg-white rounded shadow p-4">
+          <h3 class="font-semibold">Registered Courses</h3>
+          <div id="reg_list" class="mt-3"></div>
+          <h4 class="mt-4 font-semibold">Add by course ID</h4>
+          <div class="flex gap-2 mt-2">
+            <input id="reg_courseId" placeholder="course doc id" class="border p-2 rounded flex-1" />
+            <button id="reg_add" class="bg-green-600 text-white px-3 py-2 rounded">Add</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXAM CARD (view and export) -->
+      <section id="view-examCard" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Exam Card</h2>
+          <div class="flex gap-2">
+            <input id="exam_uid" placeholder="Student UID" class="border p-2 rounded" />
+            <button id="exam_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+          </div>
+        </div>
+
+        <div id="exam_panel" class="hidden bg-white rounded shadow p-4">
+          <div id="exam_table" class="overflow-x-auto"></div>
+          <div class="mt-4">
+            <button id="exam_download" class="bg-indigo-600 text-white px-4 py-2 rounded">Download (simple table export)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- FINANCE -->
+      <section id="view-finance" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Finance</h2>
+          <div class="flex gap-2">
+            <input id="fin_uid" placeholder="Student UID" class="border p-2 rounded" />
+            <button id="fin_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+          </div>
+        </div>
+
+        <div id="fin_panel" class="hidden bg-white rounded shadow p-4">
+          <div class="grid md:grid-cols-3 gap-4">
+            <div>Total Fees: <div id="fin_total">KES 0</div></div>
+            <div>Total Paid: <div id="fin_paid">KES 0</div></div>
+            <div>Balance: <div id="fin_balance">KES 0</div></div>
+          </div>
+
+          <div class="mt-4">
+            <h4 class="font-semibold">Add Transaction</h4>
+            <div class="grid md:grid-cols-4 gap-2 mt-2">
+              <input id="txn_method" placeholder="method" class="border p-2 rounded" />
+              <input id="txn_reference" placeholder="reference" class="border p-2 rounded" />
+              <input id="txn_amount" type="number" placeholder="amount" class="border p-2 rounded" />
+              <select id="txn_status" class="border p-2 rounded">
+                <option>Confirmed</option>
+                <option>Pending</option>
+                <option>Failed</option>
+              </select>
+              <div class="md:col-span-4 mt-2">
+                <button id="txn_add" class="bg-green-600 text-white px-4 py-2 rounded">Add Transaction</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="txn_list" class="mt-4"></div>
+        </div>
+      </section>
+
+      <!-- GRADES -->
+      <section id="view-grades" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Grades</h2>
+          <div class="flex gap-2">
+            <input id="grades_uid" placeholder="Student UID" class="border p-2 rounded" />
+            <button id="grades_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+          </div>
+        </div>
+
+        <div id="grades_panel" class="hidden bg-white rounded shadow p-4">
+          <h4 class="font-semibold">Add / Update Result</h4>
+          <div class="grid md:grid-cols-6 gap-2 mt-2">
+            <input id="gr_code" placeholder="code" class="border p-2 rounded" />
+            <input id="gr_title" placeholder="title" class="border p-2 rounded" />
+            <input id="gr_credits" type="number" placeholder="credits" class="border p-2 rounded" />
+            <input id="gr_grade" placeholder="grade" class="border p-2 rounded" />
+            <input id="gr_points" type="number" step="0.01" placeholder="gpaPoints" class="border p-2 rounded" />
+            <div class="flex gap-2">
+              <input id="gr_year" type="number" placeholder="year" class="border p-2 rounded" />
+              <input id="gr_sem" type="number" placeholder="semester" class="border p-2 rounded" />
+            </div>
+            <div class="md:col-span-6 mt-2">
+              <button id="gr_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Result</button>
+            </div>
+          </div>
+
+          <div id="grades_list" class="mt-4"></div>
+        </div>
+      </section>
+
+      <!-- GRADUATION -->
+      <section id="view-graduation" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Graduation Requests</h2>
+          <button id="grad_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+        </div>
+        <div class="bg-white rounded shadow overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100"><tr><th class="p-2 border">Student</th><th class="p-2 border">Status</th><th class="p-2 border">Requested</th><th class="p-2 border">Actions</th></tr></thead>
+            <tbody id="graduation_tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- HOSTELS -->
+      <section id="view-hostels" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Hostels & Rooms</h2>
+          <div class="flex gap-2">
+            <button id="hostels_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+            <button id="hostels_recalc" class="bg-indigo-600 text-white px-3 py-2 rounded">Recalc Availability</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded shadow p-4 mb-4">
+          <h4 class="font-semibold">Add / Edit Hostel</h4>
+          <div class="grid md:grid-cols-4 gap-2 mt-2">
+            <input id="hostel_id" type="hidden"/>
+            <input id="hostel_name" placeholder="name" class="border p-2 rounded" />
+            <input id="hostel_gender" placeholder="gender" class="border p-2 rounded" />
+            <input id="hostel_capacity" type="number" placeholder="capacity" class="border p-2 rounded" />
+            <input id="hostel_available" type="number" placeholder="available" class="border p-2 rounded" />
+            <div class="md:col-span-4 mt-2">
+              <button id="hostel_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Hostel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="hostels_list" class="bg-white rounded shadow p-4"></div>
+
+        <div class="bg-white rounded shadow p-4 mt-4">
+          <h4 class="font-semibold">Rooms (select hostel to manage rooms below)</h4>
+          <div class="grid md:grid-cols-4 gap-2 mt-2">
+            <input id="room_hostelId" placeholder="hostelId" class="border p-2 rounded" />
+            <input id="room_id" type="hidden" />
+            <input id="room_number" placeholder="number" class="border p-2 rounded" />
+            <input id="room_capacity" type="number" placeholder="capacity" class="border p-2 rounded" />
+            <input id="room_occupants" type="number" placeholder="occupants" class="border p-2 rounded" />
+            <div class="md:col-span-4 mt-2">
+              <button id="room_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Room</button>
+              <button id="room_load" class="bg-gray-200 px-4 py-2 rounded ml-2">Load Rooms</button>
+            </div>
+          </div>
+
+          <div id="rooms_list" class="mt-4"></div>
+        </div>
+      </section>
+
+      <!-- TIMETABLE -->
+      <section id="view-timetable" class="view hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-semibold">Timetable</h2>
+          <div class="flex gap-2">
+            <input id="timetable_uid" placeholder="Student UID" class="border p-2 rounded" />
+            <button id="timetable_load" class="bg-sky-600 text-white px-3 py-2 rounded">Load</button>
+          </div>
+        </div>
+
+        <div id="timetable_panel" class="hidden bg-white rounded shadow p-4">
+          <h4 class="font-semibold">Schedule JSON (array of {day,time,courseCode,venue})</h4>
+          <textarea id="timetable_json" rows="6" class="w-full border p-2 rounded"></textarea>
+          <div class="mt-2">
+            <button id="timetable_save" class="bg-green-600 text-white px-4 py-2 rounded">Save Timetable</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section id="view-profile" class="view hidden">
+        <h2 class="text-2xl font-semibold mb-4">Profile Management</h2>
+        <div class="flex gap-2 mb-4">
+          <input id="profile_search" placeholder="Search by admissionNo / regNo / email" class="border p-2 rounded flex-1"/>
+          <button id="profile_search_btn" class="bg-sky-600 text-white px-3 py-2 rounded">Search</button>
+        </div>
+        <div id="profile_result" class="bg-white rounded shadow p-4 hidden"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view hidden">
+        <h2 class="text-2xl font-semibold mb-4">Settings</h2>
+        <div class="bg-white p-4 rounded shadow">
+          <h4 class="font-semibold">Password Reset</h4>
+          <div class="flex gap-2 mt-2">
+            <input id="reset_email" placeholder="student email" class="border p-2 rounded flex-1"/>
+            <button id="reset_send" class="bg-red-600 text-white px-4 py-2 rounded">Send Reset Email</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Note: Client can trigger password reset email; changing Auth email/password fully requires Admin SDK.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Firebase & App Logic -->
   <script type="module">
-    // Firebase Configuration and Imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, deleteUser, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc, deleteDoc, orderBy, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-    import { deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    // Firebase imports (modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, getDoc, doc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
@@ -21,1767 +424,864 @@
       messagingSenderId: "401942926589",
       appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
     };
-
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
+    const auth = getAuth(app);
 
-    let currentUser = null;
-    let currentTimetable = [];
-    const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-
-    // --- UTILITY FUNCTIONS ---
-    function showPopup(message, type = 'success') {
-      const popup = document.getElementById('popupMsg');
-      const popupText = document.getElementById('popupText');
-      popupText.textContent = message;
-      popup.className = `fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between transition-transform duration-500 transform ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} translate-y-0`;
-      popup.classList.remove('hidden');
-      
-      clearTimeout(popup.timer);
-      popup.timer = setTimeout(() => {
-        popup.classList.add('translate-y-[-150%]');
-        popup.addEventListener('transitionend', () => {
-          popup.classList.add('hidden');
-        }, { once: true });
-      }, 7000);
-    }
-    
-    document.getElementById('popupClose').addEventListener('click', () => {
-      document.getElementById('popupMsg').classList.add('hidden');
-      clearTimeout(document.getElementById('popupMsg').timer);
-    });
-
-    function toggleLoading(isLoading) {
-      document.getElementById('loadingOverlay').classList.toggle('hidden', !isLoading);
+    /* ---------- popup helper (6s) ---------- */
+    let popupTimeout = null;
+    function showPopup(message, type="info") {
+      clearTimeout(popupTimeout);
+      const container = document.getElementById('popup');
+      const inner = document.getElementById('popupInner');
+      inner.textContent = message;
+      inner.className = 'p-3 rounded shadow text-white flex justify-between items-center';
+      if (type === 'success') inner.classList.add('bg-green-600'); 
+      else if (type === 'error') inner.classList.add('bg-red-600');
+      else inner.classList.add('bg-sky-600');
+      container.classList.remove('hidden');
+      popupTimeout = setTimeout(()=> container.classList.add('hidden'), 6000);
+      document.getElementById('popupClose').onclick = ()=> container.classList.add('hidden');
     }
 
-    // --- AUTHENTICATION CHECK ---
-    onAuthStateChanged(auth, async (user) => {
-      toggleLoading(true);
-      if (user) {
-        try {
-          const adminDoc = await getDoc(doc(db, "admins", user.uid));
-          if (adminDoc.exists() && adminDoc.data().isAdmin) {
-            currentUser = user;
-            document.getElementById('mainContent').classList.remove('hidden');
-            document.getElementById('loadingOverlay').classList.add('hidden');
-            document.getElementById('userName').textContent = adminDoc.data().name || user.email;
-            renderSection('dashboard');
-          } else {
-            showPopup("Access Denied: Not an admin.", "error");
-            await signOut(auth);
-            document.getElementById('loadingOverlay').classList.add('hidden');
-            document.getElementById('loginPage').classList.remove('hidden');
-          }
-        } catch (err) {
-          showPopup(`Error checking admin status: ${err.message}`, "error");
-          await signOut(auth);
-          document.getElementById('loadingOverlay').classList.add('hidden');
-          document.getElementById('loginPage').classList.remove('hidden');
-        }
-      } else {
-        document.getElementById('mainContent').classList.add('hidden');
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        document.getElementById('loginPage').classList.remove('hidden');
-      }
-    });
+    /* ---------- view switch ---------- */
+    const views = Array.from(document.querySelectorAll('.view'));
+    function showView(viewId) {
+      views.forEach(v=>v.classList.add('hidden'));
+      const el = document.getElementById('view-' + viewId.replace('view-','').replace('view-','') )
+      // we used id naming like view-students; but side uses data-view -> map:
+      const map = {
+        dashboard: 'view-dashboard',
+        students: 'view-students',
+        admins: 'view-admins',
+        clearance: 'view-clearance',
+        courseReg: 'view-courseReg',
+        registrations: 'view-registrations',
+        examCard: 'view-examCard',
+        finance: 'view-finance',
+        grades: 'view-grades',
+        graduation: 'view-graduation',
+        hostels: 'view-hostels',
+        timetable: 'view-timetable',
+        profile: 'view-profile',
+        settings: 'view-settings'
+      };
+      const id = map[viewId] || 'view-dashboard';
+      document.getElementById(id).classList.remove('hidden');
+      // highlight sidebar
+      document.querySelectorAll('.side-link').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.side-link[data-view]').forEach(b=>{
+        if (b.dataset.view === viewId) b.classList.add('active');
+      });
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = e.target.email.value;
-      const password = e.target.password.value;
-      try {
-        toggleLoading(true);
-        await auth.signInWithEmailAndPassword(email, password);
-      } catch (err) {
-        showPopup(`Login failed: ${err.message}`, "error");
-        toggleLoading(false);
-      }
-    });
-
-    document.getElementById('btnLogout').addEventListener('click', () => {
-      signOut(auth).then(() => {
-        showPopup("Logged out successfully.");
-        document.getElementById('loginPage').classList.remove('hidden');
-        document.getElementById('mainContent').classList.add('hidden');
+    // Sidebar button wiring (desktop)
+    document.querySelectorAll('.side-link').forEach(btn=>{
+      btn.addEventListener('click', ()=> {
+        const v = btn.dataset.view;
+        showView(v);
       });
     });
-
-    // --- NAVIGATION ---
-    const sections = ['dashboard', 'profile', 'settings', 'timetable', 'hostels', 'finance', 'clearance', 'admins', 'students'];
-
-    function renderSection(sectionId) {
-      sections.forEach(id => {
-        const element = document.getElementById(`section-${id}`);
-        if (element) {
-          element.classList.add('hidden');
-        }
-      });
-      document.getElementById(`section-${sectionId}`).classList.remove('hidden');
-      document.querySelectorAll('.sidebar-item').forEach(item => {
-        item.classList.remove('bg-slate-700');
-        if (item.getAttribute('data-section') === sectionId) {
-          item.classList.add('bg-slate-700');
-        }
-      });
-      // Call specific load functions for each section
-      if (sectionId === 'dashboard') loadDashboardStats();
-      if (sectionId === 'profile') loadProfile();
-      if (sectionId === 'timetable') loadTimetable();
-      if (sectionId === 'hostels') loadHostels();
-      if (sectionId === 'finance') loadFinance();
-      if (sectionId === 'clearance') loadClearance();
-      if (sectionId === 'admins') loadAdmins();
-      if (sectionId === 'students') loadStudents();
-    }
-
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        const section = e.currentTarget.getAttribute('data-section');
-        renderSection(section);
-      });
-    });
-    
-    window.closeModal = (modalId) => {
-        document.getElementById(modalId).classList.add('hidden');
-    }
-
-    // --- SECTION LOGIC ---
-    // Dashboard (Home)
-    document.getElementById('dashboard-cards').innerHTML = `
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Total Students</h3>
-        <p id="statStudents" class="text-2xl text-blue-600">-</p>
-      </div>
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Total Courses</h3>
-        <p id="statCourses" class="text-2xl text-purple-600">-</p>
-      </div>
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Hostel Occupancy</h3>
-        <p id="statHostel" class="text-2xl text-orange-600">-</p>
-      </div>
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Pending Clearance</h3>
-        <p id="statClearance" class="text-2xl text-red-600">-</p>
-      </div>
-    `;
-
-    async function loadDashboardStats() {
-      try {
-        const studentsSnap = await getDocs(collection(db, "students"));
-        document.getElementById('statStudents').textContent = studentsSnap.size;
-
-        const coursesSnap = await getDocs(collection(db, "courses"));
-        document.getElementById('statCourses').textContent = coursesSnap.size;
-
-        const hostelsSnap = await getDocs(collection(db, "hostels"));
-        let totalCapacity = 0;
-        let totalOccupied = 0;
-        for (const hostelDoc of hostelsSnap.docs) {
-            const roomsSnap = await getDocs(collection(db, `hostels/${hostelDoc.id}/rooms`));
-            roomsSnap.forEach(roomDoc => {
-                totalCapacity += roomDoc.data().capacity;
-                totalOccupied += roomDoc.data().occupants;
-            });
-        }
-        document.getElementById('statHostel').textContent = `${totalOccupied} / ${totalCapacity}`;
-
-        const clearanceSnap = await getDocs(query(collection(db, "clearanceRequests"), where("status", "==", "Pending")));
-        document.getElementById('statClearance').textContent = clearanceSnap.size;
-      } catch (err) {
-        showPopup(`Error loading stats: ${err.message}`, 'error');
-      }
-    }
-    
-    // Profile Section
-    async function loadProfile() {
-      if (!currentUser) return;
-      try {
-        const adminDoc = await getDoc(doc(db, "admins", currentUser.uid));
-        const data = adminDoc.data();
-        document.getElementById("pf_name").value = data.name || '';
-        document.getElementById("pf_address").value = data.address || '';
-        document.getElementById("pf_dob").value = data.dob || '';
-        document.getElementById("pf_gender").value = data.gender || '';
-        document.getElementById("pf_email").textContent = currentUser.email;
-        document.getElementById("pf_notify_ann").checked = data.notificationPreferences?.announcements || false;
-        document.getElementById("pf_notify_fees").checked = data.notificationPreferences?.fees || false;
-        document.getElementById("pf_notify_grades").checked = data.notificationPreferences?.grades || false;
-        if (data.profilePhotoURL) {
-          document.getElementById('pf_photo_preview').src = data.profilePhotoURL;
-          document.getElementById('pf_photo_preview').classList.remove('hidden');
-        }
-      } catch (err) {
-        showPopup("Error loading profile: " + err.message, "error");
-      }
-    }
-
-    document.getElementById("profileForm").addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!currentUser) return;
-      toggleLoading(true);
-      try {
-        const updates = {
-          name: document.getElementById("pf_name").value,
-          address: document.getElementById("pf_address").value,
-          dob: document.getElementById("pf_dob").value,
-          gender: document.getElementById("pf_gender").value,
-          notificationPreferences: {
-            announcements: document.getElementById("pf_notify_ann").checked,
-            fees: document.getElementById("pf_notify_fees").checked,
-            grades: document.getElementById("pf_notify_grades").checked
-          }
-        };
-
-        const photoFile = document.getElementById("pf_photo").files[0];
-        if (photoFile) {
-          const photoRef = ref(storage, `admins/${currentUser.uid}/profile.jpg`);
-          await uploadBytes(photoRef, photoFile);
-          updates.profilePhotoURL = await getDownloadURL(photoRef);
-        }
-
-        await updateDoc(doc(db, "admins", currentUser.uid), updates);
-        showPopup("Profile updated successfully!", "success");
-      } catch (err) {
-        showPopup("Error updating profile: " + err.message, "error");
-      } finally {
-        toggleLoading(false);
-      }
+    // Hamburger
+    document.getElementById('hamburger').addEventListener('click', ()=>{
+      document.getElementById('sidebar').classList.toggle('hidden');
     });
 
-    // Account Settings
-    document.getElementById("btnUpdateEmail").onclick = async () => {
-      const newEmail = document.getElementById("newEmail").value;
-      if (!newEmail) return showPopup("Please enter a new email.", "error");
+    /* ---------- DASHBOARD stats ---------- */
+    async function refreshDashboardStats(){
       try {
-        await updateEmail(currentUser, newEmail);
-        await updateDoc(doc(db, "admins", currentUser.uid), { email: newEmail });
-        showPopup("Email updated successfully!", "success");
-        document.getElementById("pf_email").textContent = newEmail;
-      } catch (err) {
-        showPopup("Error updating email: " + err.message, "error");
-      }
-    };
+        const sSnap = await getDocs(collection(db,'students'));
+        document.getElementById('stat_total_students').textContent = sSnap.size;
+        let active = 0;
+        sSnap.forEach(d=> { if (d.data().isActive) active++; });
+        document.getElementById('stat_active_students').textContent = active;
 
-    document.getElementById("btnUpdatePassword").onclick = async () => {
-      const newPass = document.getElementById("newPassword").value;
-      const confirmPass = document.getElementById("confirmPassword").value;
-      if (!newPass || !confirmPass) return showPopup("Please fill in both password fields.", "error");
-      if (newPass !== confirmPass) return showPopup("Passwords do not match.", "error");
-      if (newPass.length < 6) return showPopup("Password must be at least 6 characters.", "error");
-      try {
-        await updatePassword(currentUser, newPass);
-        showPopup("Password changed successfully!", "success");
-      } catch (err) {
-        showPopup("Error updating password: " + err.message, "error");
-      }
-    };
+        const aSnap = await getDocs(collection(db,'admins'));
+        document.getElementById('stat_admins').textContent = aSnap.size;
 
-    document.getElementById("btnResetPassword").onclick = async () => {
-      try {
-        await sendPasswordResetEmail(auth, currentUser.email);
-        showPopup("Password reset email sent to " + currentUser.email, "success");
-      } catch (err) {
-        showPopup("Error sending reset email: " + err.message, "error");
-      }
-    };
-
-    document.getElementById("btnDeleteAccount").onclick = async () => {
-      if (!confirm("Are you sure you want to delete your account? This cannot be undone.")) return;
-      try {
-        await deleteUser(currentUser);
-        await deleteDoc(doc(db, "admins", currentUser.uid));
-        showPopup("Account deleted successfully.", "success");
-      } catch (err) {
-        showPopup("Error deleting account: " + err.message, "error");
-      }
-    };
-
-    // Timetable
-    async function loadTimetable() {
-      const year = document.getElementById("timetableYear").value;
-      const semester = document.getElementById("timetableSemester").value;
-      const timetableTable = document.getElementById("timetableTableBody");
-      timetableTable.innerHTML = `<tbody class="loading-state"><tr><td colspan="6" class="text-center p-4">Loading timetable...</td></tr></tbody>`;
-
-      if (!year || !semester) {
-        timetableTable.innerHTML = `<tbody class="empty-state"><tr><td colspan="6" class="text-center p-4">Please select year and semester.</td></tr></tbody>`;
-        return;
-      }
-
-      try {
-        const timetableRef = doc(db, "timetable", `${year}_${semester}`);
-        const timetableSnap = await getDoc(timetableRef);
-
-        let timetableData = [];
-        if (timetableSnap.exists()) {
-          timetableData = timetableSnap.data().schedule || [];
-        }
-        currentTimetable = timetableData;
-        renderTimetableGrid(timetableData);
-        showPopup("Timetable loaded successfully.", "success");
-
-      } catch (err) {
-        showPopup(`Error loading timetable: ${err.message}`, "error");
-        timetableTable.innerHTML = `<tbody class="error-state"><tr><td colspan="6" class="text-center p-4">Error loading timetable.</td></tr></tbody>`;
+        const cSnap = await getDocs(collection(db,'clearanceRequests'));
+        let pending = 0;
+        cSnap.forEach(d=> { if ((d.data().status||'').toLowerCase() === 'pending') pending++; });
+        document.getElementById('stat_pending_clearance').textContent = pending;
+      } catch (e) {
+        console.error(e);
+        showPopup('Error loading stats: ' + e.message, 'error');
       }
     }
-    document.getElementById("btnLoadTimetable").onclick = loadTimetable;
 
-    function renderTimetableGrid(schedule) {
-        const timetableTableBody = document.getElementById("timetableTableBody");
-        timetableTableBody.innerHTML = '';
-
-        timeSlots.forEach(time => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td class="p-2 border font-medium">${time}</td>`;
-            days.forEach(day => {
-                const entry = schedule.find(e => e.day === day && e.time === time);
-                const cell = document.createElement('td');
-                cell.className = 'p-2 border';
-                if (entry) {
-                    cell.innerHTML = `
-                        <div class="bg-blue-100 p-2 rounded-lg text-sm">
-                            <p class="font-semibold">${entry.courseCode}</p>
-                            <p>${entry.venue}</p>
-                            ${entry.instructor ? `<p class="text-xs text-gray-600">(${entry.instructor})</p>` : ''}
-                            <div class="mt-2 text-right">
-                                <button onclick="showEditTimetableModal('${time}', '${day}')" class="text-blue-500 hover:text-blue-700 text-xs mr-2">Edit</button>
-                                <button onclick="showDeleteTimetableModal('${time}', '${day}')" class="text-red-500 hover:text-red-700 text-xs">Delete</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    cell.innerHTML = `
-                        <button onclick="showAddTimetableModal('${time}', '${day}')" class="w-full h-full p-2 text-center text-gray-400 hover:bg-gray-200 rounded">
-                            + Add
-                        </button>
-                    `;
-                }
-                row.appendChild(cell);
-            });
-            timetableTableBody.appendChild(row);
+    /* ========== STUDENTS CRUD (exact fields) ========== */
+    const studentsTbody = document.getElementById('students_tbody');
+    const studentsSearch = document.getElementById('students_search');
+    async function loadStudents(){
+      studentsTbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">Loading…</td></tr>';
+      try {
+        const snap = await getDocs(collection(db,'students'));
+        studentsTbody.innerHTML = '';
+        const rows = [];
+        snap.forEach(d=> rows.push({ id: d.id, ...d.data() }));
+        // simple render
+        rows.forEach(s=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2 border">${escapeHtml(s.name||'')}</td>
+            <td class="p-2 border">${escapeHtml(s.admissionNo||'')}</td>
+            <td class="p-2 border">${escapeHtml(s.email||'')}</td>
+            <td class="p-2 border">${escapeHtml(s.programme||'')}</td>
+            <td class="p-2 border">${escapeHtml(s.yearOfStudy||'')}</td>
+            <td class="p-2 border">${s.isActive ? '✅' : '❌'}</td>
+            <td class="p-2 border">
+              <button data-id="${s.id}" class="stu_edit bg-blue-600 text-white px-2 py-1 rounded text-xs">Edit</button>
+              <button data-id="${s.id}" class="stu_delete ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+            </td>
+          `;
+          studentsTbody.appendChild(tr);
         });
-    }
-
-    window.showAddTimetableModal = (time, day) => {
-        const modal = document.getElementById('timetableModal');
-        modal.dataset.mode = 'add';
-        document.getElementById('modalTitle').textContent = `Add Timetable Entry (${day} at ${time})`;
-        document.getElementById('tt_time_display').textContent = time;
-        document.getElementById('tt_day_display').textContent = day;
-        document.getElementById('tt_courseCode').value = '';
-        document.getElementById('tt_venue').value = '';
-        document.getElementById('tt_instructor').value = '';
-        document.getElementById('deleteTimetableBtn').classList.add('hidden');
-        modal.classList.remove('hidden');
-    };
-
-    window.showEditTimetableModal = (time, day) => {
-        const entry = currentTimetable.find(e => e.day === day && e.time === time);
-        if (!entry) return showPopup('Entry not found.', 'error');
-        
-        const modal = document.getElementById('timetableModal');
-        modal.dataset.mode = 'edit';
-        document.getElementById('modalTitle').textContent = `Edit Timetable Entry (${day} at ${time})`;
-        document.getElementById('tt_courseCode').value = entry.courseCode;
-        document.getElementById('tt_venue').value = entry.venue;
-        document.getElementById('tt_instructor').value = entry.instructor || '';
-        document.getElementById('tt_time_display').textContent = time;
-        document.getElementById('tt_day_display').textContent = day;
-        document.getElementById('deleteTimetableBtn').classList.remove('hidden');
-        modal.classList.remove('hidden');
-    };
-
-    window.closeTimetableModal = () => {
-        document.getElementById('timetableModal').classList.add('hidden');
-    };
-
-    document.getElementById('timetableForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const year = document.getElementById("timetableYear").value;
-        const semester = document.getElementById("timetableSemester").value;
-        const mode = document.getElementById('timetableModal').dataset.mode;
-        
-        const newEntry = {
-            time: document.getElementById('tt_time_display').textContent,
-            day: document.getElementById('tt_day_display').textContent,
-            courseCode: document.getElementById('tt_courseCode').value,
-            venue: document.getElementById('tt_venue').value,
-            instructor: document.getElementById('tt_instructor').value || ''
-        };
-        
-        const timetableRef = doc(db, "timetable", `${year}_${semester}`);
-        
-        try {
-            if (mode === 'add') {
-                await updateDoc(timetableRef, {
-                    schedule: arrayUnion(newEntry)
-                }, { merge: true });
-                showPopup('Entry added successfully!', 'success');
-            } else if (mode === 'edit') {
-                const oldEntry = currentTimetable.find(e => e.day === newEntry.day && e.time === newEntry.time);
-                if (oldEntry) {
-                    const updatedSchedule = currentTimetable.map(e => 
-                        (e.day === oldEntry.day && e.time === oldEntry.time) ? newEntry : e
-                    );
-                    await updateDoc(timetableRef, { schedule: updatedSchedule });
-                    showPopup('Entry updated successfully!', 'success');
-                }
-            }
-            closeTimetableModal();
-            loadTimetable();
-        } catch (err) {
-            showPopup(`Error saving entry: ${err.message}`, 'error');
-        }
-    });
-
-    window.showDeleteTimetableModal = (time, day) => {
-      const modal = document.getElementById('deleteTimetableModal');
-      modal.dataset.time = time;
-      modal.dataset.day = day;
-      modal.classList.remove('hidden');
-    };
-    
-    document.getElementById('deleteTimetableConfirm').onclick = async () => {
-        const modal = document.getElementById('deleteTimetableModal');
-        const time = modal.dataset.time;
-        const day = modal.dataset.day;
-        
-        const entryToDelete = currentTimetable.find(e => e.day === day && e.time === time);
-        if (!entryToDelete) {
-            closeModal('deleteTimetableModal');
-            return showPopup('Entry not found.', 'error');
-        }
-
-        const year = document.getElementById("timetableYear").value;
-        const semester = document.getElementById("timetableSemester").value;
-        const timetableRef = doc(db, "timetable", `${year}_${semester}`);
-
-        try {
-            await updateDoc(timetableRef, {
-                schedule: arrayRemove(entryToDelete)
-            });
-            showPopup('Entry deleted successfully!', 'success');
-            closeModal('deleteTimetableModal');
-            loadTimetable();
-        } catch (err) {
-            showPopup(`Error deleting entry: ${err.message}`, 'error');
-        }
-    };
-
-    // Hostels
-    async function loadHostels() {
-      try {
-        const hostelsContainer = document.getElementById('hostelsContainer');
-        hostelsContainer.innerHTML = '';
-        const hostelsSnap = await getDocs(collection(db, 'hostels'));
-
-        if (hostelsSnap.empty) {
-          hostelsContainer.innerHTML = '<p class="p-4 text-center text-gray-500">No hostels found.</p>';
-          return;
-        }
-
-        for (const hostelDoc of hostelsSnap.docs) {
-          const hostelId = hostelDoc.id;
-          const hostelData = hostelDoc.data();
-          let occupiedRooms = 0;
-          let totalCapacity = 0;
-          let roomHtml = '';
-          const roomsSnap = await getDocs(collection(db, `hostels/${hostelId}/rooms`));
-          roomsSnap.forEach(roomDoc => {
-            const roomData = roomDoc.data();
-            occupiedRooms += roomData.occupants;
-            totalCapacity += roomData.capacity;
-            roomHtml += `
-              <li class="p-2 border rounded flex justify-between items-center">
-                <span>Room ${roomData.number}: ${roomData.occupants}/${roomData.capacity} occupants</span>
-                <div>
-                  <button onclick="showEditRoomModal('${hostelId}', '${roomDoc.id}', ${roomData.capacity})" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Edit</button>
-                  <button onclick="showDeleteRoomModal('${hostelId}', '${roomDoc.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-sm">Delete</button>
-                </div>
-              </li>
-            `;
+        // wire edit/delete
+        document.querySelectorAll('.stu_edit').forEach(btn=>{
+          btn.addEventListener('click', async ()=> {
+            const id = btn.dataset.id;
+            const snap = await getDoc(doc(db,'students',id));
+            if (!snap.exists()) return showPopup('Student not found','error');
+            const s = snap.data();
+            document.getElementById('stu_id').value = id;
+            document.getElementById('stu_name').value = s.name || '';
+            document.getElementById('stu_admissionNo').value = s.admissionNo || '';
+            document.getElementById('stu_email').value = s.email || '';
+            document.getElementById('stu_regNo').value = s.regNo || '';
+            document.getElementById('stu_programme').value = s.programme || '';
+            document.getElementById('stu_yearOfStudy').value = s.yearOfStudy || '';
+            document.getElementById('stu_campus').value = s.campus || '';
+            document.getElementById('stu_address').value = s.address || '';
+            document.getElementById('stu_isActive').checked = !!s.isActive;
+            showPopup('Loaded student into form','info');
+            showView('students');
           });
-
-          hostelsContainer.innerHTML += `
-            <div class="bg-white p-6 rounded-lg shadow mb-6">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold">${hostelData.name} (${hostelData.gender})</h3>
-                <p>Occupancy: ${occupiedRooms}/${totalCapacity}</p>
-                <div>
-                  <button onclick="showDeleteHostelModal('${hostelId}')" class="bg-red-500 text-white px-3 py-1 rounded">Delete Hostel</button>
-                </div>
-              </div>
-              <ul class="space-y-2 mb-4">
-                ${roomHtml}
-              </ul>
-              <form onsubmit="addRoom(event, '${hostelId}')" class="flex gap-2">
-                <input type="text" name="roomNumber" placeholder="New Room No." class="flex-1 p-2 border rounded" required>
-                <input type="number" name="capacity" placeholder="Capacity" class="w-24 p-2 border rounded" required>
-                <button type="submit" class="bg-green-600 text-white p-2 rounded">Add Room</button>
-              </form>
-            </div>
-          `;
-        }
-      } catch (err) {
-        showPopup(`Error loading hostels: ${err.message}`, 'error');
-      }
-    }
-
-    window.addRoom = async (e, hostelId) => {
-      e.preventDefault();
-      const roomNumber = e.target.roomNumber.value;
-      const capacity = parseInt(e.target.capacity.value);
-      try {
-        const roomsRef = collection(db, `hostels/${hostelId}/rooms`);
-        await setDoc(doc(roomsRef, roomNumber), {
-          number: roomNumber,
-          capacity: capacity,
-          occupants: 0
         });
-        showPopup('Room added successfully!', 'success');
-        e.target.reset();
-        loadHostels();
-      } catch (err) {
-        showPopup(`Error adding room: ${err.message}`, 'error');
-      }
-    };
-
-    window.addHostel = async () => {
-      const modal = document.getElementById('addHostelModal');
-      modal.classList.remove('hidden');
-    };
-    
-    document.getElementById('addHostelForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = e.target.name.value;
-        const gender = e.target.gender.value;
-        try {
-            await setDoc(doc(collection(db, "hostels")), { name, gender, createdAt: serverTimestamp() });
-            showPopup('Hostel added successfully!', 'success');
-            closeModal('addHostelModal');
-            loadHostels();
-        } catch (err) {
-            showPopup(`Error adding hostel: ${err.message}`, 'error');
-        }
-    });
-
-    window.showEditRoomModal = (hostelId, roomId, currentCapacity) => {
-        const modal = document.getElementById('editRoomModal');
-        modal.dataset.hostelId = hostelId;
-        modal.dataset.roomId = roomId;
-        document.getElementById('editRoomInput').value = currentCapacity;
-        modal.classList.remove('hidden');
-    };
-
-    document.getElementById('editRoomForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const modal = document.getElementById('editRoomModal');
-        const hostelId = modal.dataset.hostelId;
-        const roomId = modal.dataset.roomId;
-        const newCapacity = parseInt(document.getElementById('editRoomInput').value);
-        try {
-            await updateDoc(doc(db, `hostels/${hostelId}/rooms`, roomId), { capacity: newCapacity });
-            showPopup('Room capacity updated successfully!', 'success');
-            closeModal('editRoomModal');
-            loadHostels();
-        } catch (err) {
-            showPopup(`Error updating room: ${err.message}`, 'error');
-        }
-    });
-
-    window.showDeleteRoomModal = (hostelId, roomId) => {
-      const modal = document.getElementById('deleteRoomModal');
-      modal.dataset.hostelId = hostelId;
-      modal.dataset.roomId = roomId;
-      modal.classList.remove('hidden');
-    };
-
-    document.getElementById('deleteRoomConfirm').onclick = async () => {
-      const modal = document.getElementById('deleteRoomModal');
-      const hostelId = modal.dataset.hostelId;
-      const roomId = modal.dataset.roomId;
-      try {
-        await deleteDoc(doc(db, `hostels/${hostelId}/rooms`, roomId));
-        showPopup('Room deleted successfully!', 'success');
-        closeModal('deleteRoomModal');
-        loadHostels();
-      } catch (err) {
-        showPopup(`Error deleting room: ${err.message}`, 'error');
-      }
-    };
-
-    window.showDeleteHostelModal = (hostelId) => {
-        const modal = document.getElementById('deleteHostelModal');
-        modal.dataset.hostelId = hostelId;
-        modal.classList.remove('hidden');
-    };
-
-    document.getElementById('deleteHostelConfirm').onclick = async () => {
-        const modal = document.getElementById('deleteHostelModal');
-        const hostelId = modal.dataset.hostelId;
-        try {
-            const roomsSnap = await getDocs(collection(db, `hostels/${hostelId}/rooms`));
-            const batch = db.batch();
-            roomsSnap.forEach(roomDoc => batch.delete(roomDoc.ref));
-            await batch.commit();
-            await deleteDoc(doc(db, "hostels", hostelId));
-            showPopup('Hostel deleted successfully!', 'success');
-            closeModal('deleteHostelModal');
-            loadHostels();
-        } catch (err) {
-            showPopup(`Error deleting hostel: ${err.message}`, 'error');
-        }
-    };
-
-    // Finance
-    async function loadFinance() {
-      try {
-        const financeTableBody = document.getElementById('financeTableBody');
-        financeTableBody.innerHTML = '';
-        const studentsSnap = await getDocs(collection(db, 'students'));
-        
-        for (const studentDoc of studentsSnap.docs) {
-          const studentId = studentDoc.id;
-          const studentData = studentDoc.data();
-          const financeSnap = await getDoc(doc(db, 'finance', studentId));
-          const financeData = financeSnap.data() || { totalFees: 0, totalPaid: 0, balance: 0 };
-          
-          const row = `
-            <tr class="hover:bg-gray-50">
-              <td class="p-2 border-b">${studentData.name || '-'}</td>
-              <td class="p-2 border-b">${studentData.regNo || '-'}</td>
-              <td class="p-2 border-b">KES ${financeData.totalFees?.toLocaleString() || '0'}</td>
-              <td class="p-2 border-b">KES ${financeData.totalPaid?.toLocaleString() || '0'}</td>
-              <td class="p-2 border-b">KES ${financeData.balance?.toLocaleString() || '0'}</td>
-              <td class="p-2 border-b">
-                <button onclick="manageFinance('${studentId}', '${studentData.name}')" class="bg-blue-600 text-white px-3 py-1 rounded">Manage</button>
-              </td>
-            </tr>
-          `;
-          financeTableBody.innerHTML += row;
-        }
-        if (financeTableBody.innerHTML === '') {
-          financeTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4">No finance records found.</td></tr>';
-        }
-      } catch (err) {
-        showPopup(`Error loading finance data: ${err.message}`, 'error');
+        document.querySelectorAll('.stu_delete').forEach(btn=>{
+          btn.addEventListener('click', async ()=> {
+            if (!confirm('Delete student record?')) return;
+            await deleteDoc(doc(db,'students',btn.dataset.id));
+            showPopup('Student deleted','success');
+            await loadStudents();
+            await refreshDashboardStats();
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        studentsTbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-red-600">Error loading students</td></tr>`;
+        showPopup('Error loading students: ' + e.message, 'error');
       }
     }
 
-    window.manageFinance = async (studentId, studentName) => {
-      const modal = document.getElementById('financeModal');
-      const studentNameSpan = document.getElementById('financeStudentName');
-      studentNameSpan.textContent = studentName;
-      modal.classList.remove('hidden');
-      modal.dataset.studentId = studentId;
-      await loadStudentTransactions(studentId);
-    };
-
-    window.closeFinanceModal = () => {
-      document.getElementById('financeModal').classList.add('hidden');
-    };
-
-    async function loadStudentTransactions(studentId) {
-      const transactionsBody = document.getElementById('transactionTableBody');
-      transactionsBody.innerHTML = '<tr><td colspan="4" class="text-center p-2">Loading...</td></tr>';
+    // student form save
+    document.getElementById('stu_save').addEventListener('click', async ()=>{
+      const id = document.getElementById('stu_id').value.trim();
+      const payload = {
+        name: document.getElementById('stu_name').value.trim(),
+        admissionNo: document.getElementById('stu_admissionNo').value.trim(),
+        email: document.getElementById('stu_email').value.trim(),
+        regNo: document.getElementById('stu_regNo').value.trim(),
+        programme: document.getElementById('stu_programme').value.trim(),
+        yearOfStudy: Number(document.getElementById('stu_yearOfStudy').value) || null,
+        campus: document.getElementById('stu_campus').value.trim(),
+        address: document.getElementById('stu_address').value.trim(),
+        isActive: !!document.getElementById('stu_isActive').checked,
+        // keep createdAt if exists; if creating set serverTimestamp
+      };
       try {
-        const transactionsSnap = await getDocs(query(collection(db, `finance/${studentId}/transactions`), orderBy("timestamp", "desc")));
-        transactionsBody.innerHTML = '';
-        if (transactionsSnap.empty) {
-          transactionsBody.innerHTML = '<tr><td colspan="4" class="text-center p-2">No transactions found.</td></tr>';
+        if (id) {
+          await updateDoc(doc(db,'students',id), { ...payload, updatedAt: serverTimestamp() });
+          showPopup('Student updated','success');
         } else {
-          transactionsSnap.forEach(tDoc => {
-            const tData = tDoc.data();
-            const row = `
-              <tr>
-                <td class="p-2 border-b">${new Date(tData.timestamp?.seconds * 1000).toLocaleDateString()}</td>
-                <td class="p-2 border-b">${tData.type}</td>
-                <td class="p-2 border-b">KES ${tData.amount?.toLocaleString() || '0'}</td>
-                <td class="p-2 border-b">${tData.description || ''}</td>
-              </tr>
-            `;
-            transactionsBody.innerHTML += row;
+          payload.createdAt = serverTimestamp();
+          const ref = await addDoc(collection(db,'students'), payload);
+          showPopup('Student created (id: '+ref.id+')','success');
+        }
+        document.getElementById('studentForm').reset();
+        document.getElementById('stu_id').value = '';
+        await loadStudents();
+        await refreshDashboardStats();
+      } catch (e) {
+        console.error(e);
+        showPopup('Error saving student: ' + e.message, 'error');
+      }
+    });
+
+    document.getElementById('stu_clear').addEventListener('click', ()=>{
+      document.getElementById('studentForm').reset();
+      document.getElementById('stu_id').value = '';
+    });
+
+    document.getElementById('students_refresh').addEventListener('click', loadStudents);
+    document.getElementById('students_new').addEventListener('click', ()=>{
+      document.getElementById('studentForm').reset();
+      document.getElementById('stu_id').value = '';
+      showPopup('Ready for new student','info');
+    });
+
+    studentsSearch.addEventListener('input', ()=>{
+      const q = studentsSearch.value.trim().toLowerCase();
+      document.querySelectorAll('#students_tbody tr').forEach(tr=>{
+        tr.style.display = q === '' ? '' : (tr.textContent.toLowerCase().includes(q) ? '' : 'none');
+      });
+    });
+
+    /* ========== ADMINS ========== */
+    async function loadAdmins(){
+      const container = document.getElementById('admins_list');
+      try {
+        const snap = await getDocs(collection(db,'admins'));
+        container.innerHTML = '';
+        if (snap.empty) container.textContent = 'No admins';
+        else {
+          snap.forEach(d=>{
+            const item = d.data();
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center p-2 border-b';
+            div.innerHTML = `<div class="text-sm">${escapeHtml(item.email||d.id)}</div>
+              <div><button data-id="${d.id}" class="admin_remove bg-red-600 text-white px-2 py-1 rounded text-xs">Remove</button></div>`;
+            container.appendChild(div);
+          });
+          document.querySelectorAll('.admin_remove').forEach(btn=>{
+            btn.addEventListener('click', async ()=>{
+              if (!confirm('Remove this admin?')) return;
+              await deleteDoc(doc(db,'admins',btn.dataset.id));
+              showPopup('Admin removed','success');
+              loadAdmins();
+              refreshDashboardStats();
+            });
           });
         }
-      } catch (err) {
-        showPopup(`Error loading transactions: ${err.message}`, 'error');
+      } catch (e) {
+        console.error(e);
+        container.innerHTML = '<div class="text-red-600">Error loading admins</div>';
+        showPopup('Error loading admins: ' + e.message, 'error');
       }
     }
-
-    document.getElementById('addTransactionForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const studentId = document.getElementById('financeModal').dataset.studentId;
-      const amount = parseFloat(e.target.amount.value);
-      const type = e.target.type.value;
-      const description = e.target.description.value;
-
-      if (isNaN(amount) || amount <= 0) return showPopup('Please enter a valid amount.', 'error');
-
+    document.getElementById('admin_add').addEventListener('click', async ()=>{
+      const email = document.getElementById('admin_email').value.trim();
+      if (!email) return showPopup('Enter admin email','error');
       try {
-        const financeRef = doc(db, 'finance', studentId);
-        const financeSnap = await getDoc(financeRef);
-        const currentBalance = financeSnap.exists() ? financeSnap.data().balance : 0;
-        const totalPaid = financeSnap.exists() ? financeSnap.data().totalPaid : 0;
-        const totalFees = financeSnap.exists() ? financeSnap.data().totalFees : 0;
-        
-        let newBalance = currentBalance;
-        let newTotalPaid = totalPaid;
-        
-        if (type === 'payment') {
-          newBalance -= amount;
-          newTotalPaid += amount;
-        } else { // bill
-          newBalance += amount;
-        }
-
-        const transactionData = {
-          amount, type, description,
-          timestamp: serverTimestamp()
-        };
-        
-        await setDoc(financeRef, {
-          balance: newBalance,
-          totalPaid: newTotalPaid,
-          totalFees: totalFees, // Assuming totalFees is fixed and not managed here
-        }, { merge: true });
-
-        await setDoc(doc(collection(db, `finance/${studentId}/transactions`)), transactionData);
-
-        showPopup('Transaction added successfully!', 'success');
-        e.target.reset();
-        loadStudentTransactions(studentId);
-        loadFinance();
-      } catch (err) {
-        showPopup(`Error adding transaction: ${err.message}`, 'error');
-      }
-    });
-
-    // Clearance
-    async function loadClearance() {
-      try {
-        const clearanceTableBody = document.getElementById('clearanceTableBody');
-        clearanceTableBody.innerHTML = '';
-        const requestsSnap = await getDocs(collection(db, 'clearanceRequests'));
-        
-        if (requestsSnap.empty) {
-          clearanceTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">No clearance requests found.</td></tr>';
-          return;
-        }
-        
-        for (const reqDoc of requestsSnap.docs) {
-          const reqData = reqDoc.data();
-          const studentDoc = await getDoc(doc(db, "students", reqDoc.id));
-          const studentData = studentDoc.data() || {};
-          const departments = reqData.departments || {};
-          
-          const row = `
-            <tr class="hover:bg-gray-50">
-              <td class="p-2 border-b">${studentData.name || '-'}</td>
-              <td class="p-2 border-b">${studentData.regNo || '-'}</td>
-              <td class="p-2 border-b">${reqData.reason || '-'}</td>
-              <td class="p-2 border-b">${departments.Finance || 'Pending'}</td>
-              <td class="p-2 border-b">${departments.Library || 'Pending'}</td>
-              <td class="p-2 border-b">${departments.Hostel || 'Pending'}</td>
-              <td class="p-2 border-b">${departments.Dean || 'Pending'}</td>
-              <td class="p-2 border-b">
-                <button onclick="manageClearance('${reqDoc.id}')" class="bg-blue-600 text-white px-3 py-1 rounded">Manage</button>
-              </td>
-            </tr>
-          `;
-          clearanceTableBody.innerHTML += row;
-        }
-      } catch (err) {
-        showPopup(`Error loading clearance data: ${err.message}`, 'error');
-      }
-    }
-
-    window.manageClearance = async (studentId) => {
-      const modal = document.getElementById('clearanceModal');
-      modal.classList.remove('hidden');
-      modal.dataset.studentId = studentId;
-
-      const reqDoc = await getDoc(doc(db, "clearanceRequests", studentId));
-      if (reqDoc.exists()) {
-        const data = reqDoc.data();
-        document.getElementById('c_name').textContent = data.email;
-        document.getElementById('c_reason').textContent = data.reason;
-        document.getElementById('c_remarks').textContent = data.remarks;
-        document.getElementById('c_finance').value = data.departments?.Finance || 'Pending';
-        document.getElementById('c_library').value = data.departments?.Library || 'Pending';
-        document.getElementById('c_hostel').value = data.departments?.Hostel || 'Pending';
-        document.getElementById('c_dean').value = data.departments?.Dean || 'Pending';
-        if (data.evidenceURL) {
-          document.getElementById('c_evidenceLink').href = data.evidenceURL;
-          document.getElementById('c_evidenceLink').classList.remove('hidden');
-        } else {
-          document.getElementById('c_evidenceLink').classList.add('hidden');
-        }
-      }
-    };
-    
-    document.getElementById('clearanceForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const studentId = document.getElementById('clearanceModal').dataset.studentId;
-      const financeStatus = document.getElementById('c_finance').value;
-      const libraryStatus = document.getElementById('c_library').value;
-      const hostelStatus = document.getElementById('c_hostel').value;
-      const deanStatus = document.getElementById('c_dean').value;
-      
-      try {
-        const reqRef = doc(db, 'clearanceRequests', studentId);
-        await updateDoc(reqRef, {
-          departments: {
-            Finance: financeStatus,
-            Library: libraryStatus,
-            Hostel: hostelStatus,
-            Dean: deanStatus,
-          },
-          status: (financeStatus === 'Cleared' && libraryStatus === 'Cleared' && hostelStatus === 'Cleared' && deanStatus === 'Cleared') ? 'Cleared' : 'Pending'
-        });
-        showPopup('Clearance status updated!', 'success');
-        document.getElementById('clearanceModal').classList.add('hidden');
-        loadClearance();
-      } catch (err) {
-        showPopup(`Error updating clearance: ${err.message}`, 'error');
-      }
-    });
-
-    // Admins
-    async function loadAdmins() {
-      try {
-        const adminsBody = document.getElementById('adminsBody');
-        adminsBody.innerHTML = '';
-        const adminsSnap = await getDocs(collection(db, 'admins'));
-        
-        if (adminsSnap.empty) {
-          adminsBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">No admins found.</td></tr>';
-          return;
-        }
-
-        adminsSnap.forEach(aDoc => {
-          const admin = aDoc.data();
-          const createdAt = admin.createdAt ? new Date(admin.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
-          const row = `
-            <tr class="hover:bg-gray-50">
-              <td class="p-2 border-b">${admin.name || '-'}</td>
-              <td class="p-2 border-b">${admin.email}</td>
-              <td class="p-2 border-b">${createdAt}</td>
-              <td class="p-2 border-b">
-                <button onclick="removeAdmin('${aDoc.id}')" class="bg-red-500 text-white px-3 py-1 rounded">Remove</button>
-              </td>
-            </tr>
-          `;
-          adminsBody.innerHTML += row;
-        });
-      } catch (err) {
-        showPopup(`Error loading admins: ${err.message}`, 'error');
-      }
-    }
-
-    document.getElementById('addAdminForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = e.target.adminName.value;
-      const email = e.target.adminEmail.value;
-      const password = e.target.adminPassword.value;
-
-      if (password.length < 6) return showPopup("Password must be at least 6 characters long.", "error");
-
-      toggleLoading(true);
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const uid = userCredential.user.uid;
-        
-        await setDoc(doc(db, "admins", uid), {
-          name, 
-          email, 
-          isAdmin: true,
-          createdAt: serverTimestamp()
-        });
-        
-        showPopup('Admin account created successfully!', 'success');
-        e.target.reset();
+        await addDoc(collection(db,'admins'), { email, createdAt: serverTimestamp() });
+        showPopup('Admin added','success');
+        document.getElementById('admin_email').value = '';
         loadAdmins();
-      } catch (err) {
-        showPopup(`Error creating admin: ${err.message}`, 'error');
-      } finally {
-        toggleLoading(false);
-      }
+        refreshDashboardStats();
+      } catch (e) { console.error(e); showPopup('Error adding admin: ' + e.message,'error'); }
     });
+    document.getElementById('admins_refresh').addEventListener('click', loadAdmins);
 
-    window.removeAdmin = async (adminId) => {
-        if (currentUser.uid === adminId) {
-            return showPopup("You cannot remove your own admin access.", "error");
-        }
-        const modal = document.getElementById('deleteAdminModal');
-        modal.dataset.adminId = adminId;
-        modal.classList.remove('hidden');
-    };
-
-    document.getElementById('deleteAdminConfirm').onclick = async () => {
-        const modal = document.getElementById('deleteAdminModal');
-        const adminId = modal.dataset.adminId;
-        try {
-            // Delete the Firestore document first
-            await deleteDoc(doc(db, "admins", adminId));
-
-            // Delete the Firebase Auth user
-            // This requires the admin to be the current user, so we will not
-            // implement this direct deletion. A more robust solution would be
-            // to use a cloud function or Firebase Admin SDK. For a direct JS
-            // approach, we can only delete the currently signed-in user.
-            // Since we already have the check to prevent self-deletion,
-            // we will only delete the Firestore doc for now.
-            // This leaves the Auth user, but revokes their admin privileges.
-            showPopup('Admin removed successfully.', 'success');
-            closeModal('deleteAdminModal');
-            loadAdmins();
-        } catch (err) {
-            showPopup(`Error removing admin: ${err.message}`, 'error');
-        }
-    };
-    
-    // Students
-    async function loadStudents() {
-        try {
-            const studentsBody = document.getElementById('studentsBody');
-            studentsBody.innerHTML = '';
-            const studentsSnap = await getDocs(collection(db, 'students'));
-            if (studentsSnap.empty) {
-                studentsBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No students found.</td></tr>';
-                return;
-            }
-            studentsSnap.forEach(sDoc => {
-                const student = sDoc.data();
-                const bookingStatus = student.hostelBooking?.status || "None";
-                const actionsHtml = bookingStatus === "Active" 
-                    ? `<button onclick="showCancelBookingModal('${sDoc.id}', '${student.name}')" class="bg-orange-500 text-white px-3 py-1 rounded text-sm">Cancel Booking</button>`
-                    : `<button onclick="showBookRoomModal('${sDoc.id}', '${student.name}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Book Room</button>`;
-                const row = `
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-2 border-b">${student.name || '-'}</td>
-                        <td class="p-2 border-b">${student.regNo || '-'}</td>
-                        <td class="p-2 border-b">${student.email || '-'}</td>
-                        <td class="p-2 border-b">${student.programme || '-'}</td>
-                        <td class="p-2 border-b flex gap-2 items-center">
-                            ${actionsHtml}
-                            <button onclick="showDeleteStudentModal('${sDoc.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
-                        </td>
-                    </tr>
-                `;
-                studentsBody.innerHTML += row;
-            });
-        } catch (err) {
-            showPopup(`Error loading students: ${err.message}`, 'error');
-        }
+    /* ========== CLEARANCE ========== */
+    async function loadClearance(){
+      const tbody = document.getElementById('clearance_tbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Loading…</td></tr>';
+      try {
+        const snap = await getDocs(collection(db,'clearanceRequests'));
+        tbody.innerHTML = '';
+        snap.forEach(d=>{
+          const c = d.data();
+          const deps = c.departments || { Finance:'Pending', Library:'Pending', Hostel:'Pending', Dean:'Pending' };
+          const depHtml = Object.entries(deps).map(([k,v])=>`<div class="inline-block mr-2 px-2 py-0.5 rounded text-xs ${v==='Cleared'?'bg-green-100 text-green-800':v==='Rejected'?'bg-red-100 text-red-800':'bg-yellow-100 text-yellow-800'}">${k}: ${v}</div>`).join('');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2 border">${escapeHtml(c.email||d.id)}</td>
+            <td class="p-2 border">${escapeHtml(c.reason||'')}</td>
+            <td class="p-2 border">${escapeHtml(c.status||'')}</td>
+            <td class="p-2 border">${depHtml}</td>
+            <td class="p-2 border">
+              <select data-id="${d.id}" class="dep_select border p-1 rounded text-sm">
+                <option>Finance</option><option>Library</option><option>Hostel</option><option>Dean</option>
+              </select>
+              <select data-val="${d.id}" class="dep_val border p-1 rounded text-sm">
+                <option>Pending</option><option>Cleared</option><option>Rejected</option>
+              </select>
+              <button data-apply="${d.id}" class="ml-1 bg-blue-600 text-white px-2 py-1 rounded text-xs">Apply</button>
+              <button data-clear="${d.id}" class="ml-1 bg-green-600 text-white px-2 py-1 rounded text-xs">Mark All Cleared</button>
+              <button data-rej="${d.id}" class="ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Reject</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        // wire apply
+        document.querySelectorAll('[data-apply]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const id = btn.dataset.apply;
+            const dep = document.querySelector(`.dep_select[data-id='${id}']`).value;
+            const val = document.querySelector(`.dep_val[data-val='${id}']`).value;
+            const ref = doc(db,'clearanceRequests',id);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return showPopup('Request not found','error');
+            const data = snap.data();
+            const departments = data.departments || { Finance:'Pending', Library:'Pending', Hostel:'Pending', Dean:'Pending' };
+            departments[dep] = val;
+            await updateDoc(ref, { departments, updatedAt: serverTimestamp() });
+            showPopup(`Set ${dep} → ${val}`,'success');
+            loadClearance();
+          });
+        });
+        document.querySelectorAll('[data-clear]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            if (!confirm('Mark request as Cleared?')) return;
+            await updateDoc(doc(db,'clearanceRequests',btn.dataset.clear), { status: 'Cleared', updatedAt: serverTimestamp() });
+            showPopup('Request marked Cleared','success');
+            loadClearance();
+            refreshDashboardStats();
+          });
+        });
+        document.querySelectorAll('[data-rej]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            if (!confirm('Reject this request?')) return;
+            await updateDoc(doc(db,'clearanceRequests',btn.dataset.rej), { status: 'Rejected', updatedAt: serverTimestamp() });
+            showPopup('Request rejected','success');
+            loadClearance(); refreshDashboardStats();
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-red-600">Error loading</td></tr>`;
+        showPopup('Error loading clearance: '+e.message,'error');
+      }
     }
-    
-    document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = e.target.name.value;
-      const regNo = e.target.regNo.value;
-      const email = e.target.email.value;
-      const password = e.target.password.value;
-      const programme = e.target.programme.value;
-      const campus = e.target.campus.value;
-      const year = e.target.year.value;
-      const semester = e.target.semester.value;
+    document.getElementById('clearance_refresh').addEventListener('click', loadClearance);
 
-      if (password.length < 6) return showPopup("Password must be at least 6 characters.", "error");
-
-      toggleLoading(true);
+    /* ========== COURSES (courses collection) ========== */
+    async function loadCourses(){
+      const tbody = document.getElementById('courses_tbody');
+      tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Loading…</td></tr>';
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const uid = userCredential.user.uid;
-        
-        await setDoc(doc(db, "students", uid), {
-          name, regNo, email, programme, campus, year, semester,
-          createdAt: serverTimestamp()
+        const snap = await getDocs(collection(db,'courses'));
+        tbody.innerHTML = '';
+        snap.forEach(d=>{
+          const c = d.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="p-2 border">${escapeHtml(c.courseCode||'')}</td>
+            <td class="p-2 border">${escapeHtml(c.courseName||'')}</td>
+            <td class="p-2 border">${escapeHtml(c.department||'')}</td>
+            <td class="p-2 border">${escapeHtml(c.semester||'')}</td>
+            <td class="p-2 border">${escapeHtml(c.yearOfStudy||'')}</td>
+            <td class="p-2 border">
+              <button data-id="${d.id}" class="course_edit bg-blue-600 text-white px-2 py-1 rounded text-xs">Edit</button>
+              <button data-id="${d.id}" class="course_del ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+            </td>`;
+          tbody.appendChild(tr);
         });
-        
-        showPopup('Student account created successfully!', 'success');
-        e.target.reset();
-        loadStudents();
-      } catch (err) {
-        showPopup(`Error creating student: ${err.message}`, 'error');
-      } finally {
-        toggleLoading(false);
+        document.querySelectorAll('.course_edit').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const id = btn.dataset.id;
+            const snap = await getDoc(doc(db,'courses',id));
+            if (!snap.exists()) return showPopup('Course not found','error');
+            const c = snap.data();
+            document.getElementById('course_id').value = id;
+            document.getElementById('course_courseCode').value = c.courseCode || '';
+            document.getElementById('course_courseName').value = c.courseName || '';
+            document.getElementById('course_department').value = c.department || '';
+            document.getElementById('course_semester').value = c.semester || '';
+            document.getElementById('course_yearOfStudy').value = c.yearOfStudy || '';
+            showPopup('Course loaded into form','info');
+          });
+        });
+        document.querySelectorAll('.course_del').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            if (!confirm('Delete this course?')) return;
+            await deleteDoc(doc(db,'courses',btn.dataset.id));
+            showPopup('Course deleted','success');
+            loadCourses();
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-red-600">Error</td></tr>`;
+        showPopup('Error loading courses: '+e.message,'error');
+      }
+    }
+    document.getElementById('courses_refresh').addEventListener('click', loadCourses);
+    document.getElementById('course_save').addEventListener('click', async ()=>{
+      const id = document.getElementById('course_id').value.trim();
+      const payload = {
+        courseCode: document.getElementById('course_courseCode').value.trim(),
+        courseName: document.getElementById('course_courseName').value.trim(),
+        department: document.getElementById('course_department').value.trim(),
+        semester: document.getElementById('course_semester').value.trim(),
+        yearOfStudy: document.getElementById('course_yearOfStudy').value.trim(),
+        updatedAt: serverTimestamp()
+      };
+      try {
+        if (id) {
+          await updateDoc(doc(db,'courses',id), payload);
+          showPopup('Course updated','success');
+        } else {
+          await addDoc(collection(db,'courses'), { ...payload, createdAt: serverTimestamp() });
+          showPopup('Course created','success');
+        }
+        document.getElementById('courseForm').reset();
+        loadCourses();
+      } catch (e) { console.error(e); showPopup('Error saving course: '+e.message,'error'); }
+    });
+    document.getElementById('course_clear').addEventListener('click', ()=> document.getElementById('courseForm').reset());
+
+    /* ========== REGISTRATIONS (registrations/{uid}/courses) ========== */
+    document.getElementById('reg_load').addEventListener('click', async ()=>{
+      const uid = document.getElementById('reg_uid').value.trim();
+      if (!uid) return showPopup('Enter student UID','error');
+      try {
+        const snap = await getDocs(collection(db,'registrations',uid,'courses'));
+        const list = document.getElementById('reg_list');
+        list.innerHTML = '';
+        if (snap.empty) list.textContent = 'No registered courses';
+        else {
+          snap.forEach(d=>{
+            const v = d.data();
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center border-b p-2';
+            div.innerHTML = `<div>${escapeHtml(v.registeredAt?.toDate?.() ? v.registeredAt.toDate().toLocaleString() : d.id)}</div>
+              <div><button data-id="${d.id}" class="reg_del bg-red-600 text-white px-2 py-1 rounded text-xs">Drop</button></div>`;
+            list.appendChild(div);
+          });
+          document.querySelectorAll('.reg_del').forEach(btn=>{
+            btn.addEventListener('click', async ()=>{
+              await deleteDoc(doc(db,'registrations',uid,'courses',btn.dataset.id));
+              showPopup('Dropped course','success');
+              document.getElementById('reg_load').click();
+            });
+          });
+        }
+        document.getElementById('reg_panel').classList.remove('hidden');
+      } catch (e) { console.error(e); showPopup('Error loading registrations: '+e.message,'error'); }
+    });
+    document.getElementById('reg_add').addEventListener('click', async ()=>{
+      const uid = document.getElementById('reg_uid').value.trim();
+      const courseId = document.getElementById('reg_courseId').value.trim();
+      if (!uid || !courseId) return showPopup('Enter UID and courseId','error');
+      try {
+        await setDoc(doc(db,'registrations',uid,'courses',courseId), { registeredAt: serverTimestamp() });
+        showPopup('Course registered','success');
+        document.getElementById('reg_courseId').value = '';
+        document.getElementById('reg_load').click();
+      } catch (e) { console.error(e); showPopup('Error registering: '+e.message,'error'); }
+    });
+
+    /* ========== EXAM CARD (load registered courses) ========== */
+    document.getElementById('exam_load').addEventListener('click', async ()=>{
+      const uid = document.getElementById('exam_uid').value.trim();
+      if (!uid) return showPopup('Enter student UID','error');
+      try {
+        const snap = await getDocs(collection(db,'registrations',uid,'courses'));
+        const table = document.getElementById('exam_table');
+        table.innerHTML = '';
+        if (snap.empty) table.textContent = 'No registered courses';
+        else {
+          const rows = [];
+          for (const d of snap.docs) {
+            const courseId = d.id;
+            const courseSnap = await getDoc(doc(db,'courses',courseId));
+            const c = courseSnap.exists() ? courseSnap.data() : { courseCode: courseId, courseName: 'Unknown' };
+            rows.push(`<tr><td class="p-2 border">${escapeHtml(c.courseCode||courseId)}</td><td class="p-2 border">${escapeHtml(c.courseName||'')}</td></tr>`);
+          }
+          table.innerHTML = `<table class="w-full"><thead class="bg-gray-100"><tr><th class="p-2 border">Code</th><th class="p-2 border">Title</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+          document.getElementById('exam_panel').classList.remove('hidden');
+        }
+      } catch (e) { console.error(e); showPopup('Error loading exam card: '+e.message,'error'); }
+    });
+
+    /* ========== FINANCE ========== */
+    let fin_loaded_uid = '';
+    document.getElementById('fin_load').addEventListener('click', async ()=>{
+      const uid = document.getElementById('fin_uid').value.trim();
+      if (!uid) return showPopup('Enter UID','error');
+      fin_loaded_uid = uid;
+      try {
+        // summary
+        const summaryDoc = await getDoc(doc(db,'finance',uid,'summary','totals'));
+        const totals = summaryDoc.exists() ? summaryDoc.data() : { totalFees:0 };
+        // transactions
+        const txSnap = await getDocs(collection(db,'finance',uid,'transactions'));
+        let totalPaid = 0;
+        const list = [];
+        txSnap.forEach(d=>{
+          const t = d.data();
+          if (t.status === 'Confirmed') totalPaid += (t.amount||0);
+          list.push(t);
+        });
+        const balance = (totals.totalFees || 0) - totalPaid;
+        document.getElementById('fin_total').textContent = 'KES ' + (totals.totalFees||0).toLocaleString();
+        document.getElementById('fin_paid').textContent = 'KES ' + totalPaid.toLocaleString();
+        document.getElementById('fin_balance').textContent = 'KES ' + balance.toLocaleString();
+        document.getElementById('fin_panel').classList.remove('hidden');
+        const listEl = document.getElementById('txn_list');
+        listEl.innerHTML = list.length ? list.map(t=>`<div class="p-2 border-b">${escapeHtml(t.method||'-')} | ${escapeHtml(t.reference||'-')} | KES ${(t.amount||0).toLocaleString()} | ${escapeHtml(t.status||'-')}</div>`).join('') : '<div class="text-gray-500 p-2">No transactions</div>';
+      } catch (e) { console.error(e); showPopup('Error loading finance: '+e.message,'error'); }
+    });
+    document.getElementById('txn_add').addEventListener('click', async ()=>{
+      if (!fin_loaded_uid) return showPopup('Load a student first','error');
+      const payload = {
+        method: document.getElementById('txn_method').value.trim(),
+        reference: document.getElementById('txn_reference').value.trim(),
+        amount: Number(document.getElementById('txn_amount').value) || 0,
+        status: document.getElementById('txn_status').value,
+        date: serverTimestamp()
+      };
+      try {
+        await addDoc(collection(db,'finance',fin_loaded_uid,'transactions'), payload);
+        showPopup('Transaction added','success');
+        document.getElementById('fin_load').click();
+      } catch (e) { console.error(e); showPopup('Error adding txn: '+e.message,'error'); }
+    });
+
+    /* ========== GRADES ========== */
+    let gradesLoadedUid = '';
+    document.getElementById('grades_load').addEventListener('click', async ()=>{
+      const uid = document.getElementById('grades_uid').value.trim();
+      if (!uid) return showPopup('Enter UID','error');
+      gradesLoadedUid = uid;
+      try {
+        const snap = await getDocs(collection(db,'grades',uid,'results'));
+        const out = [];
+        snap.forEach(d=> out.push(d.data()));
+        document.getElementById('grades_panel').classList.remove('hidden');
+        document.getElementById('grades_list').innerHTML = out.length ? out.map(r=>`<div class="p-2 border-b">${escapeHtml(r.code)} - ${escapeHtml(r.title)} | ${escapeHtml(r.grade)} | ${r.gpaPoints}</div>`).join('') : '<div class="text-gray-500 p-2">No results</div>';
+      } catch (e) { console.error(e); showPopup('Error loading grades: '+e.message,'error'); }
+    });
+    document.getElementById('gr_save').addEventListener('click', async ()=>{
+      if (!gradesLoadedUid) return showPopup('Load student first','error');
+      const id = document.getElementById('gr_code').value.trim();
+      if (!id) return showPopup('Enter course code','error');
+      const payload = {
+        code: id,
+        title: document.getElementById('gr_title').value.trim(),
+        credits: Number(document.getElementById('gr_credits').value) || 0,
+        grade: document.getElementById('gr_grade').value.trim(),
+        gpaPoints: Number(document.getElementById('gr_points').value) || 0,
+        year: Number(document.getElementById('gr_year').value) || 0,
+        semester: Number(document.getElementById('gr_sem').value) || 0,
+        updatedAt: serverTimestamp()
+      };
+      try {
+        await setDoc(doc(db,'grades',gradesLoadedUid,'results',id), payload, { merge:true });
+        showPopup('Result saved','success');
+        document.getElementById('grades_load').click();
+      } catch (e) { console.error(e); showPopup('Error saving result: '+e.message,'error'); }
+    });
+
+    /* ========== GRADUATION ========== */
+    async function loadGraduation(){
+      const tbody = document.getElementById('graduation_tbody');
+      tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Loading…</td></tr>';
+      try {
+        const snap = await getDocs(collection(db,'graduationRequests'));
+        tbody.innerHTML = '';
+        snap.forEach(d=>{
+          const g = d.data();
+          const tr = document.createElement('tr');
+          const req = g.requestedAt?.toDate ? g.requestedAt.toDate().toLocaleString() : '-';
+          tr.innerHTML = `<td class="p-2 border">${escapeHtml(g.email||d.id)}</td><td class="p-2 border">${escapeHtml(g.status||'')}</td><td class="p-2 border">${req}</td><td class="p-2 border">
+            <button data-id="${d.id}" class="grad_approve bg-green-600 text-white px-2 py-1 rounded text-xs">Approve</button>
+            <button data-id="${d.id}" class="grad_reject ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Reject</button>
+          </td>`;
+          tbody.appendChild(tr);
+        });
+        document.querySelectorAll('.grad_approve').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            await updateDoc(doc(db,'graduationRequests',btn.dataset.id), { status: 'approved', updatedAt: serverTimestamp() });
+            showPopup('Graduation approved','success');
+            loadGraduation(); refreshDashboardStats();
+          });
+        });
+        document.querySelectorAll('.grad_reject').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            await updateDoc(doc(db,'graduationRequests',btn.dataset.id), { status: 'rejected', updatedAt: serverTimestamp() });
+            showPopup('Graduation rejected','success');
+            loadGraduation(); refreshDashboardStats();
+          });
+        });
+      } catch (e) { console.error(e); tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-red-600">Error</td></tr>`; showPopup('Error loading graduation: '+e.message,'error'); }
+    }
+    document.getElementById('grad_refresh').addEventListener('click', loadGraduation);
+
+    /* ========== HOSTELS & ROOMS ========== */
+    async function loadHostels(){
+      const container = document.getElementById('hostels_list');
+      container.innerHTML = 'Loading…';
+      try {
+        const snap = await getDocs(collection(db,'hostels'));
+        container.innerHTML = '';
+        if (snap.empty) container.textContent = 'No hostels';
+        else {
+          snap.forEach(d=>{
+            const h = d.data();
+            const div = document.createElement('div');
+            div.className = 'p-3 border-b flex justify-between items-center';
+            div.innerHTML = `<div><div class="font-semibold">${escapeHtml(h.name||d.id)}</div><div class="text-xs text-gray-500">Cap: ${h.capacity||0} | Avail: ${h.available||0}</div></div>
+              <div>
+                <button data-id="${d.id}" class="hostel_edit bg-blue-600 text-white px-2 py-1 rounded text-xs">Edit</button>
+                <button data-id="${d.id}" class="hostel_del ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+                <button data-id="${d.id}" class="hostel_rooms ml-1 bg-gray-200 px-2 py-1 rounded text-xs">Rooms</button>
+              </div>`;
+            container.appendChild(div);
+          });
+          document.querySelectorAll('.hostel_edit').forEach(btn=>{
+            btn.addEventListener('click', async ()=> {
+              const id = btn.dataset.id;
+              const snapH = await getDoc(doc(db,'hostels',id));
+              if (!snapH.exists()) return showPopup('Hostel not found','error');
+              const h = snapH.data();
+              document.getElementById('hostel_id').value = id;
+              document.getElementById('hostel_name').value = h.name || '';
+              document.getElementById('hostel_gender').value = h.gender || '';
+              document.getElementById('hostel_capacity').value = h.capacity || 0;
+              document.getElementById('hostel_available').value = h.available || 0;
+              document.getElementById('room_hostelId').value = id;
+              showPopup('Hostel loaded','info');
+            });
+          });
+          document.querySelectorAll('.hostel_del').forEach(btn=>{
+            btn.addEventListener('click', async ()=>{
+              if (!confirm('Delete hostel?')) return;
+              await deleteDoc(doc(db,'hostels',btn.dataset.id));
+              showPopup('Hostel deleted','success');
+              loadHostels();
+            });
+          });
+          document.querySelectorAll('.hostel_rooms').forEach(btn=>{
+            btn.addEventListener('click', ()=> {
+              document.getElementById('room_hostelId').value = btn.dataset.id;
+              loadRooms(btn.dataset.id);
+            });
+          });
+        }
+      } catch (e) { console.error(e); container.innerHTML = '<div class="text-red-600">Error</div>'; showPopup('Error loading hostels: '+e.message,'error'); }
+    }
+    document.getElementById('hostels_refresh').addEventListener('click', loadHostels);
+
+    document.getElementById('hostel_save').addEventListener('click', async ()=>{
+      const id = document.getElementById('hostel_id').value.trim();
+      const payload = {
+        name: document.getElementById('hostel_name').value.trim(),
+        gender: document.getElementById('hostel_gender').value.trim(),
+        capacity: Number(document.getElementById('hostel_capacity').value) || 0,
+        available: Number(document.getElementById('hostel_available').value) || 0,
+        updatedAt: serverTimestamp()
+      };
+      try {
+        if (id) {
+          await updateDoc(doc(db,'hostels',id), payload);
+          showPopup('Hostel updated','success');
+        } else {
+          await addDoc(collection(db,'hostels'), { ...payload, createdAt: serverTimestamp() });
+          showPopup('Hostel created','success');
+        }
+        document.getElementById('hostel_id').value='';
+        loadHostels();
+      } catch (e) { console.error(e); showPopup('Error saving hostel: '+e.message,'error'); }
+    });
+
+    // rooms
+    async function loadRooms(hostelId){
+      if (!hostelId) return showPopup('hostelId required','error');
+      const list = document.getElementById('rooms_list');
+      list.innerHTML = 'Loading…';
+      try {
+        const snap = await getDocs(collection(db,'hostels',hostelId,'rooms'));
+        list.innerHTML = '';
+        if (snap.empty) list.textContent = 'No rooms';
+        else {
+          snap.forEach(d=>{
+            const r = d.data();
+            const div = document.createElement('div');
+            div.className = 'p-2 border-b flex justify-between items-center';
+            div.innerHTML = `<div>${escapeHtml(r.number||d.id)} — ${r.occupants||0}/${r.capacity||0}</div>
+              <div>
+                <button data-id="${d.id}" data-hostel="${hostelId}" class="room_edit bg-blue-600 text-white px-2 py-1 rounded text-xs">Edit</button>
+                <button data-id="${d.id}" data-hostel="${hostelId}" class="room_del ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+              </div>`;
+            list.appendChild(div);
+          });
+          document.querySelectorAll('.room_edit').forEach(btn=>{
+            btn.addEventListener('click', async ()=>{
+              const h = btn.dataset.hostel;
+              const rId = btn.dataset.id;
+              const snap = await getDoc(doc(db,'hostels',h,'rooms',rId));
+              if (!snap.exists()) return showPopup('Room not found','error');
+              const r = snap.data();
+              document.getElementById('room_id').value = rId;
+              document.getElementById('room_hostelId').value = h;
+              document.getElementById('room_number').value = r.number || '';
+              document.getElementById('room_capacity').value = r.capacity || 0;
+              document.getElementById('room_occupants').value = r.occupants || 0;
+              showPopup('Room loaded','info');
+            });
+          });
+          document.querySelectorAll('.room_del').forEach(btn=>{
+            btn.addEventListener('click', async ()=>{
+              const h = btn.dataset.hostel;
+              const rId = btn.dataset.id;
+              if (!confirm('Delete room?')) return;
+              await deleteDoc(doc(db,'hostels',h,'rooms',rId));
+              showPopup('Room deleted','success');
+              loadRooms(h);
+            });
+          });
+        }
+      } catch (e) { console.error(e); list.innerHTML = '<div class="text-red-600">Error</div>'; showPopup('Error loading rooms: '+e.message,'error'); }
+    }
+    document.getElementById('room_load').addEventListener('click', ()=> {
+      const h = document.getElementById('room_hostelId').value.trim();
+      if (!h) return showPopup('Enter hostelId','error');
+      loadRooms(h);
+    });
+    document.getElementById('room_save').addEventListener('click', async ()=>{
+      const h = document.getElementById('room_hostelId').value.trim();
+      if (!h) return showPopup('Enter hostelId','error');
+      const id = document.getElementById('room_id').value.trim();
+      const payload = {
+        number: document.getElementById('room_number').value.trim(),
+        capacity: Number(document.getElementById('room_capacity').value) || 0,
+        occupants: Number(document.getElementById('room_occupants').value) || 0,
+        updatedAt: serverTimestamp()
+      };
+      try {
+        if (id) {
+          await updateDoc(doc(db,'hostels',h,'rooms',id), payload);
+          showPopup('Room updated','success');
+        } else {
+          await addDoc(collection(db,'hostels',h,'rooms'), payload);
+          showPopup('Room created','success');
+        }
+        document.getElementById('room_id').value='';
+        loadRooms(h);
+      } catch (e) { console.error(e); showPopup('Error saving room: '+e.message,'error'); }
+    });
+
+    // recalc availability
+    document.getElementById('hostels_recalc').addEventListener('click', async ()=>{
+      try {
+        const hostelsSnap = await getDocs(collection(db,'hostels'));
+        for (const hdoc of hostelsSnap.docs) {
+          let sum = 0;
+          const roomsSnap = await getDocs(collection(db,'hostels',hdoc.id,'rooms'));
+          roomsSnap.forEach(r=> sum += (r.data().occupants||0));
+          const capacity = hdoc.data().capacity || 0;
+          const available = Math.max(0, capacity - sum);
+          await updateDoc(doc(db,'hostels',hdoc.id), { available });
+        }
+        showPopup('Availability recalculated','success');
+        loadHostels();
+      } catch (e) { console.error(e); showPopup('Error recalculating: '+e.message,'error'); }
+    });
+
+    /* ========== TIMETABLE (timetable/{uid}) ========== */
+    document.getElementById('timetable_load').addEventListener('click', async ()=>{
+      const uid = document.getElementById('timetable_uid').value.trim();
+      if (!uid) return showPopup('Enter UID','error');
+      try {
+        const snap = await getDoc(doc(db,'timetable',uid));
+        if (!snap.exists()) {
+          document.getElementById('timetable_json').value = '[]';
+          showPopup('No timetable found; editing blank JSON','info');
+        } else {
+          const schedule = snap.data().schedule || [];
+          document.getElementById('timetable_json').value = JSON.stringify(schedule, null, 2);
+        }
+        document.getElementById('timetable_panel').classList.remove('hidden');
+      } catch (e) { console.error(e); showPopup('Error loading timetable: '+e.message,'error'); }
+    });
+    document.getElementById('timetable_save').addEventListener('click', async ()=>{
+      const uid = document.getElementById('timetable_uid').value.trim();
+      if (!uid) return showPopup('Enter UID','error');
+      try {
+        const schedule = JSON.parse(document.getElementById('timetable_json').value || '[]');
+        await setDoc(doc(db,'timetable',uid), { schedule, updatedAt: serverTimestamp() }, { merge:true });
+        showPopup('Timetable saved','success');
+      } catch (e) { console.error(e); showPopup('Invalid JSON or error saving: '+e.message,'error'); }
+    });
+
+    /* ========== PROFILE SEARCH & UPDATE ========== */
+    document.getElementById('profile_search_btn').addEventListener('click', async ()=>{
+      const q = document.getElementById('profile_search').value.trim();
+      if (!q) return showPopup('Enter search term','error');
+      try {
+        let results = [];
+        // search email
+        const q1 = query(collection(db,'students'), where('email','==',q));
+        const s1 = await getDocs(q1);
+        s1.forEach(d=> results.push({ id: d.id, ...d.data() }));
+        // search admissionNo
+        const q2 = query(collection(db,'students'), where('admissionNo','==',q));
+        const s2 = await getDocs(q2);
+        s2.forEach(d=> results.push({ id: d.id, ...d.data() }));
+        // search regNo
+        const q3 = query(collection(db,'students'), where('regNo','==',q));
+        const s3 = await getDocs(q3);
+        s3.forEach(d=> results.push({ id: d.id, ...d.data() }));
+
+        const container = document.getElementById('profile_result');
+        container.innerHTML = '';
+        if (!results.length) { container.innerHTML = '<div class="text-gray-500 p-2">No match</div>'; container.classList.remove('hidden'); return; }
+        results.forEach(r=>{
+          const div = document.createElement('div');
+          div.className = 'p-3 border-b';
+          div.innerHTML = `<div class="font-semibold">${escapeHtml(r.name)}</div>
+            <div class="text-xs text-gray-600">admissionNo: ${escapeHtml(r.admissionNo)} | regNo: ${escapeHtml(r.regNo)} | email: ${escapeHtml(r.email)}</div>
+            <div class="mt-2">
+              <button data-id="${r.id}" class="profile_edit bg-blue-600 text-white px-3 py-1 rounded">Edit</button>
+            </div>`;
+          container.appendChild(div);
+        });
+        document.querySelectorAll('.profile_edit').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            const id = btn.dataset.id;
+            const sSnap = await getDoc(doc(db,'students',id));
+            if (!sSnap.exists()) return showPopup('Student not found','error');
+            const s = sSnap.data();
+            // populate student form for editing
+            document.getElementById('stu_id').value = id;
+            document.getElementById('stu_name').value = s.name || '';
+            document.getElementById('stu_admissionNo').value = s.admissionNo || '';
+            document.getElementById('stu_email').value = s.email || '';
+            document.getElementById('stu_regNo').value = s.regNo || '';
+            document.getElementById('stu_programme').value = s.programme || '';
+            document.getElementById('stu_yearOfStudy').value = s.yearOfStudy || '';
+            document.getElementById('stu_campus').value = s.campus || '';
+            document.getElementById('stu_address').value = s.address || '';
+            document.getElementById('stu_isActive').checked = !!s.isActive;
+            showView('students');
+            showPopup('Loaded for editing','info');
+          });
+        });
+        container.classList.remove('hidden');
+      } catch (e) { console.error(e); showPopup('Error searching: '+e.message,'error'); }
+    });
+
+    /* ========== SETTINGS (password reset) ========== */
+    document.getElementById('reset_send').addEventListener('click', async ()=>{
+      const email = document.getElementById('reset_email').value.trim();
+      if (!email) return showPopup('Enter email','error');
+      try {
+        await sendPasswordResetEmail(auth, email);
+        showPopup('Password reset email sent','success');
+      } catch (e) {
+        console.error(e);
+        showPopup('Error sending reset: '+e.message,'error');
       }
     });
 
-    window.showDeleteStudentModal = (studentId) => {
-        const modal = document.getElementById('deleteStudentModal');
-        modal.dataset.studentId = studentId;
-        modal.classList.remove('hidden');
-    };
-
-    document.getElementById('deleteStudentConfirm').onclick = async () => {
-        const modal = document.getElementById('deleteStudentModal');
-        const studentId = modal.dataset.studentId;
-        try {
-            await deleteDoc(doc(db, "students", studentId));
-            await deleteDoc(doc(db, "finance", studentId));
-            await deleteDoc(doc(db, "clearanceRequests", studentId));
-            showPopup("Student account data deleted successfully.", "success");
-            closeModal('deleteStudentModal');
-            loadStudents();
-        } catch (err) {
-            showPopup(`Error deleting student data: ${err.message}`, 'error');
-        }
-    };
-    
-    // Hostel Booking Logic
-    window.showBookRoomModal = async (studentId, studentName) => {
-      const modal = document.getElementById('bookRoomModal');
-      document.getElementById('bookStudentName').textContent = studentName;
-      modal.dataset.studentId = studentId;
-      modal.classList.remove('hidden');
-      await loadHostelsForBooking();
-    };
-
-    async function loadHostelsForBooking() {
-      const hostelSelect = document.getElementById('bookHostelSelect');
-      hostelSelect.innerHTML = '<option value="">Select a Hostel...</option>';
-      const hostelsSnap = await getDocs(collection(db, 'hostels'));
-      hostelsSnap.forEach(doc => {
-        hostelSelect.innerHTML += `<option value="${doc.id}">${doc.data().name} (${doc.data().gender})</option>`;
-      });
-      document.getElementById('bookRoomSelect').innerHTML = '<option value="">Select a Hostel first...</option>';
+    /* ========== Utilities & initial load ========== */
+    function escapeHtml(s='') {
+      return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
     }
 
-    document.getElementById('bookHostelSelect').addEventListener('change', async (e) => {
-      const hostelId = e.target.value;
-      const roomSelect = document.getElementById('bookRoomSelect');
-      roomSelect.innerHTML = '<option value="">Loading rooms...</option>';
-      if (!hostelId) {
-        roomSelect.innerHTML = '<option value="">Select a Hostel first...</option>';
-        return;
-      }
-      try {
-        const roomsSnap = await getDocs(collection(db, `hostels/${hostelId}/rooms`));
-        roomSelect.innerHTML = '<option value="">Select a Room...</option>';
-        roomsSnap.forEach(doc => {
-          const room = doc.data();
-          if (room.occupants < room.capacity) {
-            roomSelect.innerHTML += `<option value="${doc.id}">${room.number} (${room.occupants}/${room.capacity})</option>`;
-          }
-        });
-        if (roomSelect.options.length <= 1) {
-          roomSelect.innerHTML = '<option value="">No available rooms.</option>';
-        }
-      } catch (err) {
-        showPopup(`Error loading rooms: ${err.message}`, 'error');
-      }
-    });
+    // initial
+    (async function init(){
+      showView('dashboard');
+      await refreshDashboardStats();
+      await loadStudents();
+      await loadAdmins();
+      await loadCourses();
+      await loadClearance();
+      await loadGraduation();
+      await loadHostels();
+    })();
 
-    document.getElementById('bookRoomForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const studentId = document.getElementById('bookRoomModal').dataset.studentId;
-      const hostelId = document.getElementById('bookHostelSelect').value;
-      const roomId = document.getElementById('bookRoomSelect').value;
-
-      if (!hostelId || !roomId) {
-        return showPopup('Please select both a hostel and a room.', 'error');
-      }
-
-      toggleLoading(true);
-      try {
-        await runTransaction(db, async (transaction) => {
-          const studentRef = doc(db, 'students', studentId);
-          const hostelRef = doc(db, 'hostels', hostelId);
-          const roomRef = doc(db, `hostels/${hostelId}/rooms`, roomId);
-
-          const studentDoc = await transaction.get(studentRef);
-          const roomDoc = await transaction.get(roomRef);
-          const hostelDoc = await transaction.get(hostelRef);
-
-          if (!studentDoc.exists() || !roomDoc.exists() || !hostelDoc.exists()) {
-            throw "Student, Hostel, or Room not found!";
-          }
-
-          const roomData = roomDoc.data();
-          if (roomData.occupants >= roomData.capacity) {
-            throw "Room is already full!";
-          }
-          if (studentDoc.data().hostelBooking) {
-            throw "Student already has an active booking.";
-          }
-
-          const newOccupants = roomData.occupants + 1;
-          transaction.update(roomRef, { occupants: newOccupants });
-
-          const newBooking = {
-            hostelId,
-            hostelName: hostelDoc.data().name,
-            roomId,
-            number: roomData.number,
-            status: "Active",
-            startDate: serverTimestamp()
-          };
-          transaction.update(studentRef, { hostelBooking: newBooking });
-        });
-        showPopup('Room booked successfully!', 'success');
-        closeModal('bookRoomModal');
-        loadStudents();
-      } catch (err) {
-        showPopup(`Booking failed: ${err.message}`, 'error');
-      } finally {
-        toggleLoading(false);
-      }
-    });
-
-    window.showCancelBookingModal = (studentId, studentName) => {
-      const modal = document.getElementById('cancelBookingModal');
-      document.getElementById('cancelStudentName').textContent = studentName;
-      modal.dataset.studentId = studentId;
-      modal.classList.remove('hidden');
-    };
-
-    document.getElementById('cancelBookingConfirm').onclick = async () => {
-        const studentId = document.getElementById('cancelBookingModal').dataset.studentId;
-
-        toggleLoading(true);
-        try {
-            await runTransaction(db, async (transaction) => {
-                const studentRef = doc(db, 'students', studentId);
-                const studentDoc = await transaction.get(studentRef);
-
-                if (!studentDoc.exists() || !studentDoc.data().hostelBooking) {
-                    throw "Student or active booking not found.";
-                }
-
-                const booking = studentDoc.data().hostelBooking;
-                const roomRef = doc(db, `hostels/${booking.hostelId}/rooms`, booking.roomId);
-                const roomDoc = await transaction.get(roomRef);
-
-                if (!roomDoc.exists()) {
-                    throw "Room not found.";
-                }
-
-                const roomData = roomDoc.data();
-                const newOccupants = Math.max(0, roomData.occupants - 1);
-                transaction.update(roomRef, { occupants: newOccupants });
-                transaction.update(studentRef, { hostelBooking: deleteField() });
-            });
-            showPopup('Booking cancelled successfully!', 'success');
-            closeModal('cancelBookingModal');
-            loadStudents();
-        } catch (err) {
-            showPopup(`Cancellation failed: ${err.message}`, 'error');
-        } finally {
-            toggleLoading(false);
-        }
-    };
-
-    </script>
-</head>
-<body class="bg-gray-100 flex h-screen overflow-hidden">
-
-  <div id="loadingOverlay" class="fixed inset-0 bg-gray-200 bg-opacity-75 flex items-center justify-center z-50">
-    <div class="text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto"></div>
-      <p class="mt-2 text-gray-700">Loading...</p>
-    </div>
-  </div>
-
-  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
-    <span id="popupText" class="text-white text-sm"></span>
-    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium text-white">OK</button>
-  </div>
-
-  <div id="loginPage" class="hidden flex items-center justify-center w-full min-h-screen">
-    <div class="p-8 bg-white shadow rounded-lg w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-center">Admin Login</h2>
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium">Email</label>
-          <input type="email" name="email" class="w-full mt-1 p-2 border rounded" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium">Password</label>
-          <input type="password" name="password" class="w-full mt-1 p-2 border rounded" required>
-        </div>
-        <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Login</button>
-      </form>
-    </div>
-  </div>
-
-  <div id="mainContent" class="hidden flex flex-1">
-    <aside class="w-64 bg-slate-800 text-white flex flex-col p-4">
-      <div class="flex items-center gap-2 mb-6">
-        <svg class="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-        <h1 class="text-xl font-bold">Admin Panel</h1>
-      </div>
-      <p class="text-sm text-slate-400 mb-4">Welcome, <span id="userName" class="font-semibold"></span></p>
-      <nav class="flex-1 space-y-2">
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item bg-slate-700" data-section="dashboard">Dashboard</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="profile">Profile</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="settings">Account Settings</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="timetable">Timetable</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="hostels">Hostels</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="finance">Finance</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="clearance">Clearance</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="admins">Admins</a>
-        <a href="#" class="block p-2 rounded hover:bg-slate-700 sidebar-item" data-section="students">Students</a>
-      </nav>
-      <div class="mt-auto">
-        <button id="btnLogout" class="w-full text-left p-2 rounded hover:bg-slate-700">Logout</button>
-      </div>
-    </aside>
-
-    <main class="flex-1 p-6 overflow-y-auto">
-      <section id="section-dashboard" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
-        <div id="dashboard-cards" class="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
-      </section>
-
-      <section id="section-profile" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">My Profile</h2>
-        <div class="bg-white p-6 rounded-lg shadow">
-          <form id="profileForm" class="space-y-4">
-            <div class="flex items-center space-x-4">
-              <img id="pf_photo_preview" src="https://via.placeholder.com/100" alt="Profile Photo" class="h-24 w-24 rounded-full object-cover border hidden">
-              <label for="pf_photo" class="text-blue-600 cursor-pointer">
-                Upload Photo
-                <input type="file" id="pf_photo" class="hidden" accept="image/*">
-              </label>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium">Full Name</label>
-                <input type="text" id="pf_name" class="w-full mt-1 p-2 border rounded">
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Email (Read-only)</label>
-                <p id="pf_email" class="w-full mt-1 p-2 border rounded bg-gray-100"></p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Address</label>
-                <input type="text" id="pf_address" class="w-full mt-1 p-2 border rounded">
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Date of Birth</label>
-                <input type="date" id="pf_dob" class="w-full mt-1 p-2 border rounded">
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Gender</label>
-                <select id="pf_gender" class="w-full mt-1 p-2 border rounded">
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-            <div class="mt-6">
-              <h3 class="font-semibold text-lg mb-2">Notification Preferences</h3>
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="pf_notify_ann" class="rounded">
-                <label for="pf_notify_ann">Announcements</label>
-              </div>
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="pf_notify_fees" class="rounded">
-                <label for="pf_notify_fees">Fees Reminders</label>
-              </div>
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="pf_notify_grades" class="rounded">
-                <label for="pf_notify_grades">New Grades</label>
-              </div>
-            </div>
-            <button type="submit" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 mt-4">Save Profile</button>
-          </form>
-        </div>
-      </section>
-
-      <section id="section-settings" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Account Settings</h2>
-        <div class="bg-white p-6 rounded-lg shadow space-y-6">
-          <div>
-            <h3 class="font-semibold text-lg mb-2">Update Email</h3>
-            <input type="email" id="newEmail" placeholder="Enter new email" class="w-full p-2 border rounded mb-2">
-            <button id="btnUpdateEmail" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Update Email</button>
-          </div>
-          <div>
-            <h3 class="font-semibold text-lg mb-2">Change Password</h3>
-            <input type="password" id="newPassword" placeholder="New Password" class="w-full p-2 border rounded mb-2">
-            <input type="password" id="confirmPassword" placeholder="Confirm Password" class="w-full p-2 border rounded mb-2">
-            <button id="btnUpdatePassword" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Change Password</button>
-          </div>
-          <div>
-            <h3 class="font-semibold text-lg mb-2">Password Management</h3>
-            <button id="btnResetPassword" class="bg-slate-500 text-white p-2 rounded hover:bg-slate-600">Send Password Reset</button>
-            <button id="btnDeleteAccount" class="bg-red-600 text-white p-2 rounded hover:bg-red-700 ml-4">Delete Account</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="section-timetable" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Timetable</h2>
-        <div class="bg-white p-6 rounded-lg shadow">
-          <div class="flex gap-4 items-center mb-4">
-            <div>
-              <label class="block text-sm font-medium">Year</label>
-              <select id="timetableYear" class="p-2 border rounded">
-                <option value="1">Year 1</option>
-                <option value="2">Year 2</option>
-                <option value="3">Year 3</option>
-                <option value="4">Year 4</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium">Semester</label>
-              <select id="timetableSemester" class="p-2 border rounded">
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-              </select>
-            </div>
-            <button id="btnLoadTimetable" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 self-end">Load Timetable</button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full bg-white border-collapse border">
-                <thead>
-                  <tr>
-                    <th class="p-2 border bg-gray-200 w-32">Time</th>
-                    <th class="p-2 border bg-gray-200">Monday</th>
-                    <th class="p-2 border bg-gray-200">Tuesday</th>
-                    <th class="p-2 border bg-gray-200">Wednesday</th>
-                    <th class="p-2 border bg-gray-200">Thursday</th>
-                    <th class="p-2 border bg-gray-200">Friday</th>
-                  </tr>
-                </thead>
-                <tbody id="timetableTableBody">
-                    <tr><td colspan="6" class="text-center p-4">Select year and semester to view timetable.</td></tr>
-                </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <div id="timetableModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-              <div class="flex justify-between items-center mb-4">
-                  <h3 id="modalTitle" class="text-xl font-bold">Add Timetable Entry</h3>
-                  <button onclick="closeTimetableModal()" class="text-gray-500 hover:text-gray-700">&times;</button>
-              </div>
-              <form id="timetableForm" class="space-y-4">
-                  <div>
-                      <label class="block text-sm font-medium text-gray-700">Time / Day</label>
-                      <p class="w-full mt-1 p-2 border rounded bg-gray-100"><span id="tt_day_display"></span> at <span id="tt_time_display"></span></p>
-                  </div>
-                  <div>
-                      <label class="block text-sm font-medium text-gray-700">Course Code</label>
-                      <input type="text" id="tt_courseCode" class="w-full mt-1 p-2 border rounded" required>
-                  </div>
-                  <div>
-                      <label class="block text-sm font-medium text-gray-700">Venue</label>
-                      <input type="text" id="tt_venue" class="w-full mt-1 p-2 border rounded" required>
-                  </div>
-                  <div>
-                      <label class="block text-sm font-medium text-gray-700">Instructor (Optional)</label>
-                      <input type="text" id="tt_instructor" class="w-full mt-1 p-2 border rounded">
-                  </div>
-                  <div class="flex justify-end gap-2">
-                      <button type="button" onclick="closeTimetableModal()" class="bg-gray-300 text-gray-800 p-2 rounded">Cancel</button>
-                      <button type="submit" class="bg-blue-600 text-white p-2 rounded">Save Entry</button>
-                  </div>
-              </form>
-          </div>
-      </div>
-
-      <div id="deleteTimetableModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-              <p class="text-lg font-semibold mb-4">Are you sure you want to delete this timetable entry?</p>
-              <div class="flex justify-center gap-4">
-                  <button onclick="closeModal('deleteTimetableModal')" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Cancel</button>
-                  <button id="deleteTimetableConfirm" class="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
-              </div>
-          </div>
-      </div>
-
-      <section id="section-hostels" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Hostels Management</h2>
-        <button onclick="addHostel()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 mb-4">Add New Hostel</button>
-        <div id="hostelsContainer">
-            <p class="p-4 text-center text-gray-500">Loading...</p>
-        </div>
-      </section>
-
-      <div id="addHostelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-              <h3 class="text-xl font-bold mb-4">Add New Hostel</h3>
-              <form id="addHostelForm" class="space-y-4">
-                  <div>
-                      <label class="block text-sm font-medium">Hostel Name</label>
-                      <input type="text" name="name" class="w-full p-2 border rounded" required>
-                  </div>
-                  <div>
-                      <label class="block text-sm font-medium">Gender</label>
-                      <select name="gender" class="w-full p-2 border rounded" required>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                      </select>
-                  </div>
-                  <div class="flex justify-end gap-2">
-                      <button type="button" onclick="closeModal('addHostelModal')" class="bg-gray-300 text-gray-800 p-2 rounded">Cancel</button>
-                      <button type="submit" class="bg-green-600 text-white p-2 rounded">Add Hostel</button>
-                  </div>
-              </form>
-          </div>
-      </div>
-
-      <div id="editRoomModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-              <h3 class="text-xl font-bold mb-4">Edit Room Capacity</h3>
-              <form id="editRoomForm" class="space-y-4">
-                  <div>
-                      <label class="block text-sm font-medium">New Capacity</label>
-                      <input type="number" id="editRoomInput" class="w-full p-2 border rounded" required>
-                  </div>
-                  <div class="flex justify-end gap-2">
-                      <button type="button" onclick="closeModal('editRoomModal')" class="bg-gray-300 text-gray-800 p-2 rounded">Cancel</button>
-                      <button type="submit" class="bg-blue-600 text-white p-2 rounded">Update</button>
-                  </div>
-              </form>
-          </div>
-      </div>
-      
-      <div id="deleteRoomModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-              <p class="text-lg font-semibold mb-4">Are you sure you want to delete this room?</p>
-              <div class="flex justify-center gap-4">
-                  <button onclick="closeModal('deleteRoomModal')" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Cancel</button>
-                  <button id="deleteRoomConfirm" class="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
-              </div>
-          </div>
-      </div>
-
-      <div id="deleteHostelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-              <p class="text-lg font-semibold mb-4">Are you sure you want to delete this hostel and all its rooms? This cannot be undone.</p>
-              <div class="flex justify-center gap-4">
-                  <button onclick="closeModal('deleteHostelModal')" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Cancel</button>
-                  <button id="deleteHostelConfirm" class="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
-              </div>
-          </div>
-      </div>
-
-      <div id="deleteAdminModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-              <p class="text-lg font-semibold mb-4">Are you sure you want to remove this admin's access?</p>
-              <div class="flex justify-center gap-4">
-                  <button onclick="closeModal('deleteAdminModal')" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Cancel</button>
-                  <button id="deleteAdminConfirm" class="bg-red-600 text-white px-4 py-2 rounded">Confirm</button>
-              </div>
-          </div>
-      </div>
-
-      <div id="deleteStudentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-              <p class="text-lg font-semibold mb-4">Are you sure you want to permanently delete this student's account and all associated data?</p>
-              <div class="flex justify-center gap-4">
-                  <button onclick="closeModal('deleteStudentModal')" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Cancel</button>
-                  <button id="deleteStudentConfirm" class="bg-red-600 text-white px-4 py-2 rounded">Confirm</button>
-              </div>
-          </div>
-      </div>
-
-
-      <section id="section-finance" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Finance Management</h2>
-        <div class="bg-white p-6 rounded-lg shadow">
-          <table class="min-w-full bg-white border-collapse border">
-            <thead>
-              <tr>
-                <th class="p-2 border bg-gray-200 text-left">Student Name</th>
-                <th class="p-2 border bg-gray-200 text-left">Reg No</th>
-                <th class="p-2 border bg-gray-200 text-left">Total Fees</th>
-                <th class="p-2 border bg-gray-200 text-left">Total Paid</th>
-                <th class="p-2 border bg-gray-200 text-left">Balance</th>
-                <th class="p-2 border bg-gray-200 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="financeTableBody">
-              <tr><td colspan="6" class="text-center p-4">Loading finance records...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div id="financeModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">Manage Finance for <span id="financeStudentName"></span></h3>
-            <button onclick="closeFinanceModal()" class="text-gray-500 hover:text-gray-700">&times;</button>
-          </div>
-          <h4 class="font-semibold mb-2">Add Transaction</h4>
-          <form id="addTransactionForm" class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium">Amount</label>
-              <input type="number" name="amount" class="w-full mt-1 p-2 border rounded" required>
-            </div>
-            <div>
-              <label class="block text-sm font-medium">Type</label>
-              <select name="type" class="w-full mt-1 p-2 border rounded">
-                <option value="payment">Payment</option>
-                <option value="bill">Bill</option>
-              </select>
-            </div>
-            <div class="col-span-2">
-              <label class="block text-sm font-medium">Description</label>
-              <input type="text" name="description" class="w-full mt-1 p-2 border rounded">
-            </div>
-            <div class="col-span-2">
-              <button type="submit" class="bg-green-600 text-white p-2 rounded w-full">Add Transaction</button>
-            </div>
-          </form>
-          <h4 class="font-semibold mb-2">Transaction History</h4>
-          <table class="min-w-full bg-white border-collapse border">
-            <thead>
-              <tr>
-                <th class="p-2 border bg-gray-100 text-left">Date</th>
-                <th class="p-2 border bg-gray-100 text-left">Type</th>
-                <th class="p-2 border bg-gray-100 text-left">Amount</th>
-                <th class="p-2 border bg-gray-100 text-left">Description</th>
-              </tr>
-            </thead>
-            <tbody id="transactionTableBody">
-              <tr><td colspan="4" class="text-center p-2">No transactions.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <section id="section-clearance" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Clearance Management</h2>
-        <div class="bg-white p-6 rounded-lg shadow">
-          <table class="min-w-full bg-white border-collapse border">
-            <thead>
-              <tr>
-                <th class="p-2 border bg-gray-200 text-left">Student Name</th>
-                <th class="p-2 border bg-gray-200 text-left">Reg No</th>
-                <th class="p-2 border bg-gray-200 text-left">Reason</th>
-                <th class="p-2 border bg-gray-200 text-left">Finance</th>
-                <th class="p-2 border bg-gray-200 text-left">Library</th>
-                <th class="p-2 border bg-gray-200 text-left">Hostel</th>
-                <th class="p-2 border bg-gray-200 text-left">Dean</th>
-                <th class="p-2 border bg-gray-200 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="clearanceTableBody">
-              <tr><td colspan="8" class="text-center p-4">Loading clearance requests...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div id="clearanceModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">Manage Clearance</h3>
-            <button onclick="document.getElementById('clearanceModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-700">&times;</button>
-          </div>
-          <form id="clearanceForm" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium">Student Email</label>
-                <p id="c_name" class="w-full mt-1 p-2 border rounded bg-gray-100"></p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Reason</label>
-                <p id="c_reason" class="w-full mt-1 p-2 border rounded bg-gray-100"></p>
-              </div>
-              <div class="col-span-2">
-                <label class="block text-sm font-medium">Remarks</label>
-                <p id="c_remarks" class="w-full mt-1 p-2 border rounded bg-gray-100"></p>
-              </div>
-              <div class="col-span-2">
-                <a id="c_evidenceLink" href="#" target="_blank" class="text-blue-600 hover:underline hidden">View Evidence Document</a>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Finance Status</label>
-                <select id="c_finance" class="w-full mt-1 p-2 border rounded">
-                  <option>Pending</option>
-                  <option>Cleared</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Library Status</label>
-                <select id="c_library" class="w-full mt-1 p-2 border rounded">
-                  <option>Pending</option>
-                  <option>Cleared</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Hostel Status</label>
-                <select id="c_hostel" class="w-full mt-1 p-2 border rounded">
-                  <option>Pending</option>
-                  <option>Cleared</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Dean Status</label>
-                <select id="c_dean" class="w-full mt-1 p-2 border rounded">
-                  <option>Pending</option>
-                  <option>Cleared</option>
-                </select>
-              </div>
-            </div>
-            <button type="submit" class="bg-blue-600 text-white p-2 rounded w-full">Update Clearance</button>
-          </form>
-        </div>
-      </div>
-
-      <section id="section-admins" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Admins Management</h2>
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-          <h3 class="font-semibold text-xl mb-2">Add New Admin</h3>
-          <form id="addAdminForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium">Name</label>
-                <input type="text" name="adminName" class="w-full p-2 border rounded" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium">Email</label>
-                <input type="email" name="adminEmail" class="w-full p-2 border rounded" required>
-            </div>
-            <div>
-                <label class="block text-sm font-medium">Password</label>
-                <input type="password" name="adminPassword" class="w-full p-2 border rounded" required>
-            </div>
-            <button type="submit" class="bg-green-600 text-white p-2 rounded hover:bg-green-700 w-full">Add Admin</button>
-          </form>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-          <h3 class="font-semibold text-xl mb-2">Current Admins</h3>
-          <table class="min-w-full bg-white border-collapse border">
-            <thead>
-              <tr>
-                <th class="p-2 border bg-gray-200 text-left">Name</th>
-                <th class="p-2 border bg-gray-200 text-left">Email</th>
-                <th class="p-2 border bg-gray-200 text-left">Created At</th>
-                <th class="p-2 border bg-gray-200 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="adminsBody">
-              <tr><td colspan="4" class="text-center p-4">Loading admins...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="section-students" class="hidden">
-        <h2 class="text-2xl font-bold mb-6">Students Management</h2>
-        <div class="bg-white p-6 rounded-lg shadow mb-6">
-          <h3 class="font-semibold text-xl mb-2">Add New Student</h3>
-          <form id="addStudentForm" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium">Full Name</label>
-                <input type="text" name="name" class="w-full mt-1 p-2 border rounded" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Admission No</label>
-                <input type="text" name="regNo" class="w-full mt-1 p-2 border rounded" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Email</label>
-                <input type="email" name="email" class="w-full mt-1 p-2 border rounded" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Password</label>
-                <input type="password" name="password" class="w-full mt-1 p-2 border rounded" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Programme</label>
-                <input type="text" name="programme" class="w-full mt-1 p-2 border rounded" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Campus</label>
-                <input type="text" name="campus" class="w-full mt-1 p-2 border rounded">
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Year</label>
-                <select name="year" class="w-full mt-1 p-2 border rounded">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium">Semester</label>
-                <select name="semester" class="w-full mt-1 p-2 border rounded">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-              </div>
-            </div>
-            <button type="submit" class="bg-green-600 text-white p-2 rounded hover:bg-green-700">Add Student</button>
-          </form>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow">
-          <h3 class="font-semibold text-xl mb-2">Current Students</h3>
-          <table class="min-w-full bg-white border-collapse border">
-            <thead>
-              <tr>
-                <th class="p-2 border bg-gray-200 text-left">Name</th>
-                <th class="p-2 border bg-gray-200 text-left">Admission No</th>
-                <th class="p-2 border bg-gray-200 text-left">Email</th>
-                <th class="p-2 border bg-gray-200 text-left">Programme</th>
-                <th class="p-2 border bg-gray-200 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="studentsBody">
-              <tr><td colspan="5" class="text-center p-4">Loading students...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-  </div>
-  
-  <div id="bookRoomModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold">Book Room for <span id="bookStudentName"></span></h3>
-        <button onclick="closeModal('bookRoomModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
-      </div>
-      <form id="bookRoomForm" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium">Select Hostel</label>
-          <select id="bookHostelSelect" class="w-full p-2 border rounded" required>
-            <option value="">Loading hostels...</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium">Select Room</label>
-          <select id="bookRoomSelect" class="w-full p-2 border rounded" required>
-            <option value="">Select a Hostel first...</option>
-          </select>
-        </div>
-        <div class="flex justify-end gap-2">
-          <button type="button" onclick="closeModal('bookRoomModal')" class="bg-gray-300 text-gray-800 p-2 rounded">Cancel</button>
-          <button type="submit" class="bg-blue-600 text-white p-2 rounded">Book Room</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="cancelBookingModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm text-center">
-          <p class="text-lg font-semibold mb-4">Are you sure you want to cancel the booking for <span id="cancelStudentName"></span>?</p>
-          <div class="flex justify-center gap-4">
-              <button onclick="closeModal('cancelBookingModal')" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">No, Don't Cancel</button>
-              <button id="cancelBookingConfirm" class="bg-red-600 text-white px-4 py-2 rounded">Yes, Cancel Booking</button>
-          </div>
-      </div>
-  </div>
+  </script>
 </body>
 </html>
