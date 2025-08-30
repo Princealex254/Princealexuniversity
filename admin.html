@@ -29,7 +29,6 @@
 
     let currentUser = null;
     let currentTimetable = [];
-    let allStudents = [];
     const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
@@ -492,35 +491,36 @@
           const hostelData = hostelDoc.data();
           let occupiedRooms = 0;
           let totalCapacity = 0;
-          
+          let roomHtml = '';
           const roomsSnap = await getDocs(collection(db, `hostels/${hostelId}/rooms`));
           roomsSnap.forEach(roomDoc => {
             const roomData = roomDoc.data();
             occupiedRooms += roomData.occupants;
             totalCapacity += roomData.capacity;
+            roomHtml += `
+              <li class="p-2 border rounded flex justify-between items-center">
+                <span>Room ${roomData.number}: ${roomData.occupants}/${roomData.capacity} occupants</span>
+                <div>
+                  <button onclick="showEditRoomModal('${hostelId}', '${roomDoc.id}', ${roomData.capacity})" class="bg-blue-500 text-white px-2 py-1 rounded text-sm">Edit</button>
+                  <button onclick="showDeleteRoomModal('${hostelId}', '${roomDoc.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-sm">Delete</button>
+                </div>
+              </li>
+            `;
           });
 
-          const occupancyPercentage = totalCapacity > 0 ? (occupiedRooms / totalCapacity) * 100 : 0;
-          
           hostelsContainer.innerHTML += `
             <div class="bg-white p-6 rounded-lg shadow mb-6">
               <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold">${hostelData.name} (${hostelData.gender})</h3>
-                <div class="flex gap-2">
-                  <button onclick="viewRooms('${hostelId}', '${hostelData.name}')" class="bg-blue-600 text-white px-3 py-1 rounded">View Rooms</button>
+                <p>Occupancy: ${occupiedRooms}/${totalCapacity}</p>
+                <div>
                   <button onclick="showDeleteHostelModal('${hostelId}')" class="bg-red-500 text-white px-3 py-1 rounded">Delete Hostel</button>
                 </div>
               </div>
-              <div class="mb-4">
-                <div class="flex justify-between text-sm text-gray-600">
-                  <span>Occupancy: ${occupiedRooms}/${totalCapacity}</span>
-                  <span>${occupancyPercentage.toFixed(0)}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                  <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${occupancyPercentage}%"></div>
-                </div>
-              </div>
-              <form onsubmit="addRoom(event, '${hostelId}')" class="flex gap-2 mt-4">
+              <ul class="space-y-2 mb-4">
+                ${roomHtml}
+              </ul>
+              <form onsubmit="addRoom(event, '${hostelId}')" class="flex gap-2">
                 <input type="text" name="roomNumber" placeholder="New Room No." class="flex-1 p-2 border rounded" required>
                 <input type="number" name="capacity" placeholder="Capacity" class="w-24 p-2 border rounded" required>
                 <button type="submit" class="bg-green-600 text-white p-2 rounded">Add Room</button>
@@ -532,48 +532,6 @@
         showPopup(`Error loading hostels: ${err.message}`, 'error');
       }
     }
-    
-    window.viewRooms = async (hostelId, hostelName) => {
-        const modal = document.getElementById('viewRoomsModal');
-        document.getElementById('viewRoomsTitle').textContent = `Rooms in ${hostelName}`;
-        const roomsContainer = document.getElementById('roomsContainer');
-        roomsContainer.innerHTML = '<p class="text-center text-gray-500">Loading rooms...</p>';
-        modal.classList.remove('hidden');
-
-        try {
-            const roomsSnap = await getDocs(collection(db, `hostels/${hostelId}/rooms`));
-            roomsContainer.innerHTML = '';
-            if (roomsSnap.empty) {
-                roomsContainer.innerHTML = '<p class="text-center text-gray-500">No rooms found.</p>';
-            } else {
-                roomsSnap.forEach(roomDoc => {
-                    const roomData = roomDoc.data();
-                    let occupantsHtml = '';
-                    if (roomData.occupants > 0) {
-                        const studentsInRoom = allStudents.filter(s => s.hostelBooking?.roomId === roomDoc.id);
-                        if (studentsInRoom.length > 0) {
-                            occupantsHtml = `
-                                <ul class="list-disc list-inside mt-2 text-sm text-gray-600">
-                                    ${studentsInRoom.map(s => `<li>${s.name}</li>`).join('')}
-                                </ul>
-                            `;
-                        }
-                    }
-                    roomsContainer.innerHTML += `
-                        <div class="bg-gray-100 p-4 rounded-lg shadow-sm">
-                            <h4 class="font-semibold text-lg">Room ${roomData.number}</h4>
-                            <p class="text-sm text-gray-700">Occupancy: ${roomData.occupants}/${roomData.capacity}</p>
-                            ${occupantsHtml}
-                        </div>
-                    `;
-                });
-            }
-        } catch (err) {
-            showPopup(`Error loading rooms: ${err.message}`, 'error');
-            roomsContainer.innerHTML = `<p class="text-center text-red-500">Error loading rooms.</p>`;
-        }
-    };
-
 
     window.addRoom = async (e, hostelId) => {
       e.preventDefault();
@@ -992,52 +950,36 @@
     async function loadStudents() {
         try {
             const studentsBody = document.getElementById('studentsBody');
-            const searchInput = document.getElementById('studentSearch').value.toLowerCase();
             studentsBody.innerHTML = '';
-            
             const studentsSnap = await getDocs(collection(db, 'students'));
-            allStudents = studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            const filteredStudents = allStudents.filter(s => 
-                (s.name && s.name.toLowerCase().includes(searchInput)) ||
-                (s.email && s.email.toLowerCase().includes(searchInput))
-            );
-
-            if (filteredStudents.length === 0) {
-                studentsBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">No students found matching your search.</td></tr>';
+            if (studentsSnap.empty) {
+                studentsBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No students found.</td></tr>';
                 return;
             }
-
-            for (const student of filteredStudents) {
-                const bookingStatus = student.hostelBooking ? 'Active' : 'None';
-                const hostelInfo = student.hostelBooking 
-                    ? `${student.hostelBooking.hostelName} - Room ${student.hostelBooking.number}`
-                    : '-';
-                const actionsHtml = student.hostelBooking
-                    ? `<button onclick="showCancelBookingModal('${student.id}', '${student.name}')" class="bg-orange-500 text-white px-3 py-1 rounded text-sm">Cancel Booking</button>`
-                    : `<button onclick="showBookRoomModal('${student.id}', '${student.name}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Book Room</button>`;
-                
+            studentsSnap.forEach(sDoc => {
+                const student = sDoc.data();
+                const bookingStatus = student.hostelBooking?.status || "None";
+                const actionsHtml = bookingStatus === "Active" 
+                    ? `<button onclick="showCancelBookingModal('${sDoc.id}', '${student.name}')" class="bg-orange-500 text-white px-3 py-1 rounded text-sm">Cancel Booking</button>`
+                    : `<button onclick="showBookRoomModal('${sDoc.id}', '${student.name}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Book Room</button>`;
                 const row = `
                     <tr class="hover:bg-gray-50">
                         <td class="p-2 border-b">${student.name || '-'}</td>
                         <td class="p-2 border-b">${student.regNo || '-'}</td>
                         <td class="p-2 border-b">${student.email || '-'}</td>
-                        <td class="p-2 border-b">${hostelInfo}</td>
-                        <td class="p-2 border-b">${bookingStatus}</td>
+                        <td class="p-2 border-b">${student.programme || '-'}</td>
                         <td class="p-2 border-b flex gap-2 items-center">
                             ${actionsHtml}
-                            <button onclick="showDeleteStudentModal('${student.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
+                            <button onclick="showDeleteStudentModal('${sDoc.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>
                         </td>
                     </tr>
                 `;
                 studentsBody.innerHTML += row;
-            }
+            });
         } catch (err) {
             showPopup(`Error loading students: ${err.message}`, 'error');
         }
     }
-
-    document.getElementById('studentSearch').addEventListener('input', loadStudents);
     
     document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1493,17 +1435,6 @@
               </form>
           </div>
       </div>
-      
-      <div id="viewRoomsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
-              <div class="flex justify-between items-center mb-4">
-                  <h3 id="viewRoomsTitle" class="text-xl font-bold">Rooms</h3>
-                  <button onclick="closeModal('viewRoomsModal')" class="text-gray-500 hover:text-gray-700">&times;</button>
-              </div>
-              <div id="roomsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-              </div>
-          </div>
-      </div>
 
       <div id="editRoomModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
@@ -1705,7 +1636,7 @@
             <button type="submit" class="bg-blue-600 text-white p-2 rounded w-full">Update Clearance</button>
           </form>
         </div>
-      </section>
+      </div>
 
       <section id="section-admins" class="hidden">
         <h2 class="text-2xl font-bold mb-6">Admins Management</h2>
@@ -1797,20 +1728,18 @@
         </div>
         <div class="bg-white p-6 rounded-lg shadow">
           <h3 class="font-semibold text-xl mb-2">Current Students</h3>
-          <input type="text" id="studentSearch" placeholder="Search by name or email..." class="w-full p-2 border rounded mb-4">
           <table class="min-w-full bg-white border-collapse border">
             <thead>
               <tr>
                 <th class="p-2 border bg-gray-200 text-left">Name</th>
                 <th class="p-2 border bg-gray-200 text-left">Admission No</th>
                 <th class="p-2 border bg-gray-200 text-left">Email</th>
-                <th class="p-2 border bg-gray-200 text-left">Hostel</th>
-                <th class="p-2 border bg-gray-200 text-left">Status</th>
+                <th class="p-2 border bg-gray-200 text-left">Programme</th>
                 <th class="p-2 border bg-gray-200 text-left">Actions</th>
               </tr>
             </thead>
             <tbody id="studentsBody">
-              <tr><td colspan="6" class="text-center p-4">Loading students...</td></tr>
+              <tr><td colspan="5" class="text-center p-4">Loading students...</td></tr>
             </tbody>
           </table>
         </div>
