@@ -2,12 +2,226 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Full Admin Dashboard</title>
+  <title>University Admin Dashboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* small visual nicety */
-    .side-link.active { background: rgba(255,255,255,0.08); }
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .side-link {
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      margin: 4px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .side-link::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .side-link:hover::before {
+      left: 100%;
+    }
+    
+    .side-link.active { 
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    
+    .side-link:hover {
+      background: rgba(37, 99, 235, 0.1);
+      transform: translateX(4px);
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    .btn {
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, var(--success), #059669);
+      color: white;
+      border: none;
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger), #dc2626);
+      color: white;
+      border: none;
+    }
+    
+    .btn-secondary {
+      background: linear-gradient(135deg, var(--secondary), #475569);
+      color: white;
+      border: none;
+    }
+    
+    .input-field {
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      transition: all 0.3s ease;
+      background: #f8fafc;
+    }
+    
+    .input-field:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .table-modern {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .table-modern th {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      font-weight: 600;
+      color: var(--dark);
+      padding: 16px;
+      border: none;
+    }
+    
+    .table-modern td {
+      padding: 16px;
+      border: none;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .table-modern tr:hover {
+      background: #f8fafc;
+    }
+    
+    .sidebar {
+      background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+    }
     
     /* Loading Spinner Styles */
     #loadingSpinner {
@@ -16,12 +230,13 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 100;
-      transition: opacity 0.3s ease;
+      z-index: 1000;
+      transition: all 0.3s ease;
       opacity: 0;
       visibility: hidden;
     }
@@ -32,11 +247,11 @@
     }
 
     .spinner {
+      width: 60px;
+      height: 60px;
       border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top: 4px solid #fff;
+      border-top: 4px solid white;
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
       animation: spin 1s linear infinite;
     }
 
@@ -44,134 +259,481 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1001;
+      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 280px;
+      height: 100vh;
+      background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+      transition: left 0.3s ease;
+      z-index: 999;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-menu.open {
+      left: 0;
+    }
+    
+    .mobile-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .mobile-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+    }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
 
   <div id="loadingSpinner">
     <div class="spinner"></div>
   </div>
 
-  <div id="popup" class="fixed top-4 left-1/2 -translate-x-1/2 hidden z-50 max-w-xl w-full px-4">
-    <div id="popupInner" class="p-3 rounded shadow text-white flex justify-between items-center"></div>
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileOverlay" class="mobile-overlay"></div>
+  
+  <!-- Mobile Menu -->
+  <div id="mobileMenu" class="mobile-menu md:hidden">
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-xl font-bold text-white">Admin Dashboard</h2>
+        <button id="closeMobileMenu" class="text-white text-2xl">&times;</button>
+      </div>
+      <nav class="space-y-2">
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="dashboard">
+          <i class="fas fa-home mr-3"></i>Dashboard
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="students">
+          <i class="fas fa-users mr-3"></i>Students
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="admins">
+          <i class="fas fa-shield-alt mr-3"></i>Admins
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="clearance">
+          <i class="fas fa-check-circle mr-3"></i>Clearance
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="courseReg">
+          <i class="fas fa-book mr-3"></i>Courses
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="registrations">
+          <i class="fas fa-clipboard-list mr-3"></i>Registrations
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="examCard">
+          <i class="fas fa-file-alt mr-3"></i>Exam Cards
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="finance">
+          <i class="fas fa-credit-card mr-3"></i>Finance
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="grades">
+          <i class="fas fa-chart-line mr-3"></i>Grades
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="graduation">
+          <i class="fas fa-graduation-cap mr-3"></i>Graduation
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="hostels">
+          <i class="fas fa-bed mr-3"></i>Hostels
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="timetable">
+          <i class="fas fa-calendar mr-3"></i>Timetable
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="profile">
+          <i class="fas fa-user mr-3"></i>Profile
+        </button>
+        <button class="mobile-side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="settings">
+          <i class="fas fa-cog mr-3"></i>Settings
+        </button>
+      </nav>
+    </div>
   </div>
 
-  <header class="bg-gradient-to-r from-sky-600 to-indigo-600 text-white p-4 flex items-center justify-between">
+  <header class="header text-white p-4 flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <button id="hamburger" class="md:hidden p-2 bg-white/10 rounded">☰</button>
-      <div class="text-lg font-bold">University Admin Dashboard</div>
+      <button id="hamburger" class="md:hidden p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="text-xl font-bold">
+        <i class="fas fa-university mr-2"></i>
+        University Admin Dashboard
+      </div>
     </div>
-    <div class="text-sm">Connected Project: <span id="projectLabel" class="font-medium">universityweb</span></div>
+    <div class="flex items-center gap-4">
+      <div class="text-sm bg-white/10 px-3 py-1 rounded-full">
+        <i class="fas fa-database mr-1"></i>
+        Project: <span id="projectLabel" class="font-medium">universityweb</span>
+      </div>
+      <button id="logoutBtn" class="btn btn-secondary px-4 py-2 text-sm">
+        <i class="fas fa-sign-out-alt mr-1"></i>Logout
+      </button>
+    </div>
   </header>
 
   <div class="flex">
-    <aside id="sidebar" class="hidden md:block w-64 bg-white border-r min-h-screen p-4 space-y-3">
-      <nav>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="dashboard">🏠 Dashboard</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="students">👨‍🎓 Students</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="admins">🛡️ Admins</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="clearance">✅ Clearance</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="courseReg">📚 Courses</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="registrations">📝 Registrations</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="examCard">📄 Exam Cards</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="finance">💳 Finance</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="grades">🧮 Grades</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="graduation">🎓 Graduation</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="hostels">🏨 Hostels</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="timetable">📅 Timetable</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="profile">🔎 Profile</button>
-        <button class="side-link block w-full text-left p-2 rounded" data-view="settings">⚙️ Settings</button>
+    <aside id="sidebar" class="sidebar hidden md:block w-64 min-h-screen p-6">
+      <div class="mb-8">
+        <h2 class="text-xl font-bold text-white mb-2">
+          <i class="fas fa-university mr-2"></i>
+          Admin Panel
+        </h2>
+        <p class="text-gray-300 text-sm">University Management System</p>
+      </div>
+      <nav class="space-y-2">
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="dashboard">
+          <i class="fas fa-home mr-3"></i>Dashboard
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="students">
+          <i class="fas fa-users mr-3"></i>Students
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="admins">
+          <i class="fas fa-shield-alt mr-3"></i>Admins
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="clearance">
+          <i class="fas fa-check-circle mr-3"></i>Clearance
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="courseReg">
+          <i class="fas fa-book mr-3"></i>Courses
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="registrations">
+          <i class="fas fa-clipboard-list mr-3"></i>Registrations
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="examCard">
+          <i class="fas fa-file-alt mr-3"></i>Exam Cards
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="finance">
+          <i class="fas fa-credit-card mr-3"></i>Finance
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="grades">
+          <i class="fas fa-chart-line mr-3"></i>Grades
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="graduation">
+          <i class="fas fa-graduation-cap mr-3"></i>Graduation
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="hostels">
+          <i class="fas fa-bed mr-3"></i>Hostels
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="timetable">
+          <i class="fas fa-calendar mr-3"></i>Timetable
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="profile">
+          <i class="fas fa-user mr-3"></i>Profile
+        </button>
+        <button class="side-link block w-full text-left p-3 rounded-lg text-white hover:bg-white/10 transition-all" data-view="settings">
+          <i class="fas fa-cog mr-3"></i>Settings
+        </button>
       </nav>
     </aside>
 
-    <main class="flex-1 p-6 overflow-y-auto">
+    <main class="main-content flex-1 p-6 overflow-y-auto">
       <section id="view-dashboard" class="view">
-        <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="p-4 bg-white rounded shadow">
-            <div class="text-sm text-gray-500">Total students</div>
-            <div id="stat_total_students" class="text-2xl font-semibold">—</div>
+        <div class="mb-8">
+          <h2 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-tachometer-alt mr-3 text-blue-600"></i>
+            Dashboard Overview
+          </h2>
+          <p class="text-gray-600">Welcome to the University Admin Dashboard</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm opacity-90 mb-1">Total Students</div>
+                <div id="stat_total_students" class="text-3xl font-bold">—</div>
+              </div>
+              <div class="text-4xl opacity-50">
+                <i class="fas fa-users"></i>
+              </div>
+            </div>
           </div>
-          <div class="p-4 bg-white rounded shadow">
-            <div class="text-sm text-gray-500">Active students</div>
-            <div id="stat_active_students" class="text-2xl font-semibold">—</div>
+          
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm opacity-90 mb-1">Active Students</div>
+                <div id="stat_active_students" class="text-3xl font-bold">—</div>
+              </div>
+              <div class="text-4xl opacity-50">
+                <i class="fas fa-user-check"></i>
+              </div>
+            </div>
           </div>
-          <div class="p-4 bg-white rounded shadow">
-            <div class="text-sm text-gray-500">Admins</div>
-            <div id="stat_admins" class="text-2xl font-semibold">—</div>
+          
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm opacity-90 mb-1">Administrators</div>
+                <div id="stat_admins" class="text-3xl font-bold">—</div>
+              </div>
+              <div class="text-4xl opacity-50">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+            </div>
           </div>
-          <div class="p-4 bg-white rounded shadow">
-            <div class="text-sm text-gray-500">Pending clearance</div>
-            <div id="stat_pending_clearance" class="text-2xl font-semibold">—</div>
+          
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm opacity-90 mb-1">Pending Clearance</div>
+                <div id="stat_pending_clearance" class="text-3xl font-bold">—</div>
+              </div>
+              <div class="text-4xl opacity-50">
+                <i class="fas fa-clock"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card p-6">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">
+              <i class="fas fa-chart-pie mr-2 text-green-600"></i>
+              Quick Actions
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <button class="btn btn-primary p-4 text-center" onclick="showView('students')">
+                <i class="fas fa-user-plus text-2xl mb-2"></i>
+                <div class="text-sm">Add Student</div>
+              </button>
+              <button class="btn btn-success p-4 text-center" onclick="showView('courseReg')">
+                <i class="fas fa-book text-2xl mb-2"></i>
+                <div class="text-sm">Manage Courses</div>
+              </button>
+              <button class="btn btn-secondary p-4 text-center" onclick="showView('finance')">
+                <i class="fas fa-dollar-sign text-2xl mb-2"></i>
+                <div class="text-sm">Finance</div>
+              </button>
+              <button class="btn btn-danger p-4 text-center" onclick="showView('clearance')">
+                <i class="fas fa-check-circle text-2xl mb-2"></i>
+                <div class="text-sm">Clearance</div>
+              </button>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">
+              <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+              System Status
+            </h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div class="flex items-center">
+                  <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                  <span class="text-sm font-medium">Database Connection</span>
+                </div>
+                <span class="text-green-600 text-sm font-semibold">Active</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div class="flex items-center">
+                  <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                  <span class="text-sm font-medium">Firebase Auth</span>
+                </div>
+                <span class="text-green-600 text-sm font-semibold">Connected</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div class="flex items-center">
+                  <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                  <span class="text-sm font-medium">Last Sync</span>
+                </div>
+                <span class="text-blue-600 text-sm font-semibold" id="lastSync">Just now</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section id="view-students" class="view hidden">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-2xl font-semibold">Students</h2>
-          <div class="flex gap-2">
-            <input id="students_search" placeholder="Search name / admissionNo / email" class="border p-2 rounded" />
-            <button id="students_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
-            <button id="students_new" class="bg-gray-200 px-3 py-2 rounded">New</button>
+        <div class="mb-8">
+          <h2 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-users mr-3 text-blue-600"></i>
+            Student Management
+          </h2>
+          <p class="text-gray-600">Manage student records and information</p>
+        </div>
+        
+        <div class="card p-6 mb-6">
+          <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+            <div class="flex-1 w-full md:w-auto">
+              <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <input id="students_search" placeholder="Search by name, admission number, or email..." class="input-field w-full pl-10 pr-4 py-3" />
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button id="students_refresh" class="btn btn-primary px-6 py-3">
+                <i class="fas fa-sync-alt mr-2"></i>Refresh
+              </button>
+              <button id="students_new" class="btn btn-success px-6 py-3">
+                <i class="fas fa-plus mr-2"></i>Add Student
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="overflow-x-auto bg-white rounded shadow">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-100">
+        <div class="card table-modern overflow-x-auto">
+          <table class="w-full">
+            <thead>
               <tr>
-                <th class="p-2 border">Name</th>
-                <th class="p-2 border">Admission No</th>
-                <th class="p-2 border">Email</th>
-                <th class="p-2 border">Programme</th>
-                <th class="p-2 border">Year</th>
-                <th class="p-2 border">Active</th>
-                <th class="p-2 border">Actions</th>
+                <th class="text-left">Student Name</th>
+                <th class="text-left">Admission No</th>
+                <th class="text-left">Email</th>
+                <th class="text-left">Programme</th>
+                <th class="text-left">Year</th>
+                <th class="text-center">Status</th>
+                <th class="text-center">Actions</th>
               </tr>
             </thead>
             <tbody id="students_tbody">
-              <tr><td colspan="7" class="p-4 text-center text-gray-500">Loading…</td></tr>
+              <tr><td colspan="7" class="p-8 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <div>Loading students...</div>
+              </td></tr>
             </tbody>
           </table>
         </div>
 
-        <div class="mt-6 bg-white rounded shadow p-4">
-          <h3 class="font-semibold mb-2">Add / Edit Student</h3>
-          <form id="studentForm" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="card p-6 mt-6">
+          <h3 class="text-xl font-semibold mb-6 text-gray-800">
+            <i class="fas fa-user-edit mr-2 text-green-600"></i>
+            Add / Edit Student
+          </h3>
+          <form id="studentForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <input id="stu_id" type="hidden" />
-            <input id="stu_name" placeholder="name" class="border p-2 rounded" />
-            <input id="stu_admissionNo" placeholder="admissionNo (LMC/94/16)" class="border p-2 rounded" />
-            <input id="stu_email" placeholder="email" class="border p-2 rounded" />
-            <input id="stu_regNo" placeholder="regNo" class="border p-2 rounded" />
-            <input id="stu_programme" placeholder="programme" class="border p-2 rounded" />
-            <input id="stu_yearOfStudy" type="number" placeholder="yearOfStudy (2025)" class="border p-2 rounded" />
-            <input id="stu_campus" placeholder="campus (Main)" class="border p-2 rounded" />
-            <input id="stu_address" placeholder="address" class="border p-2 rounded" />
-            <label class="flex items-center gap-2"><input id="stu_isActive" type="checkbox" /> isActive</label>
-            <div class="md:col-span-3 flex gap-2">
-              <button id="stu_save" type="button" class="bg-green-600 text-white px-4 py-2 rounded">Save</button>
-              <button id="stu_clear" type="button" class="bg-gray-200 px-4 py-2 rounded">Clear</button>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Full Name *</label>
+              <input id="stu_name" placeholder="Enter full name" class="input-field w-full p-3" required />
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Admission Number *</label>
+              <input id="stu_admissionNo" placeholder="e.g., LMC/94/16" class="input-field w-full p-3" required />
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Email Address *</label>
+              <input id="stu_email" type="email" placeholder="student@university.edu" class="input-field w-full p-3" required />
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Registration Number</label>
+              <input id="stu_regNo" placeholder="Registration number" class="input-field w-full p-3" />
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Programme *</label>
+              <input id="stu_programme" placeholder="e.g., Computer Science" class="input-field w-full p-3" required />
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Year of Study</label>
+              <input id="stu_yearOfStudy" type="number" placeholder="2025" class="input-field w-full p-3" />
+            </div>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Campus</label>
+              <input id="stu_campus" placeholder="Main Campus" class="input-field w-full p-3" />
+            </div>
+            
+            <div class="space-y-2 md:col-span-2">
+              <label class="text-sm font-medium text-gray-700">Address</label>
+              <textarea id="stu_address" placeholder="Student address" class="input-field w-full p-3 h-20 resize-none"></textarea>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+              <input id="stu_isActive" type="checkbox" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+              <label for="stu_isActive" class="text-sm font-medium text-gray-700">Active Student</label>
+            </div>
+            
+            <div class="md:col-span-3 flex gap-4 pt-4">
+              <button id="stu_save" type="button" class="btn btn-success px-8 py-3">
+                <i class="fas fa-save mr-2"></i>Save Student
+              </button>
+              <button id="stu_clear" type="button" class="btn btn-secondary px-8 py-3">
+                <i class="fas fa-eraser mr-2"></i>Clear Form
+              </button>
             </div>
           </form>
         </div>
       </section>
 
       <section id="view-admins" class="view hidden">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-2xl font-semibold">Admins</h2>
-          <button id="admins_refresh" class="bg-sky-600 text-white px-3 py-2 rounded">Refresh</button>
+        <div class="mb-8">
+          <h2 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-shield-alt mr-3 text-blue-600"></i>
+            Administrator Management
+          </h2>
+          <p class="text-gray-600">Manage system administrators and permissions</p>
         </div>
 
-        <div class="bg-white p-4 rounded shadow mb-4">
-          <form id="adminForm" class="flex gap-2">
-            <input id="admin_email" placeholder="admin email" class="border p-2 rounded flex-1" />
-            <button id="admin_add" type="button" class="bg-green-600 text-white px-4 py-2 rounded">Add Admin</button>
+        <div class="card p-6 mb-6">
+          <h3 class="text-xl font-semibold mb-4 text-gray-800">
+            <i class="fas fa-user-plus mr-2 text-green-600"></i>
+            Add New Administrator
+          </h3>
+          <form id="adminForm" class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+              <input id="admin_email" placeholder="Enter admin email address" class="input-field w-full p-3" type="email" required />
+            </div>
+            <button id="admin_add" type="button" class="btn btn-success px-6 py-3">
+              <i class="fas fa-plus mr-2"></i>Add Admin
+            </button>
           </form>
         </div>
 
-        <div id="admins_list" class="bg-white p-4 rounded shadow">
-          Loading admins…
+        <div class="card p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-gray-800">
+              <i class="fas fa-users-cog mr-2 text-blue-600"></i>
+              Current Administrators
+            </h3>
+            <button id="admins_refresh" class="btn btn-primary px-4 py-2">
+              <i class="fas fa-sync-alt mr-2"></i>Refresh
+            </button>
+          </div>
+          <div id="admins_list" class="space-y-3">
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+              <div>Loading administrators...</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -447,20 +1009,49 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    /* ---------- popup helper (6s) ---------- */
-    let popupTimeout = null;
+    /* ---------- Modern Notification System ---------- */
+    let notificationTimeout = null;
     function showPopup(message, type="info") {
-      clearTimeout(popupTimeout);
-      const container = document.getElementById('popup');
-      const inner = document.getElementById('popupInner');
-      inner.textContent = message;
-      inner.className = 'p-3 rounded shadow text-white flex justify-between items-center';
-      if (type === 'success') inner.classList.add('bg-green-600'); 
-      else if (type === 'error') inner.classList.add('bg-red-600');
-      else inner.classList.add('bg-sky-600');
-      container.classList.remove('hidden');
-      popupTimeout = setTimeout(()=> container.classList.add('hidden'), 6000);
-      document.getElementById('popupClose').onclick = ()=> container.classList.add('hidden');
+      clearTimeout(notificationTimeout);
+      
+      // Remove existing notifications
+      const existingNotifications = document.querySelectorAll('.notification');
+      existingNotifications.forEach(n => n.remove());
+      
+      const notification = document.createElement('div');
+      notification.className = 'notification';
+      
+      const iconMap = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        info: 'fas fa-info-circle',
+        warning: 'fas fa-exclamation-triangle'
+      };
+      
+      const colorMap = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        info: 'bg-blue-500',
+        warning: 'bg-yellow-500'
+      };
+      
+      notification.innerHTML = `
+        <div class="${colorMap[type]} text-white p-4 rounded-lg shadow-lg flex items-center gap-3">
+          <i class="${iconMap[type]} text-xl"></i>
+          <span class="flex-1">${message}</span>
+          <button onclick="this.parentNode.parentNode.remove()" class="text-white hover:text-gray-200 ml-2">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      notificationTimeout = setTimeout(() => {
+        if (notification.parentNode) {
+          notification.remove();
+        }
+      }, 5000);
     }
 
     /* ---------- Loading Spinner Functions ---------- */
@@ -496,13 +1087,43 @@
       };
       const id = map[viewId] || 'view-dashboard';
       document.getElementById(id).classList.remove('hidden');
-      // highlight sidebar
+      
+      // highlight sidebar (desktop)
       document.querySelectorAll('.side-link').forEach(b=>b.classList.remove('active'));
       document.querySelectorAll('.side-link[data-view]').forEach(b=>{
         if (b.dataset.view === viewId) b.classList.add('active');
       });
+      
+      // highlight mobile sidebar
+      document.querySelectorAll('.mobile-side-link').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.mobile-side-link[data-view]').forEach(b=>{
+        if (b.dataset.view === viewId) b.classList.add('active');
+      });
+      
+      // Update page title
+      const titles = {
+        dashboard: 'Dashboard Overview',
+        students: 'Student Management',
+        admins: 'Administrator Management',
+        clearance: 'Clearance Requests',
+        courseReg: 'Course Management',
+        registrations: 'Student Registrations',
+        examCard: 'Exam Card Management',
+        finance: 'Financial Management',
+        grades: 'Grade Management',
+        graduation: 'Graduation Requests',
+        hostels: 'Hostel Management',
+        timetable: 'Timetable Management',
+        profile: 'Profile Management',
+        settings: 'System Settings'
+      };
+      document.title = `${titles[viewId] || 'Admin'} | University Dashboard`;
+      
       window.scrollTo({top:0, behavior:'smooth'});
     }
+    
+    // Make showView globally available
+    window.showView = showView;
 
     // Sidebar button wiring (desktop)
     document.querySelectorAll('.side-link').forEach(btn=>{
@@ -511,9 +1132,49 @@
         showView(v);
       });
     });
-    // Hamburger
+    
+    // Mobile menu functionality
     document.getElementById('hamburger').addEventListener('click', ()=>{
-      document.getElementById('sidebar').classList.toggle('hidden');
+      document.getElementById('mobileMenu').classList.add('open');
+      document.getElementById('mobileOverlay').classList.add('show');
+    });
+    
+    document.getElementById('closeMobileMenu').addEventListener('click', ()=>{
+      document.getElementById('mobileMenu').classList.remove('open');
+      document.getElementById('mobileOverlay').classList.remove('show');
+    });
+    
+    document.getElementById('mobileOverlay').addEventListener('click', ()=>{
+      document.getElementById('mobileMenu').classList.remove('open');
+      document.getElementById('mobileOverlay').classList.remove('show');
+    });
+    
+    // Mobile sidebar button wiring
+    document.querySelectorAll('.mobile-side-link').forEach(btn=>{
+      btn.addEventListener('click', ()=> {
+        const v = btn.dataset.view;
+        showView(v);
+        document.getElementById('mobileMenu').classList.remove('open');
+        document.getElementById('mobileOverlay').classList.remove('show');
+      });
+    });
+    
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (confirm('Are you sure you want to logout?')) {
+        showLoading();
+        try {
+          // Import auth functions
+          const { signOut } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
+          await signOut(auth);
+          window.location.href = 'index.html';
+        } catch (error) {
+          console.error('Logout error:', error);
+          showPopup('Error during logout: ' + error.message, 'error');
+        } finally {
+          hideLoading();
+        }
+      }
     });
 
     /* ---------- DASHBOARD stats ---------- */
@@ -552,19 +1213,31 @@
         studentsTbody.innerHTML = '';
         const rows = [];
         snap.forEach(d=> rows.push({ id: d.id, ...d.data() }));
-        // simple render
+        // Modern render
         rows.forEach(s=>{
           const tr = document.createElement('tr');
+          tr.className = 'hover:bg-gray-50 transition-colors';
           tr.innerHTML = `
-            <td class="p-2 border">${escapeHtml(s.name||'')}</td>
-            <td class="p-2 border">${escapeHtml(s.admissionNo||'')}</td>
-            <td class="p-2 border">${escapeHtml(s.email||'')}</td>
-            <td class="p-2 border">${escapeHtml(s.programme||'')}</td>
-            <td class="p-2 border">${escapeHtml(s.yearOfStudy||'')}</td>
-            <td class="p-2 border">${s.isActive ? '✅' : '❌'}</td>
-            <td class="p-2 border">
-              <button data-id="${s.id}" class="stu_edit bg-blue-600 text-white px-2 py-1 rounded text-xs">Edit</button>
-              <button data-id="${s.id}" class="stu_delete ml-1 bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+            <td class="font-medium text-gray-900">${escapeHtml(s.name||'')}</td>
+            <td class="text-gray-600">${escapeHtml(s.admissionNo||'')}</td>
+            <td class="text-gray-600">${escapeHtml(s.email||'')}</td>
+            <td class="text-gray-600">${escapeHtml(s.programme||'')}</td>
+            <td class="text-gray-600">${escapeHtml(s.yearOfStudy||'')}</td>
+            <td class="text-center">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${s.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                <i class="fas fa-circle text-xs mr-1 ${s.isActive ? 'text-green-500' : 'text-red-500'}"></i>
+                ${s.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="flex justify-center gap-2">
+                <button data-id="${s.id}" class="stu_edit btn btn-primary px-3 py-1 text-xs">
+                  <i class="fas fa-edit mr-1"></i>Edit
+                </button>
+                <button data-id="${s.id}" class="stu_delete btn btn-danger px-3 py-1 text-xs">
+                  <i class="fas fa-trash mr-1"></i>Delete
+                </button>
+              </div>
             </td>
           `;
           studentsTbody.appendChild(tr);
@@ -681,13 +1354,33 @@
       try {
         const snap = await getDocs(collection(db,'admins'));
         container.innerHTML = '';
-        if (snap.empty) container.textContent = 'No admins';
-        else {
+        if (snap.empty) {
+          container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-users-cog text-4xl mb-4 text-gray-300"></i>
+              <div class="text-lg font-medium">No administrators found</div>
+              <div class="text-sm">Add your first administrator using the form above</div>
+            </div>
+          `;
+        } else {
           snap.forEach(d=>{
             const item = d.data();
             const div = document.createElement('div');
-            div.className = 'flex justify-between items-center p-2 border-b';
-            div.innerHTML = `<div class="text-sm">${escapeHtml(item.email||d.id)}</div> <div><button data-id="${d.id}" class="admin_remove bg-red-600 text-white px-2 py-1 rounded text-xs">Remove</button></div>`;
+            div.className = 'flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors';
+            div.innerHTML = `
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <i class="fas fa-user-shield text-blue-600"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">${escapeHtml(item.email||d.id)}</div>
+                  <div class="text-sm text-gray-500">Administrator</div>
+                </div>
+              </div>
+              <button data-id="${d.id}" class="admin_remove btn btn-danger px-4 py-2 text-sm">
+                <i class="fas fa-trash mr-1"></i>Remove
+              </button>
+            `;
             container.appendChild(div);
           });
           document.querySelectorAll('.admin_remove').forEach(btn=>{
@@ -1663,6 +2356,16 @@
       }
     }
 
+    // Update last sync time
+    function updateLastSync() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      const lastSyncEl = document.getElementById('lastSync');
+      if (lastSyncEl) {
+        lastSyncEl.textContent = timeString;
+      }
+    }
+    
     // initial
     (async function init(){
       showView('dashboard');
@@ -1675,6 +2378,10 @@
         await loadClearance();
         await loadGraduation();
         await loadHostels();
+        updateLastSync();
+        
+        // Update sync time every minute
+        setInterval(updateLastSync, 60000);
       } finally {
         hideLoading();
       }
