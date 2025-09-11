@@ -2,45 +2,223 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Exam Card</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exam Card | University Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn {
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+    }
+    
+    .page-title {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .table-modern {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .table-modern th {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      font-weight: 600;
+      color: var(--dark);
+      padding: 16px;
+      border: none;
+    }
+    
+    .table-modern td {
+      padding: 16px;
+      border: none;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .table-modern tr:hover {
+      background: #f8fafc;
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1001;
+      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .exam-info-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
-<body class="p-6 bg-gray-50">
+<body class="min-h-screen p-4">
 
-  <!-- ✅ Popup Message -->
-  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
-    <span id="popupText" class="text-sm"></span>
-    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
-  </div>
-
-  <section class="max-w-5xl mx-auto bg-white shadow rounded p-6">
-    <h2 class="text-2xl font-bold mb-6">Exam Card</h2>
-
-    <!-- Placeholder -->
-    <p id="examInfo" class="text-gray-500 mb-4">Loading exam card…</p>
-
-    <!-- Exam Table -->
-    <div class="overflow-x-auto mb-6">
-      <table id="examTable" class="w-full border hidden">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="p-2 border">Code</th>
-            <th class="p-2 border">Title</th>
-            <th class="p-2 border">Credits</th>
-            <th class="p-2 border">Venue</th>
-            <th class="p-2 border">Date</th>
-          </tr>
-        </thead>
-        <tbody id="examTbody"></tbody>
-      </table>
+  <div class="max-w-6xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+        <i class="fas fa-file-alt text-3xl text-white"></i>
+      </div>
+      <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        Exam Card
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">View and download your examination card</p>
     </div>
 
-    <button id="btnDownloadExamCard" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 hidden">
-      Download Exam Card (PDF)
-    </button>
-  </section>
+    <!-- Main Card -->
+    <div class="glass-effect rounded-3xl p-8 card-hover">
+
+      <!-- Loading State -->
+      <div id="examInfo" class="exam-info-card text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Loading Exam Card</h3>
+        <p class="text-gray-600">Please wait while we fetch your examination details...</p>
+      </div>
+
+      <!-- Exam Table -->
+      <div class="overflow-x-auto mb-6">
+        <table id="examTable" class="table-modern w-full hidden">
+          <thead>
+            <tr>
+              <th class="text-left">
+                <i class="fas fa-code mr-1"></i>Course Code
+              </th>
+              <th class="text-left">
+                <i class="fas fa-book mr-1"></i>Course Title
+              </th>
+              <th class="text-center">
+                <i class="fas fa-star mr-1"></i>Credits
+              </th>
+              <th class="text-left">
+                <i class="fas fa-map-marker-alt mr-1"></i>Venue
+              </th>
+              <th class="text-center">
+                <i class="fas fa-calendar mr-1"></i>Exam Date
+              </th>
+            </tr>
+          </thead>
+          <tbody id="examTbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Download Button -->
+      <div class="text-center">
+        <button id="btnDownloadExamCard" class="btn-primary px-8 py-4 text-white rounded-xl shadow-lg font-semibold text-lg hidden">
+          <i class="fas fa-download mr-2"></i>
+          Download Exam Card (PDF)
+        </button>
+      </div>
+    </div>
+  </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -59,19 +237,47 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ✅ Popup system
+// Modern notification system
 function showPopup(msg, type="success") {
-  const box = document.getElementById("popupMsg");
-  const text = document.getElementById("popupText");
-  const closeBtn = document.getElementById("popupClose");
-
-  text.textContent = msg;
-  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
-    (type==="success" ? "bg-green-500 text-white" : "bg-red-500 text-white");
-
-  box.classList.remove("hidden");
-  closeBtn.onclick = ()=> box.classList.add("hidden");
-  setTimeout(()=> box.classList.add("hidden"), 5000);
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  
+  const iconMap = {
+    success: 'fas fa-check-circle',
+    error: 'fas fa-exclamation-circle',
+    info: 'fas fa-info-circle',
+    warning: 'fas fa-exclamation-triangle'
+  };
+  
+  const colorMap = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500'
+  };
+  
+  notification.innerHTML = `
+    <div class="${colorMap[type]} text-white p-4 rounded-lg shadow-lg flex items-center gap-3">
+      <i class="${iconMap[type]} text-xl"></i>
+      <span class="flex-1">${msg}</span>
+      <button onclick="this.parentNode.parentNode.remove()" class="text-white hover:text-gray-200 ml-2">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 5000);
 }
 
 let currentUser, allExamRows=[], studentInfo={};
@@ -79,6 +285,9 @@ let currentUser, allExamRows=[], studentInfo={};
 onAuthStateChanged(auth, async user=>{
   if(!user){ 
     showPopup("You must be logged in to view exam card","error");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 2000);
     return; 
   }
   currentUser=user;
@@ -107,7 +316,14 @@ async function loadExamCard(){
     allExamRows=[];
 
     if(regSnap.empty){
-      document.getElementById("examInfo").textContent="No registered courses found.";
+      document.getElementById("examInfo").innerHTML = `
+        <div class="text-center py-8">
+          <i class="fas fa-book-open text-6xl mb-4 text-gray-300"></i>
+          <h3 class="text-xl font-medium mb-2 text-gray-700">No Registered Courses</h3>
+          <p class="text-gray-500 mb-4">You haven't registered for any courses yet.</p>
+          <p class="text-sm text-gray-400">Please register for courses to generate your exam card.</p>
+        </div>
+      `;
       document.getElementById("examTable").classList.add("hidden");
       document.getElementById("btnDownloadExamCard").classList.add("hidden");
       return showPopup("No registered courses for exam card","error");
@@ -128,12 +344,21 @@ async function loadExamCard(){
       allExamRows.push(row);
 
       const tr=document.createElement("tr");
+      tr.className = 'hover:bg-gray-50 transition-colors';
       tr.innerHTML=`
-        <td class="p-2 border">${row[0]}</td>
-        <td class="p-2 border">${row[1]}</td>
-        <td class="p-2 border">${row[2]}</td>
-        <td class="p-2 border">${row[3]}</td>
-        <td class="p-2 border">${row[4]}</td>`;
+        <td class="font-medium text-gray-900">${row[0]}</td>
+        <td class="text-gray-700">${row[1]}</td>
+        <td class="text-center">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            ${row[2]}
+          </span>
+        </td>
+        <td class="text-gray-600">${row[3]}</td>
+        <td class="text-center">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            ${row[4]}
+          </span>
+        </td>`;
       tbody.appendChild(tr);
     }
 
@@ -151,13 +376,23 @@ async function loadExamCard(){
 document.getElementById("btnDownloadExamCard").onclick=async()=>{
   if(allExamRows.length===0) return showPopup("No exam card to export","error");
 
+  // Show loading state
+  const btn = document.getElementById("btnDownloadExamCard");
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating PDF...';
+  btn.disabled = true;
+
   // 🔎 Check finance clearance
   try {
     const fSnap=await getDoc(doc(db,"finance",currentUser.uid));
     if(fSnap.exists() && fSnap.data().balance>0){
+      btn.innerHTML = originalText;
+      btn.disabled = false;
       return showPopup(`You cannot download exam card. Outstanding balance: Ksh ${fSnap.data().balance}`,"error");
     }
   } catch(err){
+    btn.innerHTML = originalText;
+    btn.disabled = false;
     return showPopup("Error checking finance clearance: "+err.message,"error");
   }
 
@@ -184,6 +419,10 @@ document.getElementById("btnDownloadExamCard").onclick=async()=>{
     showPopup("Exam card downloaded successfully","success");
   } catch(err){
     showPopup("Error generating exam card: "+err.message,"error");
+  } finally {
+    // Restore button state
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 };
 </script>
