@@ -2,68 +2,333 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Finance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Finance Dashboard | University Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    .btn {
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+    }
+    
+    .page-title {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .table-modern {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .table-modern th {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      font-weight: 600;
+      color: var(--dark);
+      padding: 16px;
+      border: none;
+    }
+    
+    .table-modern td {
+      padding: 16px;
+      border: none;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .table-modern tr:hover {
+      background: #f8fafc;
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1001;
+      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .progress-bar {
+      background: linear-gradient(90deg, #e2e8f0, #cbd5e1);
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      background: linear-gradient(90deg, var(--success), #059669);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+  </style>
 </head>
-<body class="p-6 bg-gray-50">
-  <section class="p-6 bg-white rounded shadow max-w-6xl mx-auto">
-    <h2 class="text-2xl font-bold mb-6">Finance Dashboard</h2>
-
-    <!-- Alerts -->
-    <div id="alertBox" class="hidden p-3 mb-4 rounded text-white"></div>
-
-    <!-- Totals -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="p-4 border rounded bg-blue-50">
-        <div class="text-sm text-slate-600">Total Fees</div>
-        <div id="f_total" class="text-xl font-semibold">KES 0</div>
+<body class="min-h-screen p-4">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+        <i class="fas fa-credit-card text-3xl text-white"></i>
       </div>
-      <div class="p-4 border rounded bg-green-50">
-        <div class="text-sm text-slate-600">Total Paid</div>
-        <div id="f_paid" class="text-xl font-semibold">KES 0</div>
-      </div>
-      <div class="p-4 border rounded">
-        <div class="text-sm text-slate-600">Balance</div>
-        <div id="f_balance" class="text-xl font-semibold">KES 0</div>
-        <span id="f_status" class="text-sm"></span>
-      </div>
+      <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        Finance Dashboard
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">Track your fees, payments, and financial status</p>
     </div>
 
-    <!-- Progress -->
-    <div class="mb-6">
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div id="progressBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
-      </div>
-      <p id="progressText" class="text-sm text-slate-500 mt-1">0% of fees cleared</p>
-    </div>
+    <!-- Main Card -->
+    <div class="glass-effect rounded-3xl p-8 card-hover">
 
-    <!-- Transactions -->
-    <div class="flex justify-between items-center mb-3">
-      <h3 class="text-lg font-semibold">Transactions</h3>
-      <button id="btnDownload" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Download Statement</button>
+      <!-- Financial Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm opacity-90 mb-1">
+                <i class="fas fa-receipt mr-1"></i>Total Fees
+              </div>
+              <div id="f_total" class="text-3xl font-bold">KES 0</div>
+            </div>
+            <div class="text-4xl opacity-50">
+              <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm opacity-90 mb-1">
+                <i class="fas fa-check-circle mr-1"></i>Total Paid
+              </div>
+              <div id="f_paid" class="text-3xl font-bold">KES 0</div>
+            </div>
+            <div class="text-4xl opacity-50">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm opacity-90 mb-1">
+                <i class="fas fa-balance-scale mr-1"></i>Balance
+              </div>
+              <div id="f_balance" class="text-3xl font-bold">KES 0</div>
+              <div id="f_status" class="text-sm opacity-90 mt-1"></div>
+            </div>
+            <div class="text-4xl opacity-50">
+              <i class="fas fa-chart-line"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Progress -->
+      <div class="mb-8">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">
+          <i class="fas fa-chart-pie mr-3 text-blue-500"></i>
+          Payment Progress
+        </h3>
+        <div class="progress-bar">
+          <div id="progressBar" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <p id="progressText" class="text-sm text-gray-600 mt-2 text-center">0% of fees cleared</p>
+      </div>
+
+      <!-- Fee Breakdown -->
+      <div class="mb-8">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">
+          <i class="fas fa-list-alt mr-3 text-purple-500"></i>
+          Fee Breakdown
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="table-modern w-full">
+            <thead>
+              <tr>
+                <th class="text-left">
+                  <i class="fas fa-graduation-cap mr-1"></i>Semester
+                </th>
+                <th class="text-right">
+                  <i class="fas fa-dollar-sign mr-1"></i>Amount (KES)
+                </th>
+              </tr>
+            </thead>
+            <tbody id="feeBreakdownList">
+              <tr>
+                <td colspan="2" class="text-center py-6 text-gray-500">
+                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                  <div>Loading fee breakdown...</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Transactions Section -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h3 class="text-2xl font-bold text-gray-800">
+          <i class="fas fa-history mr-3 text-green-500"></i>
+          Transaction History
+        </h3>
+        <button id="btnDownload" class="btn-primary px-6 py-3 text-white rounded-xl shadow-lg font-semibold">
+          <i class="fas fa-download mr-2"></i>
+          Download Statement
+        </button>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="table-modern w-full">
+          <thead>
+            <tr>
+              <th class="text-left">
+                <i class="fas fa-calendar mr-1"></i>Date
+              </th>
+              <th class="text-left">
+                <i class="fas fa-credit-card mr-1"></i>Method
+              </th>
+              <th class="text-left">
+                <i class="fas fa-hashtag mr-1"></i>Reference
+              </th>
+              <th class="text-right">
+                <i class="fas fa-dollar-sign mr-1"></i>Amount
+              </th>
+              <th class="text-center">
+                <i class="fas fa-info-circle mr-1"></i>Status
+              </th>
+            </tr>
+          </thead>
+          <tbody id="transactionsList">
+            <tr>
+              <td colspan="5" class="text-center py-8 text-gray-600">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-3"></div>
+                <div class="text-gray-600">Loading transactions...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full border-collapse text-sm">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="p-2 text-left">Date</th>
-            <th class="p-2 text-left">Method</th>
-            <th class="p-2 text-left">Reference</th>
-            <th class="p-2 text-right">Amount</th>
-            <th class="p-2 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody id="transactionsList">
-          <tr><td colspan="5" class="p-3 text-center text-slate-500">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js";
 
 const firebaseConfig = {
@@ -85,89 +350,391 @@ let feeBreakdown=null;
 
 const $ = (id)=>document.getElementById(id);
 
+// Helper function to safely format transaction dates
+function formatTransactionDate(date) {
+  if (!date) return "-";
+  
+  try {
+    // Check if it's a Firestore Timestamp
+    if (date.toDate && typeof date.toDate === 'function') {
+      return date.toDate().toLocaleDateString();
+    }
+    // Check if it's already a Date object
+    if (date instanceof Date) {
+      return date.toLocaleDateString();
+    }
+    // Check if it's a string that can be converted to Date
+    if (typeof date === 'string') {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toLocaleDateString();
+      }
+    }
+    return "-";
+  } catch (e) {
+    console.log("Error formatting date:", e);
+    return "-";
+  }
+}
+
 onAuthStateChanged(auth, async user=>{
-  if(!user) return;
+  if(!user) {
+    showAlert("You must be logged in to view finance information","error");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 2000);
+    return;
+  }
   currentUser=user;
-  await loadFinance();
+  loadFinance();
 });
 
-async function loadFinance(){
+function loadFinance(){
   const uid=currentUser.uid;
+  console.log("Loading finance for UID:", uid);
 
-  // Student Profile
-  const studentSnap = await getDoc(doc(db,"students",uid));
-  if(studentSnap.exists()) studentProfile=studentSnap.data();
+  // Load student profile in background (non-blocking)
+  getDoc(doc(db,"students",uid)).then(studentSnap => {
+    if(studentSnap.exists()) studentProfile=studentSnap.data();
+    console.log("Student profile loaded:", studentProfile);
+  }).catch(e => console.log("Error loading student profile:", e));
 
-  // Fee Breakdown
-  const fbSnap = await getDoc(doc(db,"finance",uid,"feeBreakdown","details"));
-  if(fbSnap.exists()) feeBreakdown=fbSnap.data();
+  // Set initial loading states
+  $("f_total").textContent="KES 0";
+  $("f_paid").textContent="KES 0";
+  $("f_balance").textContent="KES 0";
 
-  // Summary + Dynamic Balance
-  const summarySnap = await getDoc(doc(db,"finance",uid,"summary","totals"));
-  let totalFees=0,totalPaid=0;
-  if(summarySnap.exists()){
-    const s=summarySnap.data();
-    totalFees=s.totalFees||0;
-  }
+  // Real-time listener for summary
+  console.log("Setting up summary listener...");
+  onSnapshot(doc(db,"finance",uid,"summary","totals"), snapshot=>{
+    console.log("Summary snapshot received:", snapshot.exists());
+    if(snapshot.exists()){
+      const s=snapshot.data();
+      const totalFees=s.totalFees||0;
+      console.log("Total fees:", totalFees);
+      $("f_total").textContent="KES "+totalFees.toLocaleString();
+      
+      // Update progress bar based on current total fees
+      updateProgressBar();
+    } else {
+      console.log("No summary data found, setting default");
+      $("f_total").textContent="KES 0";
+    }
+  }, error => {
+    console.error("Summary listener error:", error);
+    $("f_total").textContent="KES 0";
+  });
 
-  // Transactions
-  const txnSnap = await getDocs(collection(db,"finance",uid,"transactions"));
-  const tbody=$("transactionsList");
-  tbody.innerHTML="";
-  transactions=[];
-  if(txnSnap.empty){
-    tbody.innerHTML=`<tr><td colspan="5" class="p-3 text-center text-slate-500">No transactions yet.</td></tr>`;
-  }else{
-    txnSnap.forEach(d=>{
-      const t=d.data();
-      transactions.push(t);
-      if(t.status==="Confirmed") totalPaid+=(t.amount||0);
-      tbody.innerHTML+=`
-        <tr class="border-b">
-          <td class="p-2">${t.date?.toDate? t.date.toDate().toLocaleDateString():"-"}</td>
-          <td class="p-2">${t.method||"-"}</td>
-          <td class="p-2">${t.reference||"-"}</td>
-          <td class="p-2 text-right">KES ${(t.amount||0).toLocaleString()}</td>
-          <td class="p-2">${t.status||"Pending"}</td>
-        </tr>`;
+  // Real-time listener for transactions
+  console.log("Setting up transactions listener...");
+  onSnapshot(collection(db,"finance",uid,"transactions"), txnSnap=>{
+    console.log("Transactions snapshot received, size:", txnSnap.size);
+    const tbody=$("transactionsList");
+    transactions=[];
+    let totalPaid=0;
+
+    if(txnSnap.empty){
+      console.log("No transactions found");
+      tbody.innerHTML=`
+        <tr>
+          <td colspan="5" class="text-center py-6 text-gray-500">
+            <i class="fas fa-receipt text-2xl mb-2"></i>
+            <div>No transactions yet</div>
+            <div class="text-sm text-gray-400 mt-1">Your payment history will appear here</div>
+          </td>
+        </tr>
+      `;
+    }else{
+      console.log("Processing", txnSnap.size, "transactions");
+      // Use DocumentFragment for better performance
+      const fragment = document.createDocumentFragment();
+      
+      txnSnap.forEach(d=>{
+        const t=d.data();
+        console.log("Transaction:", t);
+        transactions.push(t);
+        if(t.status==="Confirmed") totalPaid+=(t.amount||0);
+        const statusColor = t.status === "Confirmed" ? "bg-green-100 text-green-800" : 
+                           t.status === "Pending" ? "bg-yellow-100 text-yellow-800" : 
+                           "bg-red-100 text-red-800";
+        
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition-colors';
+        tr.innerHTML = `
+          <td class="text-gray-700">${formatTransactionDate(t.date)}</td>
+          <td class="text-gray-600">${t.method||"-"}</td>
+          <td class="text-gray-600">${t.reference||"-"}</td>
+          <td class="text-right font-semibold text-gray-900">KES ${(t.amount||0).toLocaleString()}</td>
+          <td class="text-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}">
+              <i class="fas fa-circle text-xs mr-1"></i>
+              ${t.status||"Pending"}
+            </span>
+          </td>
+        `;
+        fragment.appendChild(tr);
+      });
+      
+      tbody.innerHTML = '';
+      tbody.appendChild(fragment);
+    }
+
+    console.log("Total paid:", totalPaid);
+    // Update paid amount and balance
+    $("f_paid").textContent="KES "+totalPaid.toLocaleString();
+    
+    // Calculate balance from current total fees
+    const totalFees=parseInt($("f_total").textContent.replace(/\D/g,''))||0;
+    const balance=totalFees-totalPaid;
+    $("f_balance").textContent="KES "+balance.toLocaleString();
+
+    // Update status and progress
+    updateStatusAndProgress(balance);
+  }, error => {
+    console.error("Transactions listener error:", error);
+    const tbody=$("transactionsList");
+    tbody.innerHTML=`
+      <tr>
+        <td colspan="5" class="text-center py-6 text-red-500">
+          <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+          <div>Error loading transactions</div>
+          <div class="text-sm text-gray-400 mt-1">Please refresh the page</div>
+        </td>
+      </tr>
+    `;
+  });
+
+  // Real-time listener for fee breakdown
+  console.log("Setting up fee breakdown listener...");
+  onSnapshot(doc(db,"finance",uid,"feeBreakdown","details"), snap=>{
+    console.log("Fee breakdown snapshot received, exists:", snap.exists());
+    const tbody = $("feeBreakdownList");
+
+    if(!snap.exists()){
+      console.log("No fee breakdown data found");
+      tbody.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-gray-500"><i class="fas fa-info-circle mr-2"></i>No fee breakdown available</td></tr>`;
+      return;
+    }
+
+    const data = snap.data();
+    console.log("Fee breakdown data:", data);
+    const semesters = Object.keys(data);
+    
+    if(semesters.length === 0){
+      console.log("No semesters in fee breakdown");
+      tbody.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-gray-500"><i class="fas fa-info-circle mr-2"></i>No fee breakdown available</td></tr>`;
+      return;
+    }
+
+    console.log("Processing", semesters.length, "semesters");
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    semesters.forEach(sem=>{
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50 transition-colors';
+      tr.innerHTML = `
+        <td class="text-gray-700 font-medium">${sem}</td>
+        <td class="text-right font-semibold text-gray-900">KES ${data[sem].toLocaleString()}</td>
+      `;
+      fragment.appendChild(tr);
     });
+    
+    tbody.innerHTML = '';
+    tbody.appendChild(fragment);
+    console.log("Fee breakdown rendered successfully");
+  }, error => {
+    console.error("Fee breakdown listener error:", error);
+    const tbody = $("feeBreakdownList");
+    tbody.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>Error loading fee breakdown</td></tr>`;
+  });
+
+  // Fallback: Try one-time queries if listeners don't work
+  setTimeout(() => {
+    console.log("Running fallback queries...");
+    loadFinanceFallback(uid);
+  }, 5000); // Wait 5 seconds, then try fallback
+}
+
+// Fallback function using one-time queries
+async function loadFinanceFallback(uid) {
+  console.log("Running fallback finance loading...");
+  
+  try {
+    // Load summary
+    const summarySnap = await getDoc(doc(db,"finance",uid,"summary","totals"));
+    if (summarySnap.exists()) {
+      const s = summarySnap.data();
+      const totalFees = s.totalFees || 0;
+      console.log("Fallback - Total fees:", totalFees);
+      $("f_total").textContent = "KES " + totalFees.toLocaleString();
+    }
+
+    // Load transactions
+    const txnSnap = await getDocs(collection(db,"finance",uid,"transactions"));
+    console.log("Fallback - Transactions count:", txnSnap.size);
+    
+    const tbody = $("transactionsList");
+    let totalPaid = 0;
+    
+    if (txnSnap.empty) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center py-6 text-gray-500">
+            <i class="fas fa-receipt text-2xl mb-2"></i>
+            <div>No transactions yet</div>
+            <div class="text-sm text-gray-400 mt-1">Your payment history will appear here</div>
+          </td>
+        </tr>
+      `;
+    } else {
+      const fragment = document.createDocumentFragment();
+      
+      txnSnap.forEach(d => {
+        const t = d.data();
+        if (t.status === "Confirmed") totalPaid += (t.amount || 0);
+        const statusColor = t.status === "Confirmed" ? "bg-green-100 text-green-800" : 
+                           t.status === "Pending" ? "bg-yellow-100 text-yellow-800" : 
+                           "bg-red-100 text-red-800";
+        
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition-colors';
+        tr.innerHTML = `
+          <td class="text-gray-700">${formatTransactionDate(t.date)}</td>
+          <td class="text-gray-600">${t.method||"-"}</td>
+          <td class="text-gray-600">${t.reference||"-"}</td>
+          <td class="text-right font-semibold text-gray-900">KES ${(t.amount||0).toLocaleString()}</td>
+          <td class="text-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}">
+              <i class="fas fa-circle text-xs mr-1"></i>
+              ${t.status||"Pending"}
+            </span>
+          </td>
+        `;
+        fragment.appendChild(tr);
+      });
+      
+      tbody.innerHTML = '';
+      tbody.appendChild(fragment);
+    }
+
+    // Update paid amount and balance
+    $("f_paid").textContent = "KES " + totalPaid.toLocaleString();
+    const totalFees = parseInt($("f_total").textContent.replace(/\D/g,'')) || 0;
+    const balance = totalFees - totalPaid;
+    $("f_balance").textContent = "KES " + balance.toLocaleString();
+    updateStatusAndProgress(balance);
+
+    // Load fee breakdown
+    const fbSnap = await getDoc(doc(db,"finance",uid,"feeBreakdown","details"));
+    const tbodyFB = $("feeBreakdownList");
+    
+    if (fbSnap.exists()) {
+      const data = fbSnap.data();
+      const semesters = Object.keys(data);
+      
+      if (semesters.length > 0) {
+        const fragment = document.createDocumentFragment();
+        
+        semesters.forEach(sem => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-gray-50 transition-colors';
+          tr.innerHTML = `
+            <td class="text-gray-700 font-medium">${sem}</td>
+            <td class="text-right font-semibold text-gray-900">KES ${data[sem].toLocaleString()}</td>
+          `;
+          fragment.appendChild(tr);
+        });
+        
+        tbodyFB.innerHTML = '';
+        tbodyFB.appendChild(fragment);
+      } else {
+        tbodyFB.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-gray-500"><i class="fas fa-info-circle mr-2"></i>No fee breakdown available</td></tr>`;
+      }
+    } else {
+      tbodyFB.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-gray-500"><i class="fas fa-info-circle mr-2"></i>No fee breakdown available</td></tr>`;
+    }
+
+    console.log("Fallback loading completed successfully");
+  } catch (e) {
+    console.error("Fallback loading failed:", e);
   }
+}
 
-  const balance=totalFees-totalPaid;
-
-  // Update summary UI
-  $("f_total").textContent="KES "+totalFees.toLocaleString();
-  $("f_paid").textContent="KES "+totalPaid.toLocaleString();
-  $("f_balance").textContent="KES "+balance.toLocaleString();
-
+function updateStatusAndProgress(balance){
   // Status coloring
   const statusEl=$("f_status");
   if(balance<=0){
-    statusEl.textContent="✅ Cleared";
-    statusEl.className="text-green-600 font-medium";
+    statusEl.innerHTML="<i class='fas fa-check-circle mr-1'></i>Fully Cleared";
+    statusEl.className="text-green-300 font-medium";
   }else{
-    statusEl.textContent="⚠ Pending";
-    statusEl.className="text-yellow-600 font-medium";
+    statusEl.innerHTML="<i class='fas fa-exclamation-triangle mr-1'></i>Balance Pending";
+    statusEl.className="text-yellow-300 font-medium";
     showAlert("You still have a pending balance. Please clear before exams.","warning");
   }
 
-  // Progress bar
+  updateProgressBar();
+}
+
+function updateProgressBar(){
+  const totalFees=parseInt($("f_total").textContent.replace(/\D/g,''))||0;
+  const totalPaid=parseInt($("f_paid").textContent.replace(/\D/g,''))||0;
   let percent=totalFees? Math.min(100,(totalPaid/totalFees*100).toFixed(0)):0;
   $("progressBar").style.width=percent+"%";
   $("progressText").textContent=percent+"% of fees cleared";
 }
 
-// Alerts
+// Modern notification system
 function showAlert(msg,type){
-  const box=$("alertBox");
-  box.textContent=msg;
-  box.classList.remove("hidden");
-  box.className="p-3 mb-4 rounded text-white "+(type==="warning"?"bg-yellow-500":"bg-red-500");
-  setTimeout(()=>{box.classList.add("hidden")},6000);
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  
+  const iconMap = {
+    success: 'fas fa-check-circle',
+    error: 'fas fa-exclamation-circle',
+    info: 'fas fa-info-circle',
+    warning: 'fas fa-exclamation-triangle'
+  };
+  
+  const colorMap = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500'
+  };
+  
+  notification.innerHTML = `
+    <div class="${colorMap[type]} text-white p-4 rounded-lg shadow-lg flex items-center gap-3">
+      <i class="${iconMap[type]} text-xl"></i>
+      <span class="flex-1">${msg}</span>
+      <button onclick="this.parentNode.parentNode.remove()" class="text-white hover:text-gray-200 ml-2">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 6 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 6000);
 }
 
 // Generate PDF
 $("btnDownload").addEventListener("click", ()=>{
+  // Show loading state
+  const btn = $("btnDownload");
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating PDF...';
+  btn.disabled = true;
+  
   const docPdf=new jsPDF();
   let y=15;
 
@@ -177,7 +744,7 @@ $("btnDownload").addEventListener("click", ()=>{
 
   if(studentProfile){
     docPdf.setFontSize(12);
-    docPdf.text(`Name: ${studentProfile.fullName||""}`,15,y); y+=7;
+    docPdf.text(`Name: ${studentProfile.name||""}`,15,y); y+=7;
     docPdf.text(`Reg No: ${studentProfile.regNo||""}`,15,y); y+=7;
     docPdf.text(`Programme: ${studentProfile.programme||""}`,15,y); y+=7;
     docPdf.text(`Email: ${currentUser.email}`,15,y); y+=10;
@@ -209,6 +776,12 @@ $("btnDownload").addEventListener("click", ()=>{
   docPdf.text(`Balance: KES ${($("f_balance").textContent)}`,15,y); y+=7;
 
   docPdf.save("Finance_Statement.pdf");
+  
+  // Restore button state
+  btn.innerHTML = originalText;
+  btn.disabled = false;
+  
+  showAlert("Finance statement downloaded successfully","success");
 });
 </script>
 </body>
