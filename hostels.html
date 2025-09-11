@@ -2,37 +2,192 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Hostels</title>
+  <title>Hostels - University Portal</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-danger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+    }
+    
+    .hostel-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .hostel-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .capacity-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+    
+    .capacity-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+      transition: width 0.3s ease;
+    }
+  </style>
 </head>
-<body class="p-6 bg-gray-50">
-  <section id="hostels" class="p-6 bg-white rounded shadow">
-    <h2 class="text-xl font-bold mb-4">Hostels</h2>
-
-    <!-- Popup Notification -->
-    <div id="popup" class="hidden fixed top-6 right-6 z-50 px-4 py-3 rounded shadow text-white"></div>
-
-    <!-- Current Booking -->
-    <div id="currentBooking" class="mb-6">
-      <h4 class="font-semibold mb-2">Your Current Booking</h4>
-      <div id="bookingDetails" class="p-4 border rounded text-sm text-slate-600">Loading...</div>
+<body class="min-h-screen p-6">
+  <!-- Main Container -->
+  <div class="max-w-6xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+        <i class="fas fa-bed text-3xl text-white"></i>
+      </div>
+      <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        Hostel Management
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">Find and manage your accommodation</p>
     </div>
 
-    <!-- List of Hostels -->
-    <div>
-      <h4 class="font-semibold mb-3">Available Hostels</h4>
-      <div id="hostelList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div class="text-slate-500 p-4 border rounded">Loading hostels...</div>
+    <!-- Enhanced Popup Notification -->
+    <div id="popup" class="hidden fixed top-6 right-6 z-50 glass-effect rounded-xl px-6 py-4 shadow-2xl text-white"></div>
+
+    <!-- Current Booking Section -->
+    <div id="currentBooking" class="mb-8">
+      <div class="glass-effect rounded-3xl p-8 card-hover">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+          <i class="fas fa-home mr-3 text-green-500"></i>
+          Your Current Booking
+        </h3>
+        <div id="bookingDetails" class="text-gray-600">
+          <div class="flex items-center justify-center py-8">
+            <div class="text-center">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-3"></div>
+              <p class="text-gray-600">Loading booking information...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Hostels Section -->
+    <div class="glass-effect rounded-3xl p-8 mb-8 card-hover">
+      <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+        <i class="fas fa-building mr-3 text-blue-500"></i>
+        Available Hostels
+      </h3>
+      <div id="hostelList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading hostels...</p>
+        </div>
       </div>
     </div>
 
     <!-- Rooms Section -->
-    <div id="roomList" class="mt-6 hidden">
-      <h4 id="roomsForHostelTitle" class="font-semibold mb-3">Rooms</h4>
-      <button id="btnBackToHostels" class="px-3 py-1 border rounded mb-3">← Back</button>
-      <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    <div id="roomList" class="glass-effect rounded-3xl p-8 card-hover hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h3 id="roomsForHostelTitle" class="text-2xl font-bold text-gray-800 flex items-center">
+          <i class="fas fa-door-open mr-3 text-purple-500"></i>
+          Available Rooms
+        </h3>
+        <button id="btnBackToHostels" class="btn-primary px-6 py-3 text-white rounded-xl font-semibold">
+          <i class="fas fa-arrow-left mr-2"></i>
+          Back to Hostels
+        </button>
+      </div>
+      <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
-  </section>
+  </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -54,13 +209,20 @@ const db = getFirestore(app);
 let currentUser = null;
 let selectedHostelId = null;
 
-// Popup Helper
+// Enhanced Popup Helper
 function showPopup(message, type="success") {
   const popup = document.getElementById("popup");
-  popup.className = "fixed top-6 right-6 z-50 px-4 py-3 rounded shadow text-white " +
-    (type === "success" ? "bg-green-600" : "bg-red-600");
-  popup.innerHTML = message + 
-    `<button onclick="this.parentElement.classList.add('hidden')" class="ml-3 underline">OK</button>`;
+  popup.className = "fixed top-6 right-6 z-50 glass-effect rounded-xl px-6 py-4 shadow-2xl text-white " +
+    (type === "success" ? "bg-green-500/90 border border-green-400" : "bg-red-500/90 border border-red-400");
+  popup.innerHTML = `
+    <div class="flex items-center">
+      <i class="fas ${type === "success" ? "fa-check-circle" : "fa-exclamation-circle"} mr-3 text-xl"></i>
+      <span class="flex-1">${message}</span>
+      <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="ml-4 px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
   popup.classList.remove("hidden");
   setTimeout(()=>popup.classList.add("hidden"), 6000);
 }
@@ -82,15 +244,43 @@ async function loadBooking() {
   if (snap.exists() && snap.data().hostelBooking) {
     const b = snap.data().hostelBooking;
     cont.innerHTML = `
-      <div class="p-3 border rounded bg-slate-50">
-        <p><strong>Hostel:</strong> ${b.hostelName}</p>
-        <p><strong>Room:</strong> ${b.number}</p>
-        <p class="text-green-600 font-semibold">Status: ${b.status}</p>
-        <button id="btnCancelBooking" class="mt-2 px-3 py-1 bg-red-600 text-white rounded">Cancel Booking</button>
+      <div class="bg-green-50 rounded-xl p-6 border border-green-200">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-home text-2xl text-green-500 mr-3"></i>
+          <h4 class="text-lg font-semibold text-gray-800">Active Booking</h4>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center">
+            <i class="fas fa-building text-blue-500 mr-3 w-5"></i>
+            <span class="text-gray-600">Hostel:</span>
+            <span class="text-gray-800 font-semibold ml-2">${b.hostelName}</span>
+          </div>
+          <div class="flex items-center">
+            <i class="fas fa-door-open text-purple-500 mr-3 w-5"></i>
+            <span class="text-gray-600">Room:</span>
+            <span class="text-gray-800 font-semibold ml-2">${b.number}</span>
+          </div>
+          <div class="flex items-center">
+            <i class="fas fa-check-circle text-green-500 mr-3 w-5"></i>
+            <span class="text-gray-600">Status:</span>
+            <span class="text-green-600 font-semibold ml-2">${b.status}</span>
+          </div>
+        </div>
+        <button id="btnCancelBooking" class="btn-danger mt-4 px-4 py-2 text-white rounded-xl font-semibold">
+          <i class="fas fa-times mr-2"></i>
+          Cancel Booking
+        </button>
       </div>`;
     document.getElementById("btnCancelBooking").onclick = () => cancelBooking(b.hostelId, b.roomId);
   } else {
-    cont.innerHTML = `<div class="text-slate-500">No booking yet.</div>`;
+    cont.innerHTML = `
+      <div class="text-center py-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+          <i class="fas fa-bed text-2xl text-gray-400"></i>
+        </div>
+        <p class="text-gray-800 text-lg font-semibold">No booking yet</p>
+        <p class="text-gray-600 text-sm mt-1">Browse available hostels below</p>
+      </div>`;
   }
 }
 
@@ -101,21 +291,61 @@ async function loadHostels() {
   list.innerHTML = "";
 
   if (snap.empty) {
-    list.innerHTML = `<div class="text-slate-500 p-4 border rounded">No hostels available.</div>`;
+    list.innerHTML = `
+      <div class="col-span-full text-center py-12">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+          <i class="fas fa-building text-2xl text-gray-400"></i>
+        </div>
+        <p class="text-gray-800 text-lg font-semibold">No hostels available</p>
+        <p class="text-gray-600 text-sm mt-1">Please check back later</p>
+      </div>`;
     return;
   }
 
   snap.forEach(docSnap => {
     const h = docSnap.data();
     const percent = h.capacity > 0 ? Math.round(((h.capacity - (h.available||0)) / h.capacity) * 100) : 0;
+    const genderIcon = h.gender === 'Male' ? 'fa-mars' : h.gender === 'Female' ? 'fa-venus' : 'fa-users';
+    const genderColor = h.gender === 'Male' ? 'text-blue-400' : h.gender === 'Female' ? 'text-pink-400' : 'text-purple-400';
+    
     list.innerHTML += `
-      <div class="p-4 bg-white border rounded shadow-sm">
-        <h3 class="font-bold">${h.name} (${h.gender})</h3>
-        <p class="text-sm text-slate-500">Capacity: ${h.capacity} | Available: ${h.available||0}</p>
-        <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-          <div class="bg-blue-600 h-2 rounded-full" style="width: ${percent}%"></div>
+      <div class="hostel-card rounded-2xl p-6 card-hover">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-building text-2xl text-blue-400 mr-3"></i>
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">${h.name}</h3>
+            <div class="flex items-center mt-1">
+              <i class="fas ${genderIcon} ${genderColor} mr-2"></i>
+              <span class="text-sm text-gray-600">${h.gender}</span>
+            </div>
+          </div>
         </div>
-        <button class="mt-3 px-3 py-1 bg-blue-600 text-white rounded" onclick="viewRooms('${docSnap.id}','${h.name}')">View Rooms</button>
+        
+        <div class="space-y-3 mb-4">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">Capacity:</span>
+            <span class="font-semibold text-gray-800">${h.capacity}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">Available:</span>
+            <span class="font-semibold text-green-600">${h.available||0}</span>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-gray-600">Occupancy</span>
+            <span class="text-sm font-semibold text-gray-800">${percent}%</span>
+          </div>
+          <div class="capacity-bar">
+            <div class="capacity-fill" style="width: ${percent}%"></div>
+          </div>
+        </div>
+        
+        <button class="btn-primary w-full px-4 py-3 text-white rounded-xl font-semibold" onclick="viewRooms('${docSnap.id}','${h.name}')">
+          <i class="fas fa-eye mr-2"></i>
+          View Rooms
+        </button>
       </div>`;
   });
 }
@@ -128,23 +358,63 @@ window.viewRooms = async function(hostelId, hostelName) {
   const roomsCont = document.getElementById("roomsContainer");
   roomList.classList.remove("hidden");
   document.getElementById("roomsForHostelTitle").innerText = "Rooms in " + hostelName;
-  roomsCont.innerHTML = "Loading rooms...";
+  roomsCont.innerHTML = `
+    <div class="col-span-full text-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-3"></div>
+      <p class="text-white/80">Loading rooms...</p>
+    </div>`;
 
   const snap = await getDocs(collection(db, "hostels", hostelId, "rooms"));
   roomsCont.innerHTML = "";
   if (snap.empty) {
-    roomsCont.innerHTML = `<div class="text-slate-500">No rooms available.</div>`;
+    roomsCont.innerHTML = `
+      <div class="col-span-full text-center py-12">
+        <i class="fas fa-door-closed text-4xl text-white/40 mb-3"></i>
+        <p class="text-white/80 text-lg">No rooms available</p>
+      </div>`;
     return;
   }
   snap.forEach(rSnap => {
     const r = rSnap.data();
+    const isFull = (r.occupants||0) >= r.capacity;
+    const occupancyPercent = r.capacity > 0 ? Math.round(((r.occupants||0) / r.capacity) * 100) : 0;
+    
     roomsCont.innerHTML += `
-      <div class="p-4 border rounded bg-slate-50">
-        <p><strong>Room ${r.number}</strong></p>
-        <p class="text-sm text-slate-500">${r.occupants||0}/${r.capacity} Occupied</p>
-        <button class="mt-2 px-3 py-1 bg-green-600 text-white rounded" 
-          onclick="bookRoom('${hostelId}','${hostelName}','${rSnap.id}','${r.number}',${r.capacity},${r.occupants||0})">
-          Book
+      <div class="hostel-card rounded-2xl p-6 card-hover">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-door-open text-2xl text-purple-400 mr-3"></i>
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">Room ${r.number}</h3>
+            <p class="text-sm text-gray-600">Capacity: ${r.capacity} beds</p>
+          </div>
+        </div>
+        
+        <div class="space-y-3 mb-4">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">Occupied:</span>
+            <span class="font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}">${r.occupants||0}/${r.capacity}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">Available:</span>
+            <span class="font-semibold text-blue-600">${r.capacity - (r.occupants||0)}</span>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-gray-600">Occupancy</span>
+            <span class="text-sm font-semibold text-gray-800">${occupancyPercent}%</span>
+          </div>
+          <div class="capacity-bar">
+            <div class="capacity-fill ${isFull ? 'bg-red-500' : 'bg-green-500'}" style="width: ${occupancyPercent}%"></div>
+          </div>
+        </div>
+        
+        <button class="btn-success w-full px-4 py-3 text-white rounded-xl font-semibold ${isFull ? 'opacity-50 cursor-not-allowed' : ''}" 
+          onclick="${isFull ? '' : `bookRoom('${hostelId}','${hostelName}','${rSnap.id}','${r.number}',${r.capacity},${r.occupants||0})`}"
+          ${isFull ? 'disabled' : ''}>
+          <i class="fas ${isFull ? 'fa-times' : 'fa-check'} mr-2"></i>
+          ${isFull ? 'Room Full' : 'Book Room'}
         </button>
       </div>`;
   });
