@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Announcements | University Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .announcement-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .announcement-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .announcement-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    }
+    
+    .priority-high::before {
+      background: linear-gradient(135deg, var(--danger), #dc2626);
+    }
+    
+    .priority-medium::before {
+      background: linear-gradient(135deg, var(--warning), #d97706);
+    }
+    
+    .priority-low::before {
+      background: linear-gradient(135deg, var(--success), #059669);
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1001;
+      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .filter-btn {
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+    
+    .filter-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    
+    .filter-btn:hover:not(.active) {
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+        <i class="fas fa-bullhorn text-3xl text-white"></i>
+      </div>
+      <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        Announcements
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">Stay updated with the latest university news and important notices</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass-effect rounded-3xl p-8 card-hover">
+      
+      <!-- Refresh Section -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <h3 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-bullhorn mr-3 text-blue-500"></i>
+            University Announcements
+          </h3>
+          <button id="refreshBtn" class="btn-primary px-6 py-3 text-white rounded-xl shadow-lg font-semibold">
+            <i class="fas fa-sync-alt mr-2"></i>Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Announcements Section -->
+      <div class="mb-8">
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+          <div class="loading-spinner mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading announcements...</p>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+          <div class="text-gray-400 text-6xl mb-4">
+            <i class="fas fa-newspaper"></i>
+          </div>
+          <h4 class="text-xl font-semibold text-gray-800 mb-2">No announcements found</h4>
+          <p class="text-gray-600">There are currently no announcements to display.</p>
+        </div>
+        
+        <!-- Announcements List -->
+        <div id="announcementsList" class="space-y-6 hidden">
+          <!-- Announcements will be dynamically loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+  authDomain: "universityweb-19e1e.firebaseapp.com",
+  projectId: "universityweb-19e1e",
+  storageBucket: "universityweb-19e1e.appspot.com",
+  messagingSenderId: "401942926589",
+  appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// DOM elements
+const loadingState = document.getElementById('loadingState');
+const emptyState = document.getElementById('emptyState');
+const announcementsList = document.getElementById('announcementsList');
+const refreshBtn = document.getElementById('refreshBtn');
+
+// Real announcements data from Firebase
+let allAnnouncements = [];
+
+// Refresh button functionality
+refreshBtn.addEventListener('click', () => {
+  loadAnnouncements();
+});
+
+// Display announcements
+function displayAnnouncements(announcements) {
+  if (announcements.length === 0) {
+    loadingState.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    announcementsList.classList.add('hidden');
+    return;
+  }
+  
+  loadingState.classList.add('hidden');
+  emptyState.classList.add('hidden');
+  announcementsList.classList.remove('hidden');
+  
+  announcementsList.innerHTML = announcements.map(announcement => `
+    <div class="announcement-card p-6">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+              ANNOUNCEMENT
+            </span>
+            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+              NEW
+            </span>
+          </div>
+          <h4 class="text-xl font-bold text-gray-800 mb-2">${announcement.title || "Untitled"}</h4>
+          <p class="text-gray-600 leading-relaxed">${announcement.message || ""}</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+        <div class="flex items-center gap-4 text-sm text-gray-500">
+          <div class="flex items-center gap-1">
+            <i class="fas fa-calendar"></i>
+            <span>${announcement.createdAt?.toDate ? announcement.createdAt.toDate().toLocaleDateString() : 'Recently'}</span>
+          </div>
+        </div>
+        <button class="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors">
+          <i class="fas fa-share mr-1"></i>Share
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Load announcements from Firebase
+async function loadAnnouncements() {
+  try {
+    // Show loading state
+    loadingState.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    announcementsList.classList.add('hidden');
+    
+    // Fetch announcements from Firebase
+    const annSnap = await getDocs(query(collection(db, "announcements"), orderBy("createdAt", "desc")));
+    
+    // Clear existing announcements
+    allAnnouncements = [];
+    
+    if (annSnap.empty) {
+      // Show empty state
+      loadingState.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      announcementsList.classList.add('hidden');
+    } else {
+      // Process announcements
+      annSnap.forEach(doc => {
+        const data = doc.data();
+        allAnnouncements.push({
+          id: doc.id,
+          title: data.title || "Untitled",
+          message: data.message || "",
+          createdAt: data.createdAt,
+          priority: data.priority || 'medium' // Default priority
+        });
+      });
+      
+      // Display announcements
+      displayAnnouncements(allAnnouncements);
+    }
+  } catch (error) {
+    console.error('Error loading announcements:', error);
+    showNotification('Failed to load announcements. Please try again.', 'error');
+    
+    // Show empty state on error
+    loadingState.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    announcementsList.classList.add('hidden');
+  }
+}
+
+// Check authentication status
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Load announcements when user is authenticated
+    loadAnnouncements();
+  } else {
+    // Redirect to login if not authenticated
+    window.location.href = 'index.html';
+  }
+});
+
+// Show notification function
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification bg-white border-l-4 ${
+    type === 'success' ? 'border-green-500' :
+    type === 'error' ? 'border-red-500' :
+    type === 'warning' ? 'border-yellow-500' :
+    'border-blue-500'
+  } p-4 shadow-lg`;
+  
+  notification.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <i class="fas ${
+          type === 'success' ? 'fa-check-circle text-green-500' :
+          type === 'error' ? 'fa-exclamation-circle text-red-500' :
+          type === 'warning' ? 'fa-exclamation-triangle text-yellow-500' :
+          'fa-info-circle text-blue-500'
+        }"></i>
+        <span class="font-medium text-gray-800">${message}</span>
+      </div>
+      <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 5000);
+}
+</script>
+</body>
+</html>
