@@ -2,59 +2,368 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Home</title>
+  <title>Dashboard - University Portal</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .stat-icon {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin: 0 auto 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-icon::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+      transform: rotate(45deg);
+      transition: all 0.6s ease;
+    }
+    
+    .stat-card:hover .stat-icon::before {
+      animation: shimmer 1.5s ease-in-out;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    
+    .stat-courses { 
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); 
+      color: white; 
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    }
+    .stat-balance { 
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); 
+      color: white; 
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+    }
+    .stat-gpa { 
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+      color: white; 
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    .stat-hostel { 
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); 
+      color: white; 
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+    }
+    
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .quick-action {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .quick-action:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    
+    .progress-ring-circle {
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 0.5s ease-in-out;
+    }
+    
+    .notification-card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.3s ease;
+    }
+    
+    .notification-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(4px);
+    }
+    
+    .pulse-animation {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
 </head>
-<body class="p-6 bg-gray-50">
-  <section>
-    <!-- Welcome -->
-    <div class="mb-6">
-      <h2 id="welcomeText" class="text-2xl font-bold">Welcome!</h2>
-      <p class="text-slate-600">Here’s a quick look at your semester.</p>
+<body class="min-h-screen p-6">
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <div class="flex items-center justify-center mb-6">
+        <img src="myschoollogo.png" alt="University Logo" class="h-16 w-auto mr-4">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full">
+          <i class="fas fa-home text-3xl text-white"></i>
+        </div>
+      </div>
+      <h1 id="welcomeText" class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        Welcome Back!
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">
+        Your personalized dashboard for academic success and university life management
+      </p>
     </div>
 
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Courses</h3>
-        <p id="statCourses" class="text-2xl text-blue-600">-</p>
+    <!-- Enhanced Quick Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+      <div class="stat-card rounded-3xl p-8 text-center card-hover">
+        <div class="stat-icon stat-courses">
+          <i class="fas fa-book"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Courses</h3>
+        <p id="statCourses" class="stat-value text-blue-600">-</p>
+        <p class="stat-label text-gray-600">Enrolled</p>
+        <div class="mt-4 text-xs text-gray-500">
+          <i class="fas fa-chart-line mr-1"></i>
+          Academic Progress
+        </div>
       </div>
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Balance</h3>
-        <p id="statBalance" class="text-2xl text-red-600">-</p>
+      <div class="stat-card rounded-3xl p-8 text-center card-hover">
+        <div class="stat-icon stat-balance">
+          <i class="fas fa-dollar-sign"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Balance</h3>
+        <p id="statBalance" class="stat-value text-red-600">-</p>
+        <p class="stat-label text-gray-600">Outstanding</p>
+        <div class="mt-4 text-xs text-gray-500">
+          <i class="fas fa-credit-card mr-1"></i>
+          Financial Status
+        </div>
       </div>
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">GPA</h3>
-        <p id="statGpa" class="text-2xl text-green-600">-</p>
+      <div class="stat-card rounded-3xl p-8 text-center card-hover">
+        <div class="stat-icon stat-gpa">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">GPA</h3>
+        <p id="statGpa" class="stat-value text-green-600">-</p>
+        <p class="stat-label text-gray-600">Current</p>
+        <div class="mt-4 text-xs text-gray-500">
+          <i class="fas fa-trophy mr-1"></i>
+          Academic Performance
+        </div>
       </div>
-      <div class="p-4 bg-white shadow rounded text-center">
-        <h3 class="text-lg font-semibold">Hostel</h3>
-        <p id="statHostel" class="text-2xl text-purple-600">-</p>
+      <div class="stat-card rounded-3xl p-8 text-center card-hover">
+        <div class="stat-icon stat-hostel">
+          <i class="fas fa-bed"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-3">Hostel</h3>
+        <p id="statHostel" class="stat-value text-purple-600">-</p>
+        <p class="stat-label text-gray-600">Status</p>
+        <div class="mt-4 text-xs text-gray-500">
+          <i class="fas fa-home mr-1"></i>
+          Accommodation
+        </div>
       </div>
     </div>
 
-    <!-- Announcements Preview -->
-    <div class="bg-white p-4 rounded shadow mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-bold text-lg">Latest Announcements</h3>
-        <a href="announcements.html" target="contentFrame" class="text-blue-600 text-sm">View All</a>
-      </div>
-      <div id="annPreview" class="space-y-2 text-sm text-slate-700">
-        <p>Loading...</p>
+    <!-- Quick Actions Section -->
+    <div class="glass-effect rounded-3xl p-8 mb-12 card-hover">
+      <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+        <i class="fas fa-bolt mr-3 text-yellow-500"></i>
+        Quick Actions
+      </h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <a href="timetable.html" class="quick-action text-center block hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-calendar-alt text-2xl text-blue-500 mb-3"></i>
+          <h4 class="text-gray-800 font-semibold mb-1">Timetable</h4>
+          <p class="text-gray-600 text-sm">View Schedule</p>
+        </a>
+        <a href="graduation.html" class="quick-action text-center block hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-graduation-cap text-2xl text-green-500 mb-3"></i>
+          <h4 class="text-gray-800 font-semibold mb-1">Graduation</h4>
+          <p class="text-gray-600 text-sm">Apply Now</p>
+        </a>
+        <a href="hostels.html" class="quick-action text-center block hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-bed text-2xl text-purple-500 mb-3"></i>
+          <h4 class="text-gray-800 font-semibold mb-1">Hostels</h4>
+          <p class="text-gray-600 text-sm">Book Room</p>
+        </a>
+        <a href="profile.html" class="quick-action text-center block hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-user-cog text-2xl text-orange-500 mb-3"></i>
+          <h4 class="text-gray-800 font-semibold mb-1">Profile</h4>
+          <p class="text-gray-600 text-sm">Manage Account</p>
+        </a>
+        <a href="grades.html" class="quick-action text-center block hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-chart-line text-2xl text-indigo-500 mb-3"></i>
+          <h4 class="text-gray-800 font-semibold mb-1">Grades</h4>
+          <p class="text-gray-600 text-sm">View Transcript</p>
+        </a>
+        <a href="clearance.html" class="quick-action text-center block hover:scale-105 transition-transform duration-200">
+          <i class="fas fa-check-circle text-2xl text-teal-500 mb-3"></i>
+          <h4 class="text-gray-800 font-semibold mb-1">Clearance</h4>
+          <p class="text-gray-600 text-sm">Request Status</p>
+        </a>
       </div>
     </div>
 
-    <!-- Next Exam -->
-    <div class="bg-white p-4 rounded shadow">
-      <h3 class="font-bold text-lg mb-2">Next Exam</h3>
-      <div id="nextExam" class="text-slate-700">Loading...</div>
+
+    <!-- Enhanced Announcements Preview -->
+    <div class="glass-effect rounded-3xl p-8 mb-8 card-hover">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-800 flex items-center">
+          <i class="fas fa-bullhorn mr-3 text-yellow-500"></i>
+          Latest Announcements
+        </h3>
+        <a href="announcements.html" target="contentFrame" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all duration-200 flex items-center">
+          View All <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+      </div>
+      <div id="annPreview" class="space-y-4">
+        <div class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600 text-lg">Loading announcements...</p>
+          </div>
+        </div>
+      </div>
     </div>
-  </section>
+
+    <!-- Enhanced Next Exam -->
+    <div class="glass-effect rounded-3xl p-8 card-hover">
+      <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+        <i class="fas fa-calendar-alt mr-3 text-red-500"></i>
+        Upcoming Exam
+      </h3>
+      <div id="nextExam" class="text-gray-600">
+        <div class="flex items-center justify-center py-8">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mx-auto mb-3"></div>
+            <p class="text-gray-600 text-lg">Loading exam information...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
@@ -85,10 +394,28 @@ onAuthStateChanged(auth, async user=>{
   const coursesSnap = await getDocs(collection(db,"registrations",user.uid,"courses"));
   document.getElementById("statCourses").textContent = coursesSnap.size;
 
-  const financeSnap = await getDocs(collection(db,"finance",user.uid,"transactions"));
-  let balance=0;
-  financeSnap.forEach(d=>{ const t=d.data(); balance+=(t.type==="credit"?t.amount:-t.amount); });
-  document.getElementById("statBalance").textContent = balance;
+  // Calculate balance using current finance system
+  try {
+    // Get total fees
+    const summarySnap = await getDoc(doc(db,"finance",user.uid,"summary","totals"));
+    const totalFees = summarySnap.exists() ? (summarySnap.data().totalFees || 0) : 0;
+    
+    // Get confirmed transactions
+    const financeSnap = await getDocs(collection(db,"finance",user.uid,"transactions"));
+    let totalPaid = 0;
+    financeSnap.forEach(d => {
+      const t = d.data();
+      if (t.status === "Confirmed") {
+        totalPaid += (t.amount || 0);
+      }
+    });
+    
+    const balance = totalFees - totalPaid;
+    document.getElementById("statBalance").textContent = balance.toLocaleString();
+  } catch (e) {
+    console.log("Error loading finance data:", e);
+    document.getElementById("statBalance").textContent = "-";
+  }
 
   const gpaSnap = await getDoc(doc(db,"grades",user.uid));
   document.getElementById("statGpa").textContent = gpaSnap.exists()? (gpaSnap.data().cumulativeGpa||"-") : "-";
@@ -100,14 +427,43 @@ onAuthStateChanged(auth, async user=>{
   const annSnap=await getDocs(query(collection(db,"announcements"), orderBy("createdAt","desc"), limit(3)));
   const annDiv=document.getElementById("annPreview");
   annDiv.innerHTML="";
-  if(annSnap.empty) annDiv.textContent="No announcements.";
-  annSnap.forEach(a=>{
-    const d=a.data();
-    annDiv.innerHTML+=`<div class="p-2 border rounded bg-gray-50">
-      <strong>${d.title||"Untitled"}</strong><br/>
-      <span class="text-slate-600">${d.message||""}</span>
-    </div>`;
-  });
+  if(annSnap.empty) {
+    annDiv.innerHTML=`
+      <div class="text-center py-12">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+          <i class="fas fa-bullhorn text-2xl text-yellow-500"></i>
+        </div>
+        <h4 class="text-gray-800 text-lg font-semibold mb-2">No announcements available</h4>
+        <p class="text-gray-600">Check back later for updates</p>
+      </div>
+    `;
+  } else {
+    annSnap.forEach(a=>{
+      const d=a.data();
+      annDiv.innerHTML+=`
+        <div class="notification-card">
+          <div class="flex items-start">
+            <div class="flex-shrink-0 mr-4">
+              <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-bell text-yellow-500"></i>
+              </div>
+            </div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-800 mb-2 text-lg">${d.title||"Untitled"}</h4>
+              <p class="text-gray-600 mb-3">${d.message||""}</p>
+              <div class="flex items-center text-gray-500 text-sm">
+                <i class="fas fa-clock mr-2"></i>
+                <span>${d.createdAt?.toDate ? d.createdAt.toDate().toLocaleDateString() : 'Recently'}</span>
+                <div class="ml-auto">
+                  <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs">New</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
 
   // Next exam (basic example: fetch first course with examDate)
   const examSnap=await getDocs(collection(db,"registrations",user.uid,"courses"));
@@ -119,7 +475,40 @@ onAuthStateChanged(auth, async user=>{
       if(ex.examDate){ nextExam=`${ex.code} - ${ex.examDate}`; break; }
     }
   }
-  document.getElementById("nextExam").textContent=nextExam;
+  
+  // Enhanced exam display
+  const examDiv = document.getElementById("nextExam");
+  if(nextExam === "No exams found.") {
+    examDiv.innerHTML=`
+      <div class="text-center py-12">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+          <i class="fas fa-calendar-times text-2xl text-green-500"></i>
+        </div>
+        <h4 class="text-gray-800 text-lg font-semibold mb-2">No upcoming exams scheduled</h4>
+        <p class="text-gray-600">Enjoy your free time!</p>
+      </div>
+    `;
+  } else {
+    examDiv.innerHTML=`
+      <div class="notification-card">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 mr-4">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <i class="fas fa-calendar-check text-red-500 text-xl"></i>
+            </div>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-gray-800 mb-2 text-lg">Next Exam</h4>
+            <p class="text-gray-600 mb-3">${nextExam}</p>
+            <div class="flex items-center text-gray-500 text-sm">
+              <i class="fas fa-exclamation-triangle mr-2 text-yellow-500"></i>
+              <span>Prepare well!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 });
 </script>
 </body>
