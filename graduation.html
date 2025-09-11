@@ -1,26 +1,189 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>Graduation Request</title>
+  <meta charset="utf-8" />
+  <title>Graduation Request - University Portal</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+    
+    .status-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-approved {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .status-pending {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+    
+    .status-rejected {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+    
+    .timeline-item {
+      position: relative;
+      padding-left: 2rem;
+    }
+    
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 0.5rem;
+      top: 0.5rem;
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      background: #e5e7eb;
+    }
+    
+    .timeline-item.completed::before {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .timeline-item.current::before {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .checklist-item:hover {
+      background: rgba(255, 255, 255, 0.8);
+      transform: translateX(4px);
+    }
+    
+    .checklist-item.completed {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 4px solid #10b981;
+    }
+  </style>
 </head>
-<body class="p-6 bg-gray-50">
+<body class="min-h-screen p-6">
 
-  <!-- ✅ Popup Banner -->
-  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
-    <span id="popupText" class="text-sm"></span>
-    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  <!-- ✅ Enhanced Popup Banner -->
+  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 glass-effect rounded-xl p-4 flex items-start justify-between shadow-2xl">
+    <span id="popupText" class="text-sm font-medium"></span>
+    <button id="popupClose" class="ml-4 px-3 py-1 rounded-lg bg-white/20 text-sm font-medium hover:bg-white/30 transition-all duration-200">OK</button>
   </div>
 
-  <section class="max-w-3xl mx-auto">
-    <!-- 🔔 Notification Banner -->
-    <div id="gradBanner" class="hidden mb-4 p-3 rounded font-medium"></div>
+  <!-- Main Container -->
+  <div class="max-w-4xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+        <i class="fas fa-graduation-cap text-3xl text-white"></i>
+      </div>
+      <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        Graduation Portal
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">Track your graduation journey and manage your ceremony details</p>
+    </div>
 
-    <!-- Main Content -->
-    <div id="gradContent" class="text-gray-600">Loading…</div>
-  </section>
+    <!-- 🔔 Enhanced Notification Banner -->
+    <div id="gradBanner" class="hidden mb-6 glass-effect rounded-xl p-4 font-medium shadow-lg"></div>
+
+    <!-- Main Content Card -->
+    <div class="glass-effect rounded-2xl shadow-2xl overflow-hidden">
+      <div id="gradContent" class="p-8 text-gray-700">
+        <div class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600 text-lg">Loading your graduation information...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -73,16 +236,43 @@ async function loadGraduation(){
     if(!snap.exists()){
       banner.classList.add("hidden");
       container.innerHTML=`
-        <div class="p-6 text-center border rounded-lg bg-blue-50 shadow">
-          <p class="text-slate-700 mb-3">You have not yet applied for graduation.</p>
-          <button id="btnRequestGrad" class="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700">
+        <div class="text-center py-12">
+          <div class="mb-8">
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full mb-6">
+              <i class="fas fa-graduation-cap text-4xl text-blue-500"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Ready to Graduate?</h2>
+            <p class="text-gray-600 text-lg mb-8 max-w-md mx-auto">
+              You haven't applied for graduation yet. Start your graduation journey by submitting your request.
+            </p>
+          </div>
+          <button id="btnRequestGrad" class="btn-primary px-8 py-4 text-white rounded-xl shadow-lg font-semibold text-lg">
+            <i class="fas fa-paper-plane mr-2"></i>
             Request Graduation
           </button>
         </div>
       `;
       document.getElementById("btnRequestGrad").onclick=async()=>{
         try{
-          await setDoc(gRef,{status:"pending",requestedAt:serverTimestamp()});
+          // Get student data to include in graduation request
+          const studentRef = doc(db, "students", currentUser.uid);
+          const studentSnap = await getDoc(studentRef);
+          let studentData = {};
+          if (studentSnap.exists()) {
+            studentData = studentSnap.data();
+          }
+          
+          await setDoc(gRef,{
+            status:"pending",
+            requestedAt:serverTimestamp(),
+            studentEmail: currentUser.email,
+            studentId: currentUser.uid,
+            name: studentData.name || "",
+            regNo: studentData.regNo || "",
+            programme: studentData.programme || "",
+            yearOfStudy: studentData.yearOfStudy || "",
+            semester: studentData.semester || ""
+          });
           showPopup("Graduation requested successfully","success");
           loadGraduation();
         }catch(err){ showPopup("Error requesting graduation: "+err.message,"error"); }
@@ -96,64 +286,151 @@ async function loadGraduation(){
     const requestedAt=data.requestedAt?.toDate ? data.requestedAt.toDate().toLocaleString() : "-";
     const gradDate=data.graduationDate?.toDate ? data.graduationDate.toDate() : null;
 
-    // 🔔 Banner
+    // 🔔 Enhanced Banner
     if(status==="approved"){
-      banner.textContent="🎉 Your graduation request has been approved. Please proceed to gown collection.";
-      banner.className="mb-4 p-3 rounded font-medium bg-green-100 text-green-800";
+      banner.innerHTML=`
+        <div class="flex items-center">
+          <i class="fas fa-check-circle text-2xl text-green-500 mr-3"></i>
+          <div>
+            <h3 class="font-bold text-green-800">Congratulations!</h3>
+            <p class="text-green-700">Your graduation request has been approved. Please proceed to gown collection.</p>
+          </div>
+        </div>
+      `;
+      banner.className="mb-6 glass-effect rounded-xl p-4 font-medium shadow-lg bg-green-50/80 border border-green-200";
       banner.classList.remove("hidden");
     } else if(status==="pending"){
-      banner.textContent="⚠️ Graduation request pending. Ensure all clearance steps are completed.";
-      banner.className="mb-4 p-3 rounded font-medium bg-yellow-100 text-yellow-800";
+      banner.innerHTML=`
+        <div class="flex items-center">
+          <i class="fas fa-clock text-2xl text-yellow-500 mr-3"></i>
+          <div>
+            <h3 class="font-bold text-yellow-800">Request Under Review</h3>
+            <p class="text-yellow-700">Your graduation request is pending. Ensure all clearance steps are completed.</p>
+          </div>
+        </div>
+      `;
+      banner.className="mb-6 glass-effect rounded-xl p-4 font-medium shadow-lg bg-yellow-50/80 border border-yellow-200";
       banner.classList.remove("hidden");
     } else if(status==="rejected"){
-      banner.textContent="❌ Your graduation request has been rejected. Please contact administration.";
-      banner.className="mb-4 p-3 rounded font-medium bg-red-100 text-red-800";
+      banner.innerHTML=`
+        <div class="flex items-center">
+          <i class="fas fa-times-circle text-2xl text-red-500 mr-3"></i>
+          <div>
+            <h3 class="font-bold text-red-800">Request Rejected</h3>
+            <p class="text-red-700">Your graduation request has been rejected. Please contact administration for details.</p>
+          </div>
+        </div>
+      `;
+      banner.className="mb-6 glass-effect rounded-xl p-4 font-medium shadow-lg bg-red-50/80 border border-red-200";
       banner.classList.remove("hidden");
     }
 
-    // 🎨 Status Badge
-    let badge=`<span class="px-2 py-1 rounded text-sm 
-      ${status==="approved" ? "bg-green-100 text-green-800":
-        status==="pending" ? "bg-yellow-100 text-yellow-800":
-        "bg-red-100 text-red-800"}">${status}</span>`;
+    // 🎨 Enhanced Status Badge
+    let badge=`<span class="status-badge 
+      ${status==="approved" ? "status-approved":
+        status==="pending" ? "status-pending":
+        "status-rejected"}">${status}</span>`;
 
-    // ⏳ Timeline Steps
+    // ⏳ Enhanced Timeline Steps
     const steps=`
-      <ul class="mt-4 space-y-2">
-        <li class="flex items-center gap-2"><span class="text-green-600">✅</span> Request Submitted</li>
-        <li class="flex items-center gap-2"><span class="${status==="pending"?"text-yellow-600":"text-green-600"}">⏳</span> Admin Review</li>
-        <li class="flex items-center gap-2"><span class="${status==="approved"?"text-green-600":"text-gray-400"}">🎓</span> Approved for Graduation</li>
-      </ul>`;
-
-    // 📋 Checklist (mocked, you can tie to real data)
-    const checklist=`
-      <div class="mt-6 p-4 border rounded bg-gray-50">
-        <h4 class="font-semibold mb-2">Graduation Checklist</h4>
-        <ul class="space-y-1 text-sm">
-          <li>🔲 Library Clearance</li>
-          <li>🔲 Finance Clearance</li>
-          <li>✅ Hostels Cleared</li>
-        </ul>
+      <div class="mt-8">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4">
+          <i class="fas fa-route mr-2"></i>
+          Graduation Timeline
+        </h4>
+        <div class="space-y-4">
+          <div class="timeline-item completed">
+            <div class="flex items-center">
+              <i class="fas fa-check text-green-500 mr-3"></i>
+              <span class="text-gray-800 font-medium">Request Submitted</span>
+            </div>
+            <p class="text-gray-600 text-sm ml-6">Your graduation request has been received</p>
+          </div>
+          <div class="timeline-item ${status==="pending"?"current":status==="approved"?"completed":""}">
+            <div class="flex items-center">
+              <i class="fas fa-clock text-yellow-500 mr-3"></i>
+              <span class="text-gray-800 font-medium">Admin Review</span>
+            </div>
+            <p class="text-gray-600 text-sm ml-6">Administration is reviewing your request</p>
+          </div>
+          <div class="timeline-item ${status==="approved"?"completed":""}">
+            <div class="flex items-center">
+              <i class="fas fa-graduation-cap text-blue-500 mr-3"></i>
+              <span class="text-gray-800 font-medium">Approved for Graduation</span>
+            </div>
+            <p class="text-gray-600 text-sm ml-6">Ready for graduation ceremony</p>
+          </div>
+        </div>
       </div>`;
 
-    // 🎓 Countdown
+    // 📋 Enhanced Checklist
+    const checklist=`
+      <div class="mt-8">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4">
+          <i class="fas fa-clipboard-check mr-2"></i>
+          Graduation Checklist
+        </h4>
+        <div class="space-y-3">
+          <div class="checklist-item">
+            <i class="fas fa-square text-gray-400 mr-3"></i>
+            <span class="text-gray-800">Library Clearance</span>
+          </div>
+          <div class="checklist-item">
+            <i class="fas fa-square text-gray-400 mr-3"></i>
+            <span class="text-gray-800">Finance Clearance</span>
+          </div>
+          <div class="checklist-item completed">
+            <i class="fas fa-check-square text-green-500 mr-3"></i>
+            <span class="text-gray-800">Hostels Cleared</span>
+          </div>
+        </div>
+      </div>`;
+
+    // 🎓 Enhanced Countdown
     let countdownHtml="";
     if(status==="approved" && gradDate){
       const daysLeft=Math.ceil((gradDate-new Date())/(1000*60*60*24));
-      countdownHtml=`<div class="mt-4 text-blue-600 font-semibold">🎓 ${daysLeft} days left to Graduation Ceremony</div>`;
+      countdownHtml=`
+        <div class="mt-8 p-6 glass-effect rounded-xl border border-blue-200">
+          <div class="text-center">
+            <i class="fas fa-calendar-alt text-3xl text-blue-500 mb-3"></i>
+            <h4 class="text-xl font-bold text-gray-800 mb-2">Graduation Ceremony</h4>
+            <div class="text-3xl font-bold text-blue-500 mb-2">${daysLeft}</div>
+            <p class="text-gray-600">days remaining</p>
+            <p class="text-gray-500 text-sm mt-2">${gradDate.toLocaleDateString()}</p>
+          </div>
+        </div>`;
     }
 
     container.innerHTML=`
-      <div class="p-4 border rounded-lg shadow bg-white">
-        <h3 class="font-semibold text-lg text-blue-800 flex items-center gap-2">
-          <i class="fa-solid fa-graduation-cap"></i> Graduation Status
-        </h3>
-        <p class="mt-2 text-slate-600">Status: ${badge}</p>
-        <p class="text-sm text-slate-500 mt-1">Requested: ${requestedAt}</p>
+      <div class="space-y-6">
+        <!-- Status Header -->
+        <div class="text-center pb-6 border-b border-gray-200">
+          <h3 class="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-3">
+            <i class="fas fa-graduation-cap text-blue-500"></i>
+            Graduation Status
+          </h3>
+          <div class="flex items-center justify-center gap-4 mb-3">
+            <span class="text-gray-600">Status:</span>
+            ${badge}
+          </div>
+          <p class="text-gray-500 text-sm">
+            <i class="fas fa-clock mr-2"></i>
+            Requested: ${requestedAt}
+          </p>
+        </div>
+        
         ${steps}
         ${checklist}
         ${countdownHtml}
-        <button id="btnGradSlip" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Download Graduation Slip</button>
+        
+        <!-- Download Button -->
+        <div class="text-center pt-6 border-t border-gray-200">
+          <button id="btnGradSlip" class="btn-primary px-6 py-3 text-white rounded-xl shadow-lg font-semibold">
+            <i class="fas fa-download mr-2"></i>
+            Download Graduation Slip
+          </button>
+        </div>
       </div>
     `;
 
