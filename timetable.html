@@ -2,58 +2,276 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>My Timetable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Timetable | University Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn {
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+    }
+    
+    .input-field {
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      transition: all 0.3s ease;
+      background: #f8fafc;
+    }
+    
+    .input-field:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      outline: none;
+    }
+    
+    .page-title {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .timetable-table {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .timetable-table th {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      font-weight: 600;
+      color: var(--dark);
+      padding: 16px;
+      border: none;
+    }
+    
+    .timetable-table td {
+      padding: 16px;
+      border: none;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .timetable-table tr:hover {
+      background: #f8fafc;
+    }
+    
+    .course-cell {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 4px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    }
+    
+    .course-code {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    
+    .course-venue {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1001;
+      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .filter-section {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid #e2e8f0;
+    }
+  </style>
 </head>
-<body class="p-6 bg-gray-50">
+<body class="min-h-screen p-4">
 
-  <!-- ✅ Popup Message -->
-  <div id="popupMsg" class="hidden fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between">
-    <span id="popupText" class="text-sm"></span>
-    <button id="popupClose" class="ml-4 px-3 py-1 rounded bg-white/20 text-sm font-medium">OK</button>
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+        <i class="fas fa-calendar-alt text-3xl text-white"></i>
+      </div>
+      <h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+        My Timetable
+      </h1>
+      <p class="text-white/90 text-xl max-w-2xl mx-auto drop-shadow-md">View your class schedule and academic calendar</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass-effect rounded-3xl p-8 card-hover">
+
+      <!-- Filter Section -->
+      <div class="filter-section">
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">
+          <i class="fas fa-filter mr-3 text-blue-500"></i>
+          Select Academic Period
+        </h3>
+        <div class="flex flex-col md:flex-row gap-4 items-end">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-calendar mr-1"></i>Academic Year
+            </label>
+            <select id="yearSelect" class="input-field w-full p-3">
+              <option value="">Select Year</option>
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-clock mr-1"></i>Semester
+            </label>
+            <select id="semSelect" class="input-field w-full p-3">
+              <option value="">Select Semester</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+            </select>
+          </div>
+          <div>
+            <button id="btnLoadTimetable" class="btn-primary px-6 py-3 text-white rounded-xl shadow-lg font-semibold">
+              <i class="fas fa-search mr-2"></i>
+              Load Timetable
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timetable Grid -->
+      <div class="overflow-x-auto">
+        <div id="noTimetableMessage" class="text-center py-12 text-gray-600 hidden">
+          <div class="text-gray-400 text-6xl mb-4">
+            <i class="fas fa-calendar-times"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 text-gray-800">No Timetable Available</h3>
+          <p class="text-gray-600">Please select a year and semester to view your timetable</p>
+        </div>
+        
+        <table id="timetableTable" class="timetable-table w-full hidden">
+          <thead>
+            <tr>
+              <th class="text-center">
+                <i class="fas fa-clock mr-1"></i>Time
+              </th>
+              <th class="text-center">
+                <i class="fas fa-calendar-day mr-1"></i>Monday
+              </th>
+              <th class="text-center">
+                <i class="fas fa-calendar-day mr-1"></i>Tuesday
+              </th>
+              <th class="text-center">
+                <i class="fas fa-calendar-day mr-1"></i>Wednesday
+              </th>
+              <th class="text-center">
+                <i class="fas fa-calendar-day mr-1"></i>Thursday
+              </th>
+              <th class="text-center">
+                <i class="fas fa-calendar-day mr-1"></i>Friday
+              </th>
+            </tr>
+          </thead>
+          <tbody id="timetableBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
-
-  <section class="max-w-6xl mx-auto bg-white shadow rounded p-6">
-    <h2 class="text-2xl font-bold mb-6">My Timetable</h2>
-
-    <!-- Year & Semester Select -->
-    <div class="mb-6 flex gap-4">
-      <div>
-        <label class="block text-sm font-medium">Year</label>
-        <select id="yearSelect" class="border rounded px-3 py-2">
-          <option value="">Select</option>
-          <option>1</option><option>2</option><option>3</option><option>4</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium">Semester</label>
-        <select id="semSelect" class="border rounded px-3 py-2">
-          <option value="">Select</option>
-          <option>1</option><option>2</option>
-        </select>
-      </div>
-      <button id="btnLoadTimetable" class="self-end bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-        Load Timetable
-      </button>
-    </div>
-
-    <!-- Timetable Grid -->
-    <div class="overflow-x-auto">
-      <table id="timetableTable" class="w-full border hidden">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="p-2 border">Time</th>
-            <th class="p-2 border">Monday</th>
-            <th class="p-2 border">Tuesday</th>
-            <th class="p-2 border">Wednesday</th>
-            <th class="p-2 border">Thursday</th>
-            <th class="p-2 border">Friday</th>
-          </tr>
-        </thead>
-        <tbody id="timetableBody"></tbody>
-      </table>
-    </div>
-  </section>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -72,19 +290,47 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ✅ Popup system
+// Modern notification system
 function showPopup(msg, type="success") {
-  const box = document.getElementById("popupMsg");
-  const text = document.getElementById("popupText");
-  const closeBtn = document.getElementById("popupClose");
-
-  text.textContent = msg;
-  box.className = "fixed top-4 inset-x-0 max-w-md mx-auto z-50 shadow-lg rounded p-4 flex items-start justify-between " +
-    (type==="success" ? "bg-green-500 text-white" : "bg-red-500 text-white");
-
-  box.classList.remove("hidden");
-  closeBtn.onclick = ()=> box.classList.add("hidden");
-  setTimeout(()=> box.classList.add("hidden"), 5000);
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
+  const notification = document.createElement('div');
+  notification.className = 'notification';
+  
+  const iconMap = {
+    success: 'fas fa-check-circle',
+    error: 'fas fa-exclamation-circle',
+    info: 'fas fa-info-circle',
+    warning: 'fas fa-exclamation-triangle'
+  };
+  
+  const colorMap = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500'
+  };
+  
+  notification.innerHTML = `
+    <div class="${colorMap[type]} text-white p-4 rounded-lg shadow-lg flex items-center gap-3">
+      <i class="${iconMap[type]} text-xl"></i>
+      <span class="flex-1">${msg}</span>
+      <button onclick="this.parentNode.parentNode.remove()" class="text-white hover:text-gray-200 ml-2">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 5000);
 }
 
 let currentUser;
@@ -92,9 +338,15 @@ let currentUser;
 onAuthStateChanged(auth, user=>{
   if(!user){
     showPopup("You must be logged in to view timetable","error");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 2000);
     return;
   }
   currentUser=user;
+  
+  // Show initial message
+  document.getElementById("noTimetableMessage").classList.remove("hidden");
 });
 
 // 📅 Load Timetable
@@ -111,6 +363,7 @@ document.getElementById("btnLoadTimetable").onclick = async ()=>{
 
     if(!snap.exists() || !snap.data().schedule){
       document.getElementById("timetableTable").classList.add("hidden");
+      document.getElementById("noTimetableMessage").classList.remove("hidden");
       showPopup("No timetable available for selected year/semester","error");
       return;
     }
@@ -125,16 +378,20 @@ document.getElementById("btnLoadTimetable").onclick = async ()=>{
 
     times.forEach(time=>{
       const tr=document.createElement("tr");
-      tr.innerHTML=`<td class="p-2 border font-semibold">${time}</td>`;
+      tr.innerHTML=`<td class="font-semibold text-center bg-gray-50">${time}</td>`;
       days.forEach(day=>{
         const cell=document.createElement("td");
-        cell.className="p-2 border text-sm";
+        cell.className="text-center";
         const entry=schedule.find(s=>s.time===time && s.day===day);
         if(entry){
-          cell.innerHTML=`<div class="font-bold">${entry.courseCode}</div>
-                          <div class="text-xs">${entry.venue}</div>`;
+          cell.innerHTML=`
+            <div class="course-cell">
+              <div class="course-code">${entry.courseCode}</div>
+              <div class="course-venue">${entry.venue}</div>
+            </div>
+          `;
         } else {
-          cell.innerHTML="-";
+          cell.innerHTML='<div class="text-gray-400">-</div>';
         }
         tr.appendChild(cell);
       });
@@ -142,6 +399,7 @@ document.getElementById("btnLoadTimetable").onclick = async ()=>{
     });
 
     document.getElementById("timetableTable").classList.remove("hidden");
+    document.getElementById("noTimetableMessage").classList.add("hidden");
     showPopup("Timetable loaded successfully","success");
 
   } catch(err){
