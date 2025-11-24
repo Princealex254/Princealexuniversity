@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library - Prince Alex University</title>
+    <!--
+    ====================================================================================================
+    FILE: library.html
+    PURPOSE: Provides a library interface with a searchable catalog and loan information.
+    ====================================================================================================
+    -->
+    <style>
+        /* --- CSS Variables for Theming (Same as dashboard.html) --- */
+        :root, [data-theme="light"] {
+            --color-primary: #1A237E; --color-primary-light: #303F9F; --color-accent: #FFC107; --color-accent-hover: #FFA000; --color-text: #212121; --color-text-muted: #757575; --color-bg: #F5F5F5; --color-surface: #FFFFFF; --color-border: #E0E0E0; --color-error: #D32F2F; --color-success: #388E3C; --color-info: #1976D2; --color-warning: #FFA000;
+            --font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --shadow-sm: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 3px 6px rgba(0,0,0,0.12); --border-radius: 8px; --transition-speed: 0.3s;
+        }
+        [data-theme="dark"] {
+            --color-primary: #9FA8DA; --color-primary-light: #7986CB; --color-accent: #FFCA28; --color-accent-hover: #FFD54F; --color-text: #E0E0E0; --color-text-muted: #9E9E9E; --color-bg: #121212; --color-surface: #1E1E1E; --color-border: #424242;
+        }
+
+        /* --- Global Styles & Resets (Same as dashboard.html) --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            font-family: var(--font-family); background-color: var(--color-bg); color: var(--color-text); transition: background-color var(--transition-speed), color var(--transition-speed);
+            display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr auto;
+            grid-template-areas: "sidebar header" "sidebar main" "sidebar footer"; min-height: 100vh;
+        }
+        a { color: var(--color-primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        img { max-width: 100%; display: block; }
+
+        /* --- Layout Components (Same as dashboard.html) --- */
+        .header { grid-area: header; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; }
+        .sidebar { grid-area: sidebar; background-color: var(--color-primary); color: #E8EAF6; padding: 1.5rem 0; display: flex; flex-direction: column; position: fixed; height: 100%; width: 250px; transition: transform var(--transition-speed) ease; }
+        .main-content { grid-area: main; padding: 2rem; }
+        .footer { grid-area: footer; padding: 1rem 2rem; text-align: center; font-size: 0.8rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+
+        /* --- Header & Sidebar Components (Same as dashboard.html) --- */
+        .header__title { font-size: 1.5rem; font-weight: 600; }
+        .header__actions { display: flex; align-items: center; gap: 1.5rem; }
+        .notification-bell { position: relative; cursor: pointer; }
+        .notification-badge { position: absolute; top: -5px; right: -8px; background-color: var(--color-error); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; justify-content: center; align-items: center; font-weight: 600; }
+        .user-menu { position: relative; }
+        .user-menu__avatar { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        .user-menu__dropdown { display: none; position: absolute; right: 0; top: 50px; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--border-radius); box-shadow: var(--shadow-md); width: 180px; z-index: 110; }
+        .user-menu__dropdown a { display: block; padding: 0.75rem 1rem; color: var(--color-text); }
+        .user-menu__dropdown a:hover { background-color: var(--color-bg); }
+        .user-menu.active .user-menu__dropdown { display: block; }
+        .sidebar__logo { font-size: 1.5rem; font-weight: 700; text-align: center; padding: 0 1rem 1.5rem; color: white; }
+        .sidebar__logo .accent { color: var(--color-accent); }
+        .sidebar__nav { overflow-y: auto; }
+        .sidebar__nav ul { list-style: none; }
+        .sidebar__nav-item a { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.5rem; color: #C5CAE9; transition: background-color var(--transition-speed), color var(--transition-speed); border-left: 4px solid transparent; }
+        .sidebar__nav-item a:hover { background-color: rgba(0,0,0,0.2); color: white; }
+        .sidebar__nav-item.active a { background-color: rgba(0,0,0,0.3); color: white; font-weight: 600; border-left-color: var(--color-accent); }
+        .sidebar__nav-icon { width: 20px; height: 20px; }
+        .hamburger-menu { display: none; cursor: pointer; z-index: 102; }
+
+        /* --- General UI Components --- */
+        .card { background-color: var(--color-surface); border-radius: var(--border-radius); box-shadow: var(--shadow-sm); padding: 1.5rem; }
+        .btn { display: inline-block; padding: 0.6rem 1.2rem; font-size: 0.9rem; font-weight: 600; text-align: center; border-radius: var(--border-radius); cursor: pointer; transition: all var(--transition-speed); border: 1px solid transparent; }
+        .btn--primary { background-color: var(--color-primary); color: white; }
+        .btn--primary:hover { background-color: var(--color-primary-light); }
+        .btn--secondary { background-color: transparent; color: var(--color-primary); border-color: var(--color-primary); }
+        .btn--secondary:hover { background-color: rgba(26, 35, 126, 0.05); }
+
+        /* --- Page-Specific Styles: Library --- */
+        .library-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+        .library-main { display: flex; flex-direction: column; gap: 2rem; }
+        .library-sidebar { display: flex; flex-direction: column; gap: 2rem; }
+
+        .library-card {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+        }
+        .library-card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .library-card__title { font-size: 1.2rem; font-weight: 600; }
+        .library-card__fines { font-size: 1.1rem; font-weight: 700; color: var(--color-accent); }
+        .loan-item { padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        .loan-item:last-child { border-bottom: none; }
+        .loan-item__title { font-weight: 500; }
+        .loan-item__due { font-size: 0.9rem; opacity: 0.9; }
+        .loan-item__due.overdue { color: var(--color-accent); font-weight: 600; }
+
+        .search-controls { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .search-box { flex-grow: 1; position: relative; }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; font-size: 1rem; border: 1px solid var(--color-border); border-radius: var(--border-radius); background-color: var(--color-surface); }
+        .search-box svg { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); }
+
+        .catalog-list { display: flex; flex-direction: column; gap: 1rem; }
+        .book-item {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+        }
+        .book-item__details { flex-grow: 1; }
+        .book-item__title { font-weight: 600; font-size: 1.1rem; }
+        .book-item__author { color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .book-item__status { font-weight: 600; font-size: 0.9rem; }
+        .book-item__status--available { color: var(--color-success); }
+        .book-item__status--unavailable { color: var(--color-text-muted); }
+        .book-item__actions { flex-shrink: 0; }
+
+        /* --- Message Overlay --- */
+        .message-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .message-overlay.show { display: flex; }
+        .message-overlay-content {
+            background-color: var(--color-surface); padding: 2rem; border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md); width: 90%; max-width: 400px; text-align: center;
+        }
+        .message-overlay-content p { margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.5; }
+        .message-overlay-content.success { border-top: 4px solid var(--color-success); }
+        .message-overlay-content.error { border-top: 4px solid var(--color-error); }
+        .message-overlay-content.info { border-top: 4px solid var(--color-info); }
+        [data-theme="dark"] .message-overlay-content {
+            background-color: var(--color-surface);
+            color: var(--color-text);
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 1024px) {
+            body { grid-template-columns: 1fr; grid-template-areas: "header" "main" "footer"; }
+            .sidebar { transform: translateX(-100%); z-index: 200; }
+            .sidebar.open { transform: translateX(0); box-shadow: 5px 0 15px rgba(0,0,0,0.2); }
+            .hamburger-menu { display: block; padding: 0.5rem; }
+            .header { padding: 1rem; }
+            .library-layout { grid-template-columns: 1fr; }
+            .library-sidebar { grid-row: 1; } /* Move sidebar to top on smaller screens */
+        }
+        @media (max-width: 768px) {
+            .main-content { padding: 1rem; }
+            .book-item { flex-direction: column; align-items: flex-start; }
+            .library-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <header class="header">
+        <div class="hamburger-menu" id="hamburgerMenu" aria-label="Open navigation menu" role="button" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </div>
+        <h1 class="header__title">Library</h1>
+        <div class="header__actions">
+            <div class="notification-bell" id="notificationBell">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span class="notification-badge" id="notificationCount"></span>
+            </div>
+            <div class="user-menu" id="userMenu">
+                <img src="https://i.pravatar.cc/150?u=alexdoe" alt="User Avatar" class="user-menu__avatar" id="userAvatar">
+                <div class="user-menu__dropdown">
+                    <a href="profile.html">Profile</a>
+                    <a href="settings.html#theme-settings">Settings</a>
+                    <a href="index.html" id="logoutBtn">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar__logo">Prince Alex <span class="accent">U.</span></div>
+        <nav class="sidebar__nav">
+            <ul>
+                <li class="sidebar__nav-item" id="nav-dashboard"><a href="dashboard.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span>Dashboard</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-profile"><a href="profile.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Profile</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-my-courses"><a href="my-courses.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    <span>My Courses</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-results"><a href="results.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>My Results</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-fee-statement"><a href="fee-statement.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span>Fee Statement</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-timetable"><a href="timetable.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>Timetable</span>
+                </a></li>
+                <li class="sidebar__nav-item active" id="nav-library"><a href="library.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    <span>Library</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-hostel"><a href="hostel.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                    <span>Hostel</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-messages"><a href="messages.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <span>Messages</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-support"><a href="support.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>Support</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-graduation"><a href="graduation.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v10.5M12 22v-1.5M12 12.5a4.5 4.5 0 0 0 4.5-4.5c0-2.49-2.02-4.5-4.5-4.5s-4.5 2.01-4.5 4.5A4.5 4.5 0 0 0 12 12.5zM12 12.5a4.5 4.5 0 0 1-4.5 4.5c0 2.49 2.02 4.5 4.5 4.5s4.5-2.01 4.5-4.5A4.5 4.5 0 0 1 12 12.5z"></path></svg>
+                    <span>Graduation</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-clearance"><a href="clearance.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    <span>Clearance</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-settings"><a href="settings.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="library-layout">
+            <div class="library-main">
+                <div class="card">
+                    <div class="search-controls">
+                        <div class="search-box">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="catalogSearch" placeholder="Search catalog by title or author...">
+                        </div>
+                    </div>
+                </div>
+                <div class="catalog-list" id="catalogList">
+                    <!-- Book items will be injected here -->
+                </div>
+                <p id="noResultsMessage" style="display: none; text-align: center; margin-top: 2rem; color: var(--color-text-muted);">No books match your search.</p>
+            </div>
+            <div class="library-sidebar">
+                <div class="library-card">
+                    <div class="library-card__header">
+                        <h2 class="library-card__title">My Library Card</h2>
+                        <div id="totalFines" class="library-card__fines">$0.00</div>
+                    </div>
+                    <div id="loanList">
+                        <!-- Loaned items will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Message Overlay -->
+    <div id="messageOverlay" class="message-overlay">
+        <div id="messageOverlayContent" class="message-overlay-content">
+            <p id="messageOverlayText"></p>
+            <button id="messageOverlayClose" class="btn btn--primary">OK</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Prince Alex University. All Rights Reserved. | Portal Version 1.0</p>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+            authDomain: "universityweb-19e1e.firebaseapp.com",
+            projectId: "universityweb-19e1e",
+            storageBucket: "universityweb-19e1e.firebasestorage.app",
+            messagingSenderId: "401942926589",
+            appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            const userProfile = userDocSnap.exists() ? userDocSnap.data() : {};
+            initializePage(user, userProfile);
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+
+    async function initializePage(user, userProfile) {
+        // --- Common UI Setup ---
+        const sidebar = document.getElementById('sidebar');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) hamburgerMenu.addEventListener('click', () => sidebar.classList.toggle('open'));
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) userMenu.addEventListener('click', (e) => { e.stopPropagation(); userMenu.classList.toggle('active'); });
+        document.addEventListener('click', () => { if (userMenu && userMenu.classList.contains('active')) userMenu.classList.remove('active'); });
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.addEventListener('click', async (e) => { e.preventDefault(); await signOut(auth); });
+        const currentTheme = userProfile?.theme || 'light';
+        document.body.setAttribute('data-theme', currentTheme);
+        const currentPage = window.location.pathname.split('/').pop();
+        const navId = 'nav-' + currentPage.replace('.html', '');
+        const activeNavItem = document.getElementById(navId);
+        if (activeNavItem) {
+            document.querySelectorAll('.sidebar__nav-item').forEach(item => item.classList.remove('active'));
+            activeNavItem.classList.add('active');
+        }
+        const userAvatar = document.getElementById('userAvatar');
+        if (userAvatar && userProfile) {
+            userAvatar.src = userProfile.avatar;
+            userAvatar.alt = `${userProfile.name}'s avatar`;
+        }
+        const messagesCol = collection(db, "users", user.uid, "messages");
+        const unreadMessagesSnapshot = await getDocs(query(messagesCol, where("read", "==", false)));
+        const notificationCountEl = document.getElementById('notificationCount');
+        if (notificationCountEl) {
+            const unreadCount = unreadMessagesSnapshot.size;
+            if (unreadCount > 0) {
+                notificationCountEl.textContent = unreadCount;
+                notificationCountEl.style.display = 'flex';
+            } else {
+                notificationCountEl.style.display = 'none';
+            }
+        }
+
+        // --- LIBRARY-SPECIFIC SCRIPT ---
+        const loanListEl = document.getElementById('loanList');
+        const totalFinesEl = document.getElementById('totalFines');
+        const catalogListEl = document.getElementById('catalogList');
+        const searchInput = document.getElementById('catalogSearch');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+
+        let allCatalogBooks = [];
+
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amount);
+        };
+
+        const sanitize = (str) => {
+            if (str === null || typeof str === 'undefined') return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        };
+
+        function showMessage(message, type = 'success') {
+            const overlay = document.getElementById('messageOverlay');
+            const content = document.getElementById('messageOverlayContent');
+            const text = document.getElementById('messageOverlayText');
+
+            text.textContent = message;
+            content.className = 'message-overlay-content'; // Reset classes
+            content.classList.add(type); // 'success' or 'error'
+
+            overlay.classList.add('show');
+        }
+
+        async function renderLibraryCard() {
+            const loansCol = collection(db, "users", user.uid, "libraryLoans");
+            const loansSnapshot = await getDocs(loansCol);
+            const loans = loansSnapshot.docs.map(doc => doc.data());
+
+            loanListEl.innerHTML = '';
+            let totalFines = 0;
+
+            if (loans.length === 0) {
+                loanListEl.innerHTML = '<p style="opacity: 0.8; font-size: 0.9rem;">No books currently on loan.</p>';
+            } else {
+                loans.forEach(loan => {
+                    let fine = 0;
+                    let isOverdue = false;
+                    let dueText = 'Status: Reserved. Please pick up.';
+
+                    if (loan.status === 'Checked Out' && loan.dueDate) {
+                        const dueDate = loan.dueDate.toDate();
+                        isOverdue = new Date() > dueDate;
+                        dueText = `Due: ${dueDate.toLocaleDateString()}`;
+                        if (isOverdue) {
+                            const daysOverdue = Math.floor((new Date() - dueDate) / (1000 * 60 * 60 * 24));
+                            fine = daysOverdue * 10;
+                            dueText += ` (Overdue - Fine: ${formatCurrency(fine)})`;
+                        }
+                    }
+                    totalFines += fine;
+
+                    const loanItem = document.createElement('div');
+                    loanItem.className = 'loan-item';
+                    loanItem.innerHTML = `
+                        <div class="loan-item__title">${sanitize(loan.title)}</div>
+                        <div class="loan-item__due ${isOverdue ? 'overdue' : ''}">${dueText}</div>
+                    `;
+                    loanListEl.appendChild(loanItem);
+                });
+            }
+            totalFinesEl.textContent = formatCurrency(totalFines);
+        }
+
+        function renderCatalog(catalog) {
+            catalogListEl.innerHTML = '';
+            if (catalog.length === 0) {
+                noResultsMessage.style.display = 'block';
+                catalogListEl.innerHTML = `<p style="text-align: center; color: var(--color-text-muted);">No books found in the catalog.</p>`;
+                return;
+            }
+            noResultsMessage.style.display = 'none';
+
+            catalog.forEach(book => {
+                const bookItem = document.createElement('div');
+                bookItem.className = 'book-item';
+                bookItem.innerHTML = `
+                    <div class="book-item__details">
+                        <div class="book-item__title">${sanitize(book.title)}</div>
+                        <div class="book-item__author">by ${sanitize(book.author)}</div>
+                        <div class="book-item__status ${book.availableCopies > 0 ? 'book-item__status--available' : 'book-item__status--unavailable'}">
+                            ${book.availableCopies > 0 ? `${book.availableCopies} copies available` : 'All copies checked out'}
+                        </div>
+                    </div>
+                    <div class="book-item__actions">
+                        <button class="btn btn--primary reserve-btn" data-book-id="${book.id}" ${book.availableCopies === 0 ? 'disabled' : ''}>
+                            Reserve
+                        </button>
+                    </div>
+                `;
+                catalogListEl.appendChild(bookItem);
+            });
+
+            document.querySelectorAll('.reserve-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const bookId = e.currentTarget.dataset.bookId;
+                    const bookToReserve = allCatalogBooks.find(b => b.id === bookId);
+                    if (!bookToReserve) return;
+
+                    e.currentTarget.disabled = true;
+                    e.currentTarget.textContent = 'Reserving...';
+
+                    const newLoan = {
+                        bookId: bookId,
+                        title: bookToReserve.title,
+                        author: bookToReserve.author,
+                        reservationDate: new Date(),
+                        status: 'Reserved', // New status field
+                        fine: 0 // Initial fine
+                    };
+
+                    try {
+                        // Add the loan to the user's subcollection
+                        const loansCol = collection(db, "users", user.uid, "libraryLoans");
+                        await addDoc(loansCol, newLoan);
+
+                        // Update the book's availability in the master catalog
+                        const bookDocRef = doc(db, "libraryCatalog", bookId);
+                        await updateDoc(bookDocRef, { availableCopies: bookToReserve.availableCopies - 1 });
+
+                        showMessage(`'${bookToReserve.title}' has been reserved. Please pick it up from the library.`, 'success');
+                        await init(); // Re-fetch all data to update the UI
+                    } catch (error) {
+                        console.error("Error reserving book: ", error);
+                        showMessage("Could not reserve the book. Please try again.", 'error');
+                        e.currentTarget.disabled = false;
+                        e.currentTarget.textContent = 'Reserve';
+                    }
+                });
+            });
+        }
+
+        function filterCatalog() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredCatalog = allCatalogBooks.filter(book =>
+                book.title.toLowerCase().includes(searchTerm) ||
+                book.author.toLowerCase().includes(searchTerm)
+            );
+            renderCatalog(filteredCatalog);
+        }
+
+        async function init() {
+            await renderLibraryCard();
+
+            const catalogCol = collection(db, "libraryCatalog");
+            const catalogSnapshot = await getDocs(catalogCol);
+            allCatalogBooks = catalogSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            renderCatalog(allCatalogBooks);
+            searchInput.addEventListener('input', filterCatalog);
+            document.getElementById('messageOverlayClose').addEventListener('click', () => {
+                document.getElementById('messageOverlay').classList.remove('show');
+            });
+        }
+
+        await init();
+    }
+    </script>
+
+</body>
+</html>

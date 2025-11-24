@@ -1,0 +1,3295 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal - Prince Alex University</title>
+    <style>
+        /* --- CSS Variables for Theming (Consistent with dashboard.html) --- */
+        :root, [data-theme="light"] {
+            --color-primary: #1A237E; /* Deep Navy */
+            --color-primary-light: #303F9F;
+            --color-accent: #FFC107; /* Warm Gold */
+            --color-accent-hover: #FFA000;
+            --color-text: #212121;
+            --color-text-muted: #757575;
+            --color-bg: #F5F5F5;
+            --color-surface: #FFFFFF;
+            --color-border: #E0E0E0;
+            --color-error: #D32F2F;
+            --color-success: #388E3C;
+
+            --font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 3px 6px rgba(0,0,0,0.12);
+            --border-radius: 8px;
+            --transition-speed: 0.3s;
+        }
+
+        [data-theme="dark"] {
+            --color-primary: #9FA8DA;
+            --color-primary-light: #7986CB;
+            --color-accent: #FFCA28;
+            --color-accent-hover: #FFD54F;
+            --color-text: #E0E0E0;
+            --color-text-muted: #9E9E9E;
+            --color-bg: #121212;
+            --color-surface: #1E1E1E;
+            --color-border: #424242;
+        }
+
+        /* --- Global Styles & Resets --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+            min-height: 100vh;
+        }
+        a { color: var(--color-primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        img { max-width: 100%; display: block; }
+
+        /* --- Login Page Styles --- */
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+        }
+        .login-box__title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--color-primary);
+        }
+        .login-box__subtitle {
+            margin-bottom: 2rem;
+            color: var(--color-text-muted);
+        }
+        .login-form .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .login-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .login-form input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+        }
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.2);
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            text-align: center;
+            width: 100%;
+        }
+        .btn--primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        .btn--primary:hover {
+            background-color: var(--color-primary-light);
+            transform: translateY(-2px);
+        }
+        .login-error {
+            color: var(--color-error);
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            min-height: 1.2em;
+        }
+
+        /* --- Dashboard Layout (Hidden by default) --- */
+        .dashboard-container {
+            display: none; /* Hidden by default */
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main"
+                "sidebar footer";
+            min-height: 100vh;
+        }
+        body.dashboard-active .dashboard-container {
+            display: grid; /* Shown when admin is logged in */
+        }
+        body.dashboard-active .login-container {
+            display: none; /* Hide login form */
+        }
+
+        /* --- Re-using dashboard.html styles for consistency --- */
+        .header { grid-area: header; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; }
+        .sidebar { grid-area: sidebar; background-color: var(--color-primary); color: #E8EAF6; padding: 1.5rem 0; display: flex; flex-direction: column; position: fixed; height: 100%; width: 250px; }
+        .main-content { grid-area: main; padding: 2rem; overflow-y: auto; }
+        .hamburger-menu { display: none; cursor: pointer; z-index: 102; }
+        .footer { grid-area: footer; padding: 1rem 2rem; text-align: center; font-size: 0.8rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+        .header__title { font-size: 1.5rem; font-weight: 600; }
+        .header__actions { display: flex; align-items: center; gap: 1.5rem; }
+        .sidebar__logo { font-size: 1.5rem; font-weight: 700; text-align: center; padding: 0 1rem 1.5rem; color: white; }
+        .sidebar__nav {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .sidebar__logo .accent { color: var(--color-accent); }
+        .sidebar__nav ul { list-style: none; }
+        .sidebar__nav-item a { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.5rem; color: #C5CAE9; transition: background-color var(--transition-speed), color var(--transition-speed); border-left: 4px solid transparent; }
+        .sidebar__nav-item a:hover { background-color: rgba(0,0,0,0.2); color: white; }
+        .sidebar__nav-item.active a { background-color: rgba(0,0,0,0.3); color: white; font-weight: 600; border-left-color: var(--color-accent); }
+        .sidebar__nav-icon { width: 20px; height: 20px; }
+        .card { background-color: var(--color-surface); border-radius: var(--border-radius); box-shadow: var(--shadow-sm); padding: 1.5rem; transition: all var(--transition-speed); }
+        .card__title { font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; }
+
+        /* --- Admin Dashboard Specifics --- */
+        .table-container {
+            overflow-x: auto;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .data-table th, .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .data-table th {
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+        }
+        .data-table td .action-btn {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid var(--color-border);
+            background: transparent;
+            color: var(--color-text);
+        }
+        .data-table td .action-btn:hover {
+            background: var(--color-bg);
+            border-color: var(--color-text-muted);
+        }
+        .data-table td .action-btn.delete { color: var(--color-error); }
+        .data-table td .action-btn.delete:hover { border-color: var(--color-error); }
+
+        /* --- Dashboard View Specifics --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card { text-align: center; }
+        .stat-card__value { font-size: 2.5rem; font-weight: 700; color: var(--color-primary); }
+        .stat-card__label { font-size: 1rem; color: var(--color-text-muted); }
+
+        /* --- Modal & Form Styles --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal.open { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background-color: var(--color-surface); color: var(--color-text); margin: 2rem auto; padding: 2rem; border: 1px solid var(--color-border); width: 90%; max-width: 800px; border-radius: var(--border-radius); box-shadow: var(--shadow-md); position: relative; animation: modal-fade-in 0.3s ease; }
+        @keyframes modal-fade-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; color: var(--color-text-muted); font-size: 1.5rem; font-weight: bold; cursor: pointer; border: none; background: none; }
+        .modal-header { margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.5rem; font-weight: 600; }
+        .modal-body { max-height: 70vh; overflow-y: auto; padding-right: 1rem; }
+        .modal-footer { margin-top: 1.5rem; text-align: right; display: flex; gap: 1rem; justify-content: flex-end; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
+        .form-group input, .form-group select { width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid var(--color-border); border-radius: var(--border-radius); background-color: var(--color-bg); color: var(--color-text); }
+        .form-group input:read-only { background-color: var(--color-border); cursor: not-allowed; opacity: 0.7; }
+
+        /* --- Search Box --- */
+        .search-controls {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .search-box {
+            flex-grow: 1;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            font-size: 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+        }
+        .search-box svg {
+            position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted);
+        }
+
+        .search-box .clear-search {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-text-muted);
+            cursor: pointer;
+            display: none; /* Hidden by default */
+        }
+        .search-box .clear-search:hover {
+            color: var(--color-text);
+        }
+
+        /* --- Message Overlay --- */
+        .message-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000; /* Higher than modal */
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+        }
+        .message-overlay.show {
+            display: flex;
+        }
+        .message-overlay-content {
+            background-color: var(--color-surface);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        /* --- Spinner for Search Button --- */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                grid-template-areas: "header" "main" "footer";
+            }
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 200;
+                transition: transform var(--transition-speed) ease;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+            }
+            .hamburger-menu { display: block; padding: 0.5rem; }
+            .header { padding: 1rem; }
+        }
+        @media (max-width: 768px) {
+            .main-content { padding: 1rem; }
+            #manageCommunicationsView .card > div[style*="grid"] {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            #supportTicketsList { height: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN VIEW -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <h1 class="login-box__title">Admin Portal</h1>
+            <p class="login-box__subtitle">Prince Alex University</p>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn--primary" id="loginButton">Sign In</button>
+                <p class="login-error" id="loginError"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD VIEW (Initially Hidden) -->
+    <div class="dashboard-container" id="dashboardContainer">
+        <header class="header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="hamburger-menu" id="hamburgerMenu" aria-label="Open navigation menu" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></div>
+                <h1 class="header__title">Admin Dashboard</h1>
+            </div>
+            <div class="header__actions">
+                <span id="adminName" style="font-weight: 600;"></span>
+                <a href="#" id="logoutBtn" class="btn" style="width: auto; background-color: var(--color-error); color: white;">Logout</a>
+            </div>
+        </header>
+
+        <aside class="sidebar">
+            <div class="sidebar__logo">Admin <span class="accent">Panel</span></div>
+            <nav class="sidebar__nav">
+                <ul>
+                    <li class="sidebar__nav-item active" id="navDashboard"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span>Dashboard</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageStudents"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span>Manage Students</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageCourses"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                        <span>Manage Courses</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageFinances"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        <span>Manage Finances</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageResults"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span>Manage Results</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageLibrary"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                        <span>Manage Library</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageLoans"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12c0-5.25-4.25-9.5-9.5-9.5S2.5 6.75 2.5 12s4.25 9.5 9.5 9.5s9.5-4.25 9.5-9.5z"></path><path d="M12 8v4l2 2"></path></svg>
+                        <span>Manage Loans</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageHostel"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span>Manage Hostel</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navHostelBookings"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                        <span>Hostel Bookings</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageClearance"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                        <span>Manage Clearance</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageGraduation"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v10.5M12 22v-1.5M12 12.5a4.5 4.5 0 0 0 4.5-4.5c0-2.49-2.02-4.5-4.5-4.5s-4.5 2.01-4.5 4.5A4.5 4.5 0 0 0 12 12.5zM12 12.5a4.5 4.5 0 0 1-4.5 4.5c0 2.49 2.02 4.5 4.5 4.5s4.5-2.01 4.5-4.5A4.5 4.5 0 0 1 12 12.5z"></path></svg>
+                        <span>Manage Graduation</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navManageTimetable"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span>Manage Timetable</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navCommunications"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        <span>Communications</span>
+                    </a></li>
+                    <li class="sidebar__nav-item" id="navSettings"><a href="#">
+                        <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <span>Settings</span>
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <div id="dashboardView">
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <div id="totalStudents" class="stat-card__value">0</div>
+                        <div class="stat-card__label">Total Students</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div id="totalCourses" class="stat-card__value">0</div>
+                        <div class="stat-card__label">Active Courses</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div id="totalRevenue" class="stat-card__value">KES 0</div>
+                        <div class="stat-card__label">Total Revenue</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2 class="card__title">Recent Activity</h2>
+                    <p>Activity feed coming soon...</p>
+                </div>
+            </div>
+
+            <!-- Manage Students View -->
+            <div id="manageStudentsView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Students</h2>
+                    <form id="studentSearchForm" class="search-controls">
+                        <div class="search-box" style="flex-grow: 1;">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="studentSearch" placeholder="Search by name, email, or student ID..." style="padding-right: 2.5rem;">
+                            <svg id="clearSearchBtn" class="clear-search" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </div>
+                        <button type="submit" id="searchBtn" class="btn btn--primary" style="width: auto; display: flex; align-items: center; justify-content: center;">Search</button>
+                        <button id="createStudentBtn" class="btn btn--primary" style="width: auto; white-space: nowrap;">Create Student</button>
+                    </form>
+    
+                    <div class="table-container">
+                        <table id="studentsTable" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Program</th>
+                                    <th>Balance Due</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                <!-- Student rows will be injected here by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Courses View -->
+            <div id="manageCoursesView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Courses</h2>
+                    <button id="createCourseBtn" class="btn btn--primary" style="width: auto; margin-bottom: 1rem;">Create New Course</button>
+
+                    <div class="table-container">
+                        <table id="coursesTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Title</th>
+                                    <th>Lecturer</th>
+                                    <th>Credits</th>
+                                    <th>Year</th>
+                                    <th>Semester</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coursesTableBody">
+                                <!-- Course rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Finances View -->
+            <div id="manageFinancesView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Student Finances</h2>
+                    <div class="search-controls">
+                        <div class="search-box">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="financeStudentSearch" placeholder="Search for a student by name or ID...">
+                            <div id="financeSearchResults" class="search-results"></div>
+                        </div>
+                    </div>
+
+                    <div id="financeDetailsContainer" style="display: none; margin-top: 2rem;">
+                        <div class="card-header" style="padding: 0 0 1.5rem 0;">
+                            <div>
+                                <h3 id="financeStudentName" class="card-title" style="border: none; margin: 0; padding: 0;"></h3>
+                                <p id="financeStudentBalance" style="color: var(--color-text-muted);"></p>
+                            </div>
+                            <div class="btn-group" style="display: flex; gap: 1rem;">
+                                <button id="addTransactionBtn" class="btn btn--primary" style="width: auto;">Add Transaction</button>
+                                <button id="downloadPdfBtn" class="btn btn--secondary" style="width: auto; border-color: var(--color-border);">Download PDF</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th style="text-align: right;">Charge</th>
+                                        <th style="text-align: right;">Credit</th>
+                                        <th style="text-align: right;">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financeTransactionsBody">
+                                    <!-- Transactions will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p id="financePlaceholder" style="text-align: center; color: var(--color-text-muted); padding: 2rem 0;">Please search for a student to view their financial statement.</p>
+                </div>
+            </div>
+
+            <!-- Manage Results View -->
+            <div id="manageResultsView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Student Results</h2>
+                    <div class="search-controls">
+                        <div class="search-box">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="resultsStudentSearch" placeholder="Search for a student by name or ID...">
+                            <div id="resultsSearchResults" class="search-results"></div>
+                        </div>
+                    </div>
+
+                    <div id="resultsDetailsContainer" style="display: none; margin-top: 2rem;">
+                        <h3 id="resultsStudentName" class="card-title" style="border: none; padding: 0;"></h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Course Code</th>
+                                        <th>Course Title</th>
+                                        <th>Score (%)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsCoursesBody">
+                                    <!-- Student's courses will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p id="resultsPlaceholder" style="text-align: center; color: var(--color-text-muted); padding: 2rem 0;">Please search for a student to manage their results.</p>
+                </div>
+            </div>
+
+            <!-- Manage Library View -->
+            <div id="manageLibraryView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Library Catalog</h2>
+                    <button id="createBookBtn" class="btn btn--primary" style="width: auto; margin-bottom: 1rem;">Add New Book</button>
+
+                    <div class="table-container">
+                        <table id="libraryCatalogTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Copies (Avail/Total)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="libraryCatalogTableBody">
+                                <!-- Book rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Loans View -->
+            <div id="manageLoansView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Library Loans</h2>
+                    <div class="search-controls">
+                        <div class="search-box">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="loanStudentSearch" placeholder="Search for a student by name or ID...">
+                            <div id="loanSearchResults" class="search-results"></div>
+                        </div>
+                    </div>
+
+                    <div id="loanDetailsContainer" style="display: none; margin-top: 2rem;">
+                        <h3 id="loanStudentName" class="card-title" style="border: none; padding: 0;"></h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Status</th>
+                                        <th>Due Date</th>
+                                        <th>Fine</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentLoansTableBody">
+                                    <!-- Student's loans will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Clearance View -->
+            <div id="manageClearanceView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Student Clearance</h2>
+                    <div class="search-controls">
+                        <div class="search-box">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="clearanceStudentSearch" placeholder="Search for a student by name or ID...">
+                            <div id="clearanceSearchResults" class="search-results"></div>
+                        </div>
+                    </div>
+
+                    <div id="clearanceDetailsContainer" style="display: none; margin-top: 2rem;">
+                        <h3 id="clearanceStudentName" class="card-title" style="border: none; padding: 0;"></h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Remarks</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentClearanceTableBody">
+                                    <!-- Student's clearance status will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Graduation View -->
+            <div id="manageGraduationView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Graduation Applications</h2>
+                    <div class="table-container">
+                        <table id="graduationAppsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Student ID</th>
+                                    <th>Application Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="graduationAppsTableBody">
+                                <!-- Graduation application rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Timetable View -->
+            <div id="manageTimetableView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage University Timetable</h2>
+                    <button id="createTimetableEntryBtn" class="btn btn--primary" style="width: auto; margin-bottom: 1rem;">Add Timetable Entry</button>
+
+                    <div class="table-container">
+                        <table id="timetablesTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Day</th>
+                                    <th>Time</th>
+                                    <th>Location</th>
+                                    <th>Year/Semester</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="timetablesTableBody">
+                                <!-- Timetable entries will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Settings View -->
+            <div id="adminSettingsView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Admin Settings</h2>
+                    <p style="color: var(--color-text-muted); margin-bottom: 2rem;">Manage global settings for the portal.</p>
+
+                    <div class="setting-item" style="padding: 1rem 0; border-top: 1px solid var(--color-border);">
+                        <span>Portal Theme</span>
+                        <div class="theme-toggle-group">
+                            <button class="theme-btn" id="adminLightThemeBtn" aria-label="Switch to light theme">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                            </button>
+                            <button class="theme-btn" id="adminDarkThemeBtn" aria-label="Switch to dark theme">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Manage Hostel View -->
+            <div id="manageHostelView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Hostel Rooms</h2>
+                    <button id="createHostelRoomBtn" class="btn btn--primary" style="width: auto; margin-bottom: 1rem;">Add New Room</button>
+
+                    <div class="table-container">
+                        <table id="hostelRoomsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Room Name</th>
+                                    <th>Capacity</th>
+                                    <th>Cost (KES/month)</th>
+                                    <th>Available Spots</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hostelRoomsTableBody">
+                                <!-- Hostel room rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communications View -->
+            <div id="manageCommunicationsView" style="display: none;">
+                <div class="card">
+                    <div class="card-header" style="padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <h2 class="card__title" style="border: none; padding: 0;">Communications Hub</h2>
+                        <button id="sendNotificationBtn" class="btn btn--primary" style="width: auto;">Send Notification</button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 350px 1fr; gap: 1.5rem; height: 70vh;">
+                        <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column;">
+                            <h3 style="padding: 0 0.5rem 0.5rem; font-size: 1.1rem;">Support Tickets</h3>
+                            <div id="supportTicketsList" style="overflow-y: auto; flex-grow: 1;">
+                                <!-- List of tickets will be injected here -->
+                            </div>
+                        </div>
+                        <div id="ticketDetailsView" style="display: flex; flex-direction: column;">
+                            <!-- Selected ticket details will be shown here -->
+                            <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
+                                <p>Select a ticket to view details.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .ticket-list-item { padding: 0.75rem; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+                .ticket-list-item:hover { background-color: var(--color-bg); }
+                .ticket-list-item.active { background-color: var(--color-primary-light); color: white; }
+                .ticket-list-item.active .ticket-list-item-meta { color: rgba(255,255,255,0.8); }
+                .ticket-list-item-student { font-weight: 600; }
+                .ticket-list-item-meta { font-size: 0.85rem; color: var(--color-text-muted); }
+            </style>
+
+            <!-- Manage Hostel Bookings View -->
+            <div id="manageHostelBookingsView" style="display: none;">
+                <div class="card">
+                    <h2 class="card__title">Manage Hostel Bookings</h2>
+                    <div class="search-controls">
+                        <div class="search-box">
+                            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="search" id="hostelBookingStudentSearch" placeholder="Search for a student by name or ID...">
+                            <div id="hostelBookingSearchResults" class="search-results"></div>
+                        </div>
+                    </div>
+
+                    <div id="hostelBookingDetailsContainer" style="display: none; margin-top: 2rem;">
+                        <h3 id="hostelBookingStudentName" class="card-title" style="border: none; padding: 0;"></h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Room Name</th>
+                                        <th>Date Applied</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentHostelBookingsTableBody">
+                                    <!-- Student's bookings will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 Prince Alex University. All Rights Reserved. | Admin Portal</p>
+        </footer>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="editStudentModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Student Details</h2>
+            </div>
+            <form id="editStudentForm">
+                <div class="modal-body">
+                    <h3 class="card__title" style="font-size: 1.1rem; border: none; padding-bottom: 0;">Personal & Contact</h3>
+                    <div class="form-grid" style="border-bottom: 1px solid var(--color-border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                        <div class="form-group">
+                            <label for="editName">Full Name</label>
+                            <input type="text" id="editName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail">University Email</label>
+                            <input type="email" id="editEmail" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPersonalEmail">Personal Email</label>
+                            <input type="email" id="editPersonalEmail" name="personalEmail">
+                        </div>
+                        <div class="form-group">
+                            <label for="editPhone">Phone</label>
+                            <input type="tel" id="editPhone" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDob">Date of Birth</label>
+                            <input type="date" id="editDob" name="dateOfBirth">
+                        </div>
+                        <div class="form-group">
+                            <label for="editGender">Gender</label>
+                            <select id="editGender" name="gender">
+                                <option value="">Select...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editNationalId">National ID / Passport</label>
+                            <input type="text" id="editNationalId" name="nationalId">
+                        </div>
+                        <div class="form-group">
+                            <label for="editAddress">Home Address</label>
+                            <input type="text" id="editAddress" name="homeAddress">
+                        </div>
+                         <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="editAvatar">Avatar URL</label>
+                            <input type="url" id="editAvatar" name="avatar">
+                        </div>
+                    </div>
+
+                    <h3 class="card__title" style="font-size: 1.1rem; border: none; padding-bottom: 0;">Academic Information</h3>
+                     <div class="form-grid" style="border-bottom: 1px solid var(--color-border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                        <div class="form-group">
+                            <label for="editStudentId">Student ID</label>
+                            <input type="text" id="editStudentId" name="studentId">
+                        </div>
+                        <div class="form-group">
+                            <label for="editProgram">Program</label>
+                            <select id="editProgram" name="program">
+                                <option value="">Select...</option>
+                                <option value="BSc. Computer Science">BSc. Computer Science</option>
+                                <option value="B.A. Business Administration">B.A. Business Administration</option>
+                                <option value="BSc. Nursing">BSc. Nursing</option>
+                                <option value="LL.B. Laws">LL.B. Laws</option>
+                                <option value="B.Ed. Arts">B.Ed. Arts</option>
+                                <option value="B.Eng. Civil Engineering">B.Eng. Civil Engineering</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editSchool">School / Faculty</label>
+                            <select id="editSchool" name="school">
+                                <option value="">Select...</option>
+                                <option value="School of Computing and Informatics">School of Computing and Informatics</option>
+                                <option value="School of Business">School of Business</option>
+                                <option value="School of Health Sciences">School of Health Sciences</option>
+                                <option value="School of Law">School of Law</option>
+                                <option value="School of Education">School of Education</option>
+                                <option value="School of Engineering">School of Engineering</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDepartment">Department</label>
+                            <input type="text" id="editDepartment" name="department">
+                        </div>
+                        <div class="form-group">
+                            <label for="editYear">Year of Study</label>
+                            <select id="editYear" name="yearOfStudy">
+                                <option value="">Select...</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                                <option value="5">5th Year</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editSemester">Current Semester</label>
+                            <select id="editSemester" name="currentSemester">
+                                <option value="">Select...</option>
+                                <option value="Semester 1">Semester 1</option>
+                                <option value="Semester 2">Semester 2</option>
+                                <option value="Trimester 1">Trimester 1</option>
+                                <option value="Trimester 2">Trimester 2</option>
+                                <option value="Trimester 3">Trimester 3</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editAdmissionDate">Admission Date</label>
+                            <input type="date" id="editAdmissionDate" name="admissionDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="editMode">Mode of Study</label>
+                            <select id="editMode" name="modeOfStudy">
+                                <option value="">Select...</option>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                                <option value="Online">Online</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStatus">Student Status</label>
+                            <select id="editStatus" name="studentStatus">
+                                <option value="">Select...</option>
+                                <option value="Active">Active</option>
+                                <option value="Deferred">Deferred</option>
+                                <option value="Suspended">Suspended</option>
+                                <option value="Graduated">Graduated</option>
+                                <option value="Withdrawn">Withdrawn</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCampus">Campus</label>
+                            <select id="editCampus" name="campus">
+                                <option value="">Select...</option>
+                                <option value="Main Campus">Main Campus</option>
+                                <option value="City Campus">City Campus</option>
+                                <option value="Virtual Campus">Virtual Campus</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editGpa">Current GPA</label>
+                            <input type="number" id="editGpa" name="gpa" step="0.01" min="0" max="4">
+                        </div>
+                        <div class="form-group">
+                            <label for="editUnits">Units Completed</label>
+                            <input type="number" id="editUnits" name="unitsCompleted">
+                        </div>
+                        <div class="form-group">
+                            <label for="editBalanceDue">Balance Due (KES)</label>
+                            <input type="number" id="editBalanceDue" name="balanceDue" step="0.01">
+                        </div>
+                    </div>
+
+                    <h3 class="card__title" style="font-size: 1.1rem; border: none; padding-bottom: 0;">Ancillary Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group"><label for="editAdvisorName">Advisor Name</label><input type="text" id="editAdvisorName"></div>
+                        <div class="form-group"><label for="editAdvisorEmail">Advisor Email</label><input type="email" id="editAdvisorEmail"></div>
+                        <div class="form-group"><label for="editEcName">Emergency Contact Name</label><input type="text" id="editEcName"></div>
+                        <div class="form-group"><label for="editEcRelationship">Emergency Contact Relationship</label><input type="text" id="editEcRelationship"></div>
+                        <div class="form-group"><label for="editEcPhone">Emergency Contact Phone</label><input type="tel" id="editEcPhone"></div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary modal-close" style="width: auto;">Cancel</button>
+                    <button type="submit" class="btn btn--primary" style="width: auto;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Student Modal -->
+    <div id="createStudentModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Create New Student Account</h2>
+            </div>
+            <form id="createStudentForm">
+                <div class="modal-body">
+                    <p style="margin-bottom: 1.5rem; color: var(--color-text-muted);">This will create a new user in the authentication system. You can add detailed profile information after creation by editing the student record.</p>
+                    <div class="form-group">
+                        <label for="createEmail">Student Email</label>
+                        <input type="email" id="createEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="createPassword">Initial Password</label>
+                        <input type="password" id="createPassword" name="password" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--secondary modal-close" style="width: auto;">Cancel</button>
+                    <button type="submit" class="btn btn--primary" style="width: auto;">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create/Edit Course Modal -->
+    <div id="courseModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 id="courseModalTitle" class="modal-title">Create New Course</h2>
+            </div>
+            <form id="courseForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="courseCode">Course Code</label>
+                            <input type="text" id="courseCode" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="courseTitle">Course Title</label>
+                            <input type="text" id="courseTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="courseLecturer">Lecturer</label>
+                            <input type="text" id="courseLecturer" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="courseCredits">Credits</label>
+                            <input type="number" id="courseCredits" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="courseYear">Year of Study</label>
+                            <select id="courseYear" required>
+                                <option value="">Select Year...</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                                <option value="5">5th Year</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="courseSemester">Semester</label>
+                            <select id="courseSemester" required>
+                                <option value="">Select Semester...</option>
+                                <option value="Semester 1">Semester 1</option>
+                                <option value="Semester 2">Semester 2</option>
+                                <option value="Trimester 3">Trimester 3</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn--secondary modal-close" style="width: auto;">Cancel</button><button type="submit" class="btn btn--primary" style="width: auto;">Save Course</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div id="transactionModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Transaction</h2>
+            </div>
+            <form id="transactionForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="transactionType">Transaction Type</label>
+                        <select id="transactionType" required>
+                            <option value="Debit">Debit (Charge to student)</option>
+                            <option value="Credit">Credit (Payment from student)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionDescription">Description</label>
+                        <input type="text" id="transactionDescription" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionAmount">Amount (KES)</label>
+                        <input type="number" id="transactionAmount" required min="0.01" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn--secondary modal-close" style="width: auto;">Cancel</button><button type="submit" class="btn btn--primary" style="width: auto;">Post Transaction</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create/Edit Book Modal -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 id="bookModalTitle" class="modal-title">Add New Book</h2>
+            </div>
+            <form id="bookForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="bookTitle">Book Title</label>
+                        <input type="text" id="bookTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookAuthor">Author</label>
+                        <input type="text" id="bookAuthor" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookTotalCopies">Total Copies</label>
+                        <input type="number" id="bookTotalCopies" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookAvailableCopies">Available Copies</label>
+                        <input type="number" id="bookAvailableCopies" required min="0">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="bookImageUrl">Image URL (Optional)</label>
+                        <input type="url" id="bookImageUrl" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn--secondary modal-close" style="width: auto;">Cancel</button><button type="submit" class="btn btn--primary" style="width: auto;">Save Book</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Book Hostel Room Modal -->
+    <div id="adminBookHostelModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Book Hostel Room for Student</h2>
+            </div>
+            <div class="modal-body">
+                <p>Select a room with available spots to book for the student.</p>
+                <div class="table-container" style="margin-top: 1rem;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Room Name</th>
+                                <th>Available Spots</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminHostelRoomList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Hostel Room Modal -->
+    <div id="hostelRoomModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 id="hostelRoomModalTitle" class="modal-title">Add New Room</h2>
+            </div>
+            <form id="hostelRoomForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="hostelRoomName">Room Name</label>
+                        <input type="text" id="hostelRoomName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hostelRoomCapacity">Capacity</label>
+                        <input type="number" id="hostelRoomCapacity" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="hostelRoomCost">Cost (KES per month)</label>
+                        <input type="number" id="hostelRoomCost" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="hostelRoomAvailable">Available Spots</label>
+                        <input type="number" id="hostelRoomAvailable" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="hostelRoomImageUrl">Image URL (Optional)</label>
+                        <input type="url" id="hostelRoomImageUrl" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn--secondary modal-close" style="width: auto;">Cancel</button><button type="submit" class="btn btn--primary" style="width: auto;">Save Room</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create/Edit Timetable Entry Modal -->
+    <div id="timetableModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 id="timetableModalTitle" class="modal-title">Add Timetable Entry</h2>
+            </div>
+            <form id="timetableForm">
+                <div class="modal-body form-grid">
+                    <div class="form-group">
+                        <label for="timetableCourse">Course</label>
+                        <select id="timetableCourse" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="timetableDay">Day of Week</label>
+                        <select id="timetableDay" required>
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="timetableStartTime">Start Time</label>
+                        <input type="time" id="timetableStartTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="timetableEndTime">End Time</label>
+                        <input type="time" id="timetableEndTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="timetableLocation">Location</label>
+                        <select id="timetableLocation" required>
+                            <option value="">Select Location...</option>
+                            <option value="Hall 1">Hall 1</option>
+                            <option value="Hall 2">Hall 2</option>
+                            <option value="Lab A">Lab A</option>
+                            <option value="Lab B">Lab B</option>
+                            <option value="Lecture Theatre 1">Lecture Theatre 1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="timetableYear">Year of Study</label>
+                        <select id="timetableYear" required>
+                            <option value="">Select Year...</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                            <option value="5">5th Year</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label for="timetableSemester">Semester</label>
+                        <input type="text" id="timetableSemester" required placeholder="e.g., Semester 1">
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn--secondary modal-close">Cancel</button><button type="submit" class="btn btn--primary">Save Entry</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Send Notification Modal -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Send Notification</h2>
+            </div>
+            <form id="notificationForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="notificationTo">To</label>
+                        <input type="text" id="notificationTo" placeholder="Type 'All Students' or search for a student...">
+                        <div id="notificationStudentResults" class="search-results"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationSubject">Subject</label>
+                        <input type="text" id="notificationSubject" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationBody">Message</label>
+                        <textarea id="notificationBody" rows="6" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn--secondary modal-close">Cancel</button><button type="submit" class="btn btn--primary">Send Message</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Message Overlay -->
+    <div id="messageOverlay" class="message-overlay">
+        <div id="messageOverlayContent" class="message-overlay-content">
+            <p id="messageOverlayText"></p>
+            <button id="messageOverlayClose" class="btn btn--primary" style="width: auto;">OK</button>
+        </div>
+    </div>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, arrayUnion } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+            authDomain: "universityweb-19e1e.firebaseapp.com",
+            projectId: "universityweb-19e1e",
+            storageBucket: "universityweb-19e1e.firebasestorage.app",
+            messagingSenderId: "401942926589",
+            appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- DOM Elements ---
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminNameEl = document.getElementById('adminName');
+        const studentsTableBody = document.getElementById('studentsTableBody');
+        const studentSearchInput = document.getElementById('studentSearch');
+        const editStudentModal = document.getElementById('editStudentModal');
+        const editStudentForm = document.getElementById('editStudentForm');
+        const createStudentModal = document.getElementById('createStudentModal');
+        const studentSearchForm = document.getElementById('studentSearchForm');
+        const createStudentForm = document.getElementById('createStudentForm');
+        const dashboardView = document.getElementById('dashboardView');
+        const manageStudentsView = document.getElementById('manageStudentsView');
+        const adminSettingsView = document.getElementById('adminSettingsView');
+        const manageTimetableView = document.getElementById('manageTimetableView');
+        const manageGraduationView = document.getElementById('manageGraduationView');
+        const manageClearanceView = document.getElementById('manageClearanceView');
+        const manageCommunicationsView = document.getElementById('manageCommunicationsView');
+        const manageHostelBookingsView = document.getElementById('manageHostelBookingsView');
+        const manageHostelView = document.getElementById('manageHostelView');
+        const manageLoansView = document.getElementById('manageLoansView');
+        const manageLibraryView = document.getElementById('manageLibraryView');
+        const manageResultsView = document.getElementById('manageResultsView');
+        const manageFinancesView = document.getElementById('manageFinancesView');
+        const manageCoursesView = document.getElementById('manageCoursesView');
+        const navDashboard = document.getElementById('navDashboard');
+        const navManageHostel = document.getElementById('navManageHostel');
+        const navSettings = document.getElementById('navSettings');
+        const navManageTimetable = document.getElementById('navManageTimetable');
+        const navManageGraduation = document.getElementById('navManageGraduation');
+        const navManageClearance = document.getElementById('navManageClearance');
+        const navCommunications = document.getElementById('navCommunications');
+        const navHostelBookings = document.getElementById('navHostelBookings');
+        const navManageStudents = document.getElementById('navManageStudents');
+        const navManageLoans = document.getElementById('navManageLoans');
+        const navManageLibrary = document.getElementById('navManageLibrary');
+        const navManageFinances = document.getElementById('navManageFinances');
+        const notificationModal = document.getElementById('notificationModal');
+        const navManageCourses = document.getElementById('navManageCourses');
+        const navManageResults = document.getElementById('navManageResults');
+        const totalStudentsEl = document.getElementById('totalStudents');
+        const totalCoursesEl = document.getElementById('totalCourses');
+        const transactionModal = document.getElementById('transactionModal');
+        const transactionForm = document.getElementById('transactionForm');
+        const coursesTableBody = document.getElementById('coursesTableBody');
+        const courseModal = document.getElementById('courseModal');
+
+        let allStudents = []; // Cache for all student data
+        let allMasterCourses = [];
+        let allLibraryBooks = [];
+        let courseToEditId = null;
+        let studentToEditId = null;
+        let selectedFinanceStudent = null;
+        let selectedResultsStudent = null;
+        let selectedClearanceStudent = null;
+        let selectedLoanStudent = null;
+        let bookToEditId = null;
+        let selectedBookingStudent = null;
+        let timetableEntryToEditId = null;
+        let hostelRoomToEditId = null;
+        const bookModal = document.getElementById('bookModal');
+        const bookForm = document.getElementById('bookForm');
+        const timetableModal = document.getElementById('timetableModal');
+        const timetableForm = document.getElementById('timetableForm');
+        const hostelRoomModal = document.getElementById('hostelRoomModal');
+
+        // --- Authentication Logic ---
+
+        function showMessage(message, type = 'success') {
+            const overlay = document.getElementById('messageOverlay');
+            const content = document.getElementById('messageOverlayContent');
+            const text = document.getElementById('messageOverlayText');
+
+            text.textContent = message;
+            content.className = 'message-overlay-content'; // Reset classes
+            content.classList.add(type); // 'success' or 'error'
+            // Ensure styles are consistent with other pages
+            content.style.backgroundColor = 'var(--color-surface)';
+            content.style.color = 'var(--color-text)';
+            
+            overlay.classList.add('show');
+        }
+
+        document.getElementById('messageOverlayClose').addEventListener('click', () => document.getElementById('messageOverlay').classList.remove('show'));
+
+        /**
+         * Handles the login form submission.
+         */
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            loginError.textContent = '';
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                // Login successful, proceed to dashboard.
+                // The onAuthStateChanged listener will handle showing the dashboard.
+            } catch (error) {
+                console.error("Login Error:", error);
+                showMessage('Invalid email or password. Please try again.', 'error');
+            }
+        });
+
+        /**
+         * Fetches a user's profile from Firestore.
+         * @param {string} uid - The user's ID.
+         * @returns {Promise<object|null>} The user profile data or null.
+         */
+        async function getUserProfile(uid) {
+            const userDocRef = doc(db, "users", uid);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                return userDocSnap.data();
+            }
+            return null; // No profile found for this user
+        }
+
+        /**
+         * Handles user logout.
+         */
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await signOut(auth);
+            showLogin();
+        });
+
+        /**
+         * Monitors authentication state on page load.
+         */
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Any authenticated user is allowed in.
+                const userProfile = await getUserProfile(user.uid);
+                showDashboard(userProfile || { name: 'Admin' }); // Use a default name if no profile exists
+            } else {
+                showLogin();
+            }
+        });
+
+        // --- UI Switching ---
+
+        function showDashboard(userProfile) {
+            document.body.classList.add('dashboard-active');
+            adminNameEl.textContent = `Welcome, ${userProfile.name || 'Admin'}`;
+            // Load initial data for the dashboard
+            loadStudents();
+        }
+
+        const sidebar = document.querySelector('.sidebar');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) {
+            hamburgerMenu.addEventListener('click', () => sidebar.classList.toggle('open'));
+        }
+        document.querySelector('.main-content').addEventListener('click', () => sidebar.classList.remove('open'));
+
+
+        function showLogin() {
+            document.body.classList.remove('dashboard-active');
+            loginForm.reset();
+        }
+
+        // --- Data Management ---
+
+        /**
+         * Fetches all student users from Firestore and populates the table.
+         */
+        async function loadStudents() {
+            studentsTableBody.innerHTML = '<tr><td colspan="5">Loading students...</td></tr>';
+            try {
+                const usersCollection = collection(db, "users");
+                const userSnapshot = await getDocs(usersCollection); 
+                allStudents = userSnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(user => user.role !== 'admin'); // Exclude other admins
+
+                if (allStudents.length === 0) {
+                    studentsTableBody.innerHTML = '<tr><td colspan="5">No student records found.</td></tr>';
+                    return;
+                }
+
+                studentsTableBody.innerHTML = ''; // Clear loading message
+
+                // Update dashboard stats
+                totalStudentsEl.textContent = allStudents.length;
+
+                renderStudentTable(allStudents);
+
+            } catch (error) {
+                console.error("Error loading students:", error);
+                studentsTableBody.innerHTML = `<tr><td colspan="5" style="color: var(--color-error);">Error loading data.</td></tr>`;
+            }
+        }
+
+        /**
+         * Renders the student table with the provided data.
+         * @param {Array<object>} students - The array of student objects to render.
+         */
+        function renderStudentTable(students) {
+            const table = document.getElementById('studentsTable');
+            studentsTableBody.innerHTML = '';
+            if (students.length === 0) {
+                studentsTableBody.innerHTML = '<tr><td colspan="5">No students match your search.</td></tr>';
+                table.style.display = 'table'; // Show the table to display the "no results" message
+                return;
+            }
+            students.forEach(student => {
+                table.style.display = 'table'; // Ensure table is visible
+                const tr = document.createElement('tr');
+                tr.dataset.studentId = student.id;
+                tr.innerHTML = `
+                    <td>${student.name || 'N/A'}</td>
+                    <td>${student.email || 'N/A'}</td>
+                    <td>${student.program || 'N/A'}</td>
+                    <td>${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(student.balanceDue || 0)}</td>
+                    <td>
+                        <button class="action-btn view-btn" data-id="${student.id}">View</button>
+                        <button class="action-btn edit-btn" data-id="${student.id}">Edit</button>
+                        <button class="action-btn delete" data-id="${student.id}">Delete</button>
+                    </td>
+                `;
+                studentsTableBody.appendChild(tr);
+            });
+        }
+
+        // --- Event Listeners ---
+        studentSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredStudents = allStudents.filter(student => 
+                student.name?.toLowerCase().includes(searchTerm) ||
+                student.email?.toLowerCase().includes(searchTerm) ||
+                student.studentId?.toLowerCase().includes(searchTerm)
+            );
+            renderStudentTable(filteredStudents);
+        });
+
+        document.getElementById('createStudentBtn').addEventListener('click', () => {
+            createStudentForm.reset();
+            openModal(createStudentModal);
+        });
+
+        studentsTableBody.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-btn')) {
+                const studentId = e.target.dataset.id;
+                openEditModal(studentId);
+            }
+        });
+
+        navDashboard.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'block';
+            manageStudentsView.style.display = 'none';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navDashboard.classList.add('active');
+        });
+
+        navManageStudents.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageStudents.classList.add('active');
+        });
+
+        navManageResults.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'none';
+            manageCoursesView.style.display = 'none';
+            manageFinancesView.style.display = 'none';
+            manageResultsView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            if (allMasterCourses.length === 0) loadCourses(); // Ensure master courses are loaded
+            navManageResults.classList.add('active');
+        });
+
+        navManageLibrary.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'none';
+            manageCoursesView.style.display = 'none';
+            manageFinancesView.style.display = 'none';
+            manageResultsView.style.display = 'none';
+            manageLibraryView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageLibrary.classList.add('active');
+            loadLibraryCatalog();
+        });
+
+        navManageLoans.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'none';
+            manageCoursesView.style.display = 'none';
+            manageFinancesView.style.display = 'none';
+            manageResultsView.style.display = 'none';
+            manageLibraryView.style.display = 'none';
+            manageLoansView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageLoans.classList.add('active');
+            // No initial data load, waits for student search
+        });
+
+        navManageHostel.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'none';
+            manageCoursesView.style.display = 'none';
+            manageFinancesView.style.display = 'none';
+            manageResultsView.style.display = 'none';
+            manageLibraryView.style.display = 'none';
+            manageLoansView.style.display = 'none';
+            manageHostelView.style.display = 'block';
+            navManageHostel.classList.add('active');
+            loadHostelRooms();
+        });
+
+        navManageClearance.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllViews();
+            manageClearanceView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageClearance.classList.add('active');
+        });
+
+        navManageGraduation.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllViews();
+            manageGraduationView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageGraduation.classList.add('active');
+            loadGraduationApplications();
+        });
+
+        navManageTimetable.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllViews();
+            manageTimetableView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageTimetable.classList.add('active');
+            loadTimetableEntries();
+        });
+
+        navSettings.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllViews();
+            adminSettingsView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navSettings.classList.add('active');
+        });
+
+
+        navCommunications.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideAllViews();
+            manageCommunicationsView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navCommunications.classList.add('active');
+            loadAllSupportTickets();
+        });
+
+        navHostelBookings.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.main-content > div').forEach(div => div.style.display = 'none');
+            manageHostelBookingsView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navHostelBookings.classList.add('active');
+        });
+
+
+        function hideAllViews() {
+            document.querySelectorAll('.main-content > div').forEach(div => div.style.display = 'none');
+        }
+
+
+        navManageFinances.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'none';
+            manageCoursesView.style.display = 'none';
+            manageFinancesView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageFinances.classList.add('active');
+        });
+
+        navManageCourses.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            manageStudentsView.style.display = 'none';
+            manageCoursesView.style.display = 'block';
+            document.querySelectorAll('.sidebar__nav-item').forEach(i => i.classList.remove('active'));
+            navManageCourses.classList.add('active');
+            loadCourses();
+        });
+
+
+        // --- Modal Logic ---
+        function openModal(modal) { modal.classList.add('open'); }
+        function closeModal(modal) { modal.classList.remove('open'); }
+
+        function setupModals() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                const closeButtons = modal.querySelectorAll('.modal-close');
+                closeButtons.forEach(button => button.addEventListener('click', () => closeModal(modal)));
+                modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); });
+            });
+        }
+
+        function openEditModal(studentId) {
+            studentToEditId = studentId;
+            const student = allStudents.find(s => s.id === studentId);
+            if (!student) {
+                showMessage('Could not find student data.', 'error');
+                return;
+            }
+
+            // Populate the form
+            // Personal
+            document.getElementById('editName').value = student.name || '';
+            document.getElementById('editStudentId').value = student.studentId || '';
+            document.getElementById('editEmail').value = student.email || '';
+            document.getElementById('editPersonalEmail').value = student.personalEmail || '';
+            document.getElementById('editPhone').value = student.phone || '';
+            document.getElementById('editDob').value = student.dateOfBirth || '';
+            document.getElementById('editGender').value = student.gender || '';
+            document.getElementById('editNationalId').value = student.nationalId || '';
+            document.getElementById('editAddress').value = student.homeAddress || '';
+            document.getElementById('editAvatar').value = student.avatar || '';
+
+            // Academic
+            document.getElementById('editProgram').value = student.program || '';
+            document.getElementById('editSchool').value = student.school || '';
+            document.getElementById('editDepartment').value = student.department || '';
+            document.getElementById('editYear').value = student.yearOfStudy || '';
+            document.getElementById('editSemester').value = student.currentSemester || '';
+            document.getElementById('editAdmissionDate').value = student.admissionDate || '';
+            document.getElementById('editMode').value = student.modeOfStudy || '';
+            document.getElementById('editStatus').value = student.studentStatus || '';
+            document.getElementById('editCampus').value = student.campus || '';
+            document.getElementById('editGpa').value = student.gpa || 0;
+            document.getElementById('editUnits').value = student.unitsCompleted || 0;
+            document.getElementById('editBalanceDue').value = student.balanceDue || 0;
+
+            // Ancillary
+            document.getElementById('editAdvisorName').value = student.advisor?.name || '';
+            document.getElementById('editAdvisorEmail').value = student.advisor?.email || '';
+            document.getElementById('editEcName').value = student.emergencyContact?.name || '';
+            document.getElementById('editEcRelationship').value = student.emergencyContact?.relationship || '';
+            document.getElementById('editEcPhone').value = student.emergencyContact?.phone || '';
+
+            openModal(editStudentModal);
+        }
+
+        editStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!studentToEditId) return;
+
+            const updatedData = {
+                // Personal
+                name: document.getElementById('editName').value.trim(),
+                studentId: document.getElementById('editStudentId').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                personalEmail: document.getElementById('editPersonalEmail').value.trim(),
+                phone: document.getElementById('editPhone').value.trim(),
+                dateOfBirth: document.getElementById('editDob').value,
+                gender: document.getElementById('editGender').value,
+                nationalId: document.getElementById('editNationalId').value.trim(),
+                homeAddress: document.getElementById('editAddress').value.trim(),
+                avatar: document.getElementById('editAvatar').value.trim(),
+                // Academic
+                program: document.getElementById('editProgram').value.trim(),
+                school: document.getElementById('editSchool').value.trim(),
+                department: document.getElementById('editDepartment').value.trim(),
+                yearOfStudy: document.getElementById('editYear').value ? parseInt(document.getElementById('editYear').value) : null,
+                currentSemester: document.getElementById('editSemester').value.trim(),
+                admissionDate: document.getElementById('editAdmissionDate').value,
+                modeOfStudy: document.getElementById('editMode').value.trim(),
+                studentStatus: document.getElementById('editStatus').value,
+                campus: document.getElementById('editCampus').value.trim(),
+                gpa: parseFloat(document.getElementById('editGpa').value) || 0,
+                unitsCompleted: parseInt(document.getElementById('editUnits').value) || 0,
+                balanceDue: parseFloat(document.getElementById('editBalanceDue').value) || 0,
+                // Ancillary (as nested objects)
+                advisor: {
+                    name: document.getElementById('editAdvisorName').value.trim(),
+                    email: document.getElementById('editAdvisorEmail').value.trim()
+                },
+                emergencyContact: {
+                    name: document.getElementById('editEcName').value.trim(),
+                    relationship: document.getElementById('editEcRelationship').value.trim(),
+                    phone: document.getElementById('editEcPhone').value.trim()
+                }
+            };
+
+            try {
+                const studentDocRef = doc(db, "users", studentToEditId);
+                await updateDoc(studentDocRef, updatedData);
+                
+                closeModal(editStudentModal);
+                showMessage('Student details updated successfully!', 'success');
+                await loadStudents(); // Refresh the entire student list
+            } catch (error) {
+                console.error("Error updating student:", error);
+                showMessage('Failed to update student details.', 'error');
+            }
+        });
+
+        createStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('createEmail').value;
+            const password = document.getElementById('createPassword').value;
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters long.', 'error');
+                return;
+            }
+
+            try {
+                // Step 1: Create the user in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const newUser = userCredential.user;
+
+                // Step 2: Create a corresponding document in Firestore
+                const studentDocRef = doc(db, "users", newUser.uid);
+                const newStudentData = {
+                    email: email,
+                    name: "New Student", // Default name
+                    studentId: `PAU-${Math.floor(10000 + Math.random() * 90000)}`, // Placeholder ID
+                    role: 'student',
+                    createdAt: new Date().toISOString()
+                };
+                await setDoc(studentDocRef, newStudentData);
+
+                closeModal(createStudentModal);
+                showMessage('Student account created successfully! You can now edit their details.', 'success');
+                await loadStudents(); // Refresh the student list
+
+            } catch (error) {
+                console.error("Error creating student:", error);
+                const message = error.code === 'auth/email-already-in-use' ? 'This email address is already in use.' : 'Failed to create student account.';
+                showMessage(message, 'error');
+            }
+        });
+
+        // --- Course Management Logic ---
+        async function loadCourses() {
+            coursesTableBody.innerHTML = '<tr><td colspan="7">Loading courses...</td></tr>';
+            try {
+                const coursesCollection = collection(db, "courses");
+                const courseSnapshot = await getDocs(coursesCollection);
+                allMasterCourses = courseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                totalCoursesEl.textContent = allMasterCourses.length;
+                renderCoursesTable(allMasterCourses);
+            } catch (error) {
+                console.error("Error loading courses:", error);
+                coursesTableBody.innerHTML = `<tr><td colspan="7" style="color: var(--color-error);">Error loading courses.</td></tr>`;
+            }
+        }
+
+        function renderCoursesTable(courses) {
+            const table = document.getElementById('coursesTable');
+            if (!table) {
+                console.error("Courses table not found!");
+                return;
+            }
+            coursesTableBody.innerHTML = '';
+            if (courses.length === 0) {
+                coursesTableBody.innerHTML = '<tr><td colspan="7">No courses found.</td></tr>';
+                return;
+            }
+            courses.forEach(course => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${course.code || 'N/A'}</td>
+                    <td>${course.title || 'N/A'}</td>
+                    <td>${course.lecturer || 'N/A'}</td>
+                    <td>${course.credits || 'N/A'}</td>
+                    <td>${course.yearOfStudy || 'N/A'}</td>
+                    <td>${course.semester || 'N/A'}</td>
+                    <td>
+                        <button class="action-btn edit-course-btn" data-id="${course.id}">Edit</button>
+                        <button class="action-btn delete delete-course-btn" data-id="${course.id}">Delete</button>
+                    </td>
+                `;
+                coursesTableBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('createCourseBtn').addEventListener('click', () => {
+            courseToEditId = null;
+            document.getElementById('courseModalTitle').textContent = 'Create New Course';
+            document.getElementById('courseForm').reset();
+            openModal(courseModal);
+        });
+
+        coursesTableBody.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('edit-course-btn')) {
+                courseToEditId = target.dataset.id;
+                const course = allMasterCourses.find(c => c.id === courseToEditId);
+                if (course) {
+                    document.getElementById('courseModalTitle').textContent = 'Edit Course';
+                    document.getElementById('courseCode').value = course.code || '';
+                    document.getElementById('courseTitle').value = course.title || '';
+                    document.getElementById('courseLecturer').value = course.lecturer || '';
+                    document.getElementById('courseCredits').value = course.credits || '';
+                    document.getElementById('courseYear').value = course.yearOfStudy || '';
+                    document.getElementById('courseSemester').value = course.semester || '';
+                    openModal(courseModal);
+                }
+            } else if (target.classList.contains('delete-course-btn')) {
+                const courseId = target.dataset.id;
+                if (confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+                    deleteCourse(courseId);
+                }
+            }
+        });
+
+        document.getElementById('courseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const courseData = {
+                code: document.getElementById('courseCode').value.trim(),
+                title: document.getElementById('courseTitle').value.trim(),
+                lecturer: document.getElementById('courseLecturer').value.trim(),
+                credits: parseInt(document.getElementById('courseCredits').value),
+                yearOfStudy: parseInt(document.getElementById('courseYear').value),
+                semester: document.getElementById('courseSemester').value.trim(),
+            };
+
+            try {
+                if (courseToEditId) { // Editing existing course
+                    const courseDocRef = doc(db, "courses", courseToEditId);
+                    await updateDoc(courseDocRef, courseData);
+                    showMessage('Course updated successfully!', 'success');
+                } else { // Creating new course
+                    await addDoc(collection(db, "courses"), courseData);
+                    showMessage('Course created successfully!', 'success');
+                }
+                closeModal(courseModal);
+                await loadCourses();
+            } catch (error) {
+                console.error("Error saving course:", error);
+                showMessage('Failed to save course.', 'error');
+            }
+        });
+
+        async function deleteCourse(courseId) {
+            try {
+                await deleteDoc(doc(db, "courses", courseId));
+                showMessage('Course deleted successfully.', 'success');
+                await loadCourses();
+            } catch (error) {
+                console.error("Error deleting course:", error);
+                showMessage('Failed to delete course.', 'error');
+            }
+        }
+
+        // --- Finance Management Logic ---
+        const financeStudentSearch = document.getElementById('financeStudentSearch');
+        const financeSearchResults = document.getElementById('financeSearchResults');
+        const financeDetailsContainer = document.getElementById('financeDetailsContainer');
+        const financePlaceholder = document.getElementById('financePlaceholder');
+
+        financeStudentSearch.addEventListener('input', () => {
+            const searchTerm = financeStudentSearch.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                financeSearchResults.innerHTML = '';
+                financeSearchResults.style.display = 'none';
+                return;
+            }
+
+            const results = allStudents.filter(s =>
+                s.name.toLowerCase().includes(searchTerm) || s.studentId.toLowerCase().includes(searchTerm)
+            ).slice(0, 5); // Limit to 5 results
+
+            financeSearchResults.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${student.name} (${student.studentId})`;
+                    div.addEventListener('click', () => selectStudentForFinance(student.id));
+                    financeSearchResults.appendChild(div);
+                });
+                financeSearchResults.style.display = 'block';
+            } else {
+                financeSearchResults.style.display = 'none';
+            }
+        });
+
+        async function selectStudentForFinance(studentId) {
+            selectedFinanceStudent = allStudents.find(s => s.id === studentId);
+            financeStudentSearch.value = `${selectedFinanceStudent.name} (${selectedFinanceStudent.studentId})`;
+            financeSearchResults.style.display = 'none';
+            financePlaceholder.style.display = 'none';
+            financeDetailsContainer.style.display = 'block';
+
+            document.getElementById('financeStudentName').textContent = selectedFinanceStudent.name;
+            await renderFinanceStatement(studentId);
+        }
+
+        async function renderFinanceStatement(studentId) {
+            const balanceEl = document.getElementById('financeStudentBalance');
+            const transactionsBody = document.getElementById('financeTransactionsBody');
+            transactionsBody.innerHTML = '<tr><td colspan="5">Loading transactions...</td></tr>';
+
+            const financialsCol = collection(db, "users", studentId, "financials");
+            const q = query(financialsCol, orderBy("date", "asc"));
+            const snapshot = await getDocs(q);
+
+            let runningBalance = 0;
+            transactionsBody.innerHTML = '';
+
+            if (snapshot.empty) {
+                transactionsBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No transactions found.</td></tr>';
+            } else {
+                snapshot.docs.forEach(doc => {
+                    const tx = doc.data();
+                    const amount = parseFloat(tx.amount);
+                    runningBalance += amount;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${tx.date}</td>
+                        <td>${tx.description}</td>
+                        <td style="text-align: right;">${tx.type === 'Debit' ? new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amount) : '-'}</td>
+                        <td style="text-align: right;">${tx.type === 'Credit' ? new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(Math.abs(amount)) : '-'}</td>
+                        <td style="text-align: right; font-weight: 600;">${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(runningBalance)}</td>
+                    `;
+                    transactionsBody.appendChild(tr);
+                });
+            }
+            balanceEl.textContent = `Current Balance: ${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(runningBalance)}`;
+        }
+
+        document.getElementById('addTransactionBtn').addEventListener('click', () => {
+            transactionForm.reset();
+            openModal(transactionModal);
+        });
+
+        transactionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!selectedFinanceStudent) return;
+
+            const type = document.getElementById('transactionType').value;
+            const description = document.getElementById('transactionDescription').value.trim();
+            let amount = parseFloat(document.getElementById('transactionAmount').value);
+
+            if (type === 'Credit') {
+                amount = -Math.abs(amount); // Credits should be negative
+            }
+
+            const newTransaction = {
+                date: new Date().toISOString().split('T')[0],
+                description: description,
+                amount: amount,
+                type: type
+            };
+
+            try {
+                const financialsCol = collection(db, "users", selectedFinanceStudent.id, "financials");
+                await addDoc(financialsCol, newTransaction);
+
+                const userDocRef = doc(db, "users", selectedFinanceStudent.id);
+                const newBalance = (selectedFinanceStudent.balanceDue || 0) + amount;
+                await updateDoc(userDocRef, { balanceDue: newBalance });
+
+                closeModal(transactionModal);
+                showMessage('Transaction posted successfully!', 'success');
+                await selectStudentForFinance(selectedFinanceStudent.id); // Refresh view
+            } catch (error) {
+                console.error("Error posting transaction:", error);
+                showMessage('Failed to post transaction.', 'error');
+            }
+        });
+
+        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+            if (!selectedFinanceStudent) {
+                showMessage('Please select a student first.', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // 1. Document Header
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("Prince Alex University", 105, 20, { align: "center" });
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "normal");
+            doc.text("Student Fee Statement", 105, 28, { align: "center" });
+
+            // 2. Student Details
+            doc.setFontSize(10);
+            doc.text(`Student Name: ${selectedFinanceStudent.name}`, 14, 40);
+            doc.text(`Student ID: ${selectedFinanceStudent.studentId}`, 14, 45);
+            doc.text(`Date Issued: ${new Date().toLocaleDateString()}`, 196, 40, { align: "right" });
+
+            // 3. Fetch transactions again to ensure data is fresh
+            const financialsCol = collection(db, "users", selectedFinanceStudent.id, "financials");
+            const q = query(financialsCol, orderBy("date", "asc"));
+            const snapshot = await getDocs(q);
+
+            const tableData = [];
+            let runningBalance = 0;
+            snapshot.forEach(doc => {
+                const tx = doc.data();
+                runningBalance += tx.amount;
+                tableData.push([
+                    tx.date,
+                    tx.description,
+                    tx.type === 'Debit' ? new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(tx.amount) : '',
+                    tx.type === 'Credit' ? new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(Math.abs(tx.amount)) : '',
+                    new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(runningBalance)
+                ]);
+            });
+
+            // 4. Create Table
+            doc.autoTable({
+                startY: 55,
+                head: [['Date', 'Description', 'Charges', 'Credits', 'Balance']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [26, 35, 126] }, // --color-primary
+                foot: [['', 'Total Balance Due', '', '', new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(runningBalance)]],
+                footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245], textColor: [33, 33, 33] }
+            });
+
+            // 5. Save PDF
+            doc.save(`Fee_Statement_${selectedFinanceStudent.studentId}.pdf`);
+        });
+
+        // --- Results Management Logic ---
+        const resultsStudentSearch = document.getElementById('resultsStudentSearch');
+        const resultsSearchResults = document.getElementById('resultsSearchResults');
+        const resultsDetailsContainer = document.getElementById('resultsDetailsContainer');
+        const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+        const resultsCoursesBody = document.getElementById('resultsCoursesBody');
+
+        resultsStudentSearch.addEventListener('input', () => {
+            const searchTerm = resultsStudentSearch.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                resultsSearchResults.innerHTML = '';
+                resultsSearchResults.style.display = 'none';
+                return;
+            }
+            const results = allStudents.filter(s =>
+                s.name.toLowerCase().includes(searchTerm) || s.studentId.toLowerCase().includes(searchTerm)
+            ).slice(0, 5);
+
+            resultsSearchResults.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${student.name} (${student.studentId})`;
+                    div.addEventListener('click', () => selectStudentForResults(student.id));
+                    resultsSearchResults.appendChild(div);
+                });
+                resultsSearchResults.style.display = 'block';
+            } else {
+                resultsSearchResults.style.display = 'none';
+            }
+        });
+
+        async function selectStudentForResults(studentId) {
+            selectedResultsStudent = allStudents.find(s => s.id === studentId);
+            resultsStudentSearch.value = `${selectedResultsStudent.name} (${selectedResultsStudent.studentId})`;
+            resultsSearchResults.style.display = 'none';
+            resultsPlaceholder.style.display = 'none';
+            resultsDetailsContainer.style.display = 'block';
+
+            document.getElementById('resultsStudentName').textContent = `Results for: ${selectedResultsStudent.name}`;
+            await renderResultsCourses(studentId);
+        }
+
+        async function renderResultsCourses(studentId) {
+            resultsCoursesBody.innerHTML = '<tr><td colspan="4">Loading courses...</td></tr>';
+            
+            // Get the student's enrolled courses to know their scores
+            const studentCoursesSnap = await getDocs(collection(db, "users", studentId, "courses"));
+            const studentCourses = {};
+            studentCoursesSnap.forEach(doc => {
+                studentCourses[doc.id] = doc.data();
+            });
+
+            // Filter master catalog for courses relevant to the student
+            const relevantCourses = allMasterCourses.filter(course => 
+                course.yearOfStudy === selectedResultsStudent.yearOfStudy && 
+                course.semester === selectedResultsStudent.currentSemester
+            );
+
+            if (relevantCourses.length === 0) {
+                resultsCoursesBody.innerHTML = '<tr><td colspan="4">No courses found for this student\'s year and semester.</td></tr>';
+                return;
+            }
+
+            resultsCoursesBody.innerHTML = '';
+            relevantCourses.forEach(masterCourse => {
+                const studentCourseData = studentCourses[masterCourse.id];
+                const isEnrolled = !!studentCourseData;
+                const score = isEnrolled ? studentCourseData.score : '';
+
+                const tr = document.createElement('tr');
+                tr.style.opacity = isEnrolled ? '1' : '0.5'; // Visually distinguish enrolled courses
+                tr.innerHTML = `
+                    <td>${masterCourse.code || 'N/A'}</td>
+                    <td>${masterCourse.title || 'N/A'}</td>
+                    <td><input type="number" class="form-group" id="score-${masterCourse.id}" value="${score}" min="0" max="100" style="max-width: 100px; padding: 0.5rem;" ${!isEnrolled ? 'disabled' : ''}></td>
+                    <td><button class="btn btn--primary save-grade-btn" data-course-id="${masterCourse.id}" ${!isEnrolled ? 'disabled' : ''}>${isEnrolled ? 'Save' : 'Not Enrolled'}</button></td>
+                `;
+                resultsCoursesBody.appendChild(tr);
+            });
+        }
+
+        resultsCoursesBody.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('save-grade-btn')) {
+                const courseId = e.target.dataset.courseId;
+                const scoreInput = document.getElementById(`score-${courseId}`);
+                const score = parseFloat(scoreInput.value);
+
+                if (isNaN(score) || score < 0 || score > 100) {
+                    showMessage('Please enter a valid score between 0 and 100.', 'error');
+                    return;
+                }
+
+                const { grade, gradePoint } = getGradeFromScore(score);
+
+                const courseDocRef = doc(db, "users", selectedResultsStudent.id, "courses", courseId);
+                try {
+                    await updateDoc(courseDocRef, { score, grade, gradePoint });
+                    showMessage(`Result for course saved successfully. Grade: ${grade}`, 'success');
+                } catch (error) {
+                    console.error("Error saving result:", error);
+                    showMessage('Failed to save result.', 'error');
+                }
+            }
+        });
+
+        function getGradeFromScore(score) {
+            if (score >= 80) return { grade: 'A', gradePoint: 4.0 };
+            if (score >= 65) return { grade: 'B', gradePoint: 3.0 };
+            if (score >= 50) return { grade: 'C', gradePoint: 2.0 };
+            if (score >= 40) return { grade: 'D', gradePoint: 1.0 };
+            return { grade: 'F', gradePoint: 0.0 };
+        }
+
+        // --- Library Management Logic ---
+        async function loadLibraryCatalog() {
+            const catalogBody = document.getElementById('libraryCatalogTableBody');
+            catalogBody.innerHTML = '<tr><td colspan="4">Loading books...</td></tr>';
+            try {
+                const booksCollection = collection(db, "libraryCatalog");
+                const bookSnapshot = await getDocs(booksCollection);
+                allLibraryBooks = bookSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderLibraryCatalogTable(allLibraryBooks);
+            } catch (error) {
+                console.error("Error loading library catalog:", error);
+                catalogBody.innerHTML = `<tr><td colspan="4" style="color: var(--color-error);">Error loading books.</td></tr>`;
+            }
+        }
+
+        function renderLibraryCatalogTable(books) {
+            const catalogBody = document.getElementById('libraryCatalogTableBody');
+            catalogBody.innerHTML = '';
+            if (books.length === 0) {
+                catalogBody.innerHTML = '<tr><td colspan="4">No books found in the catalog.</td></tr>';
+                return;
+            }
+            books.forEach(book => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${book.title || 'N/A'}</td>
+                    <td>${book.author || 'N/A'}</td>
+                    <td>
+                        <span class="ticket-status ${book.availableCopies > 0 ? 'status--cleared' : 'status--not-cleared'}">
+                            ${book.availableCopies} / ${book.totalCopies}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn edit-book-btn" data-id="${book.id}">Edit</button>
+                        <button class="action-btn delete delete-book-btn" data-id="${book.id}">Delete</button>
+                    </td>
+                `;
+                catalogBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('createBookBtn').addEventListener('click', () => {
+            bookToEditId = null;
+            document.getElementById('bookModalTitle').textContent = 'Add New Book';
+            bookForm.reset();
+            openModal(bookModal);
+        });
+
+        document.getElementById('libraryCatalogTableBody').addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('edit-book-btn')) {
+                bookToEditId = target.dataset.id;
+                const book = allLibraryBooks.find(b => b.id === bookToEditId);
+                if (book) {
+                    document.getElementById('bookModalTitle').textContent = 'Edit Book';
+                    document.getElementById('bookTitle').value = book.title || '';
+                    document.getElementById('bookAuthor').value = book.author || '';
+                    document.getElementById('bookTotalCopies').value = book.totalCopies || 0;
+                    document.getElementById('bookAvailableCopies').value = book.availableCopies || 0;
+                    document.getElementById('bookImageUrl').value = book.imageUrl || '';
+                    openModal(bookModal);
+                }
+            } else if (target.classList.contains('delete-book-btn')) {
+                const bookId = target.dataset.id;
+                if (confirm('Are you sure you want to delete this book from the catalog?')) {
+                    deleteBook(bookId);
+                }
+            }
+        });
+
+        bookForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const bookData = {
+                title: document.getElementById('bookTitle').value.trim(),
+                author: document.getElementById('bookAuthor').value.trim(),
+                totalCopies: parseInt(document.getElementById('bookTotalCopies').value) || 0,
+                availableCopies: parseInt(document.getElementById('bookAvailableCopies').value) || 0,
+                imageUrl: document.getElementById('bookImageUrl').value.trim()
+            };
+
+            if (bookData.availableCopies > bookData.totalCopies) {
+                showMessage('Available copies cannot be greater than total copies.', 'error');
+                return;
+            }
+
+            try {
+                if (bookToEditId) { // Editing
+                    await updateDoc(doc(db, "libraryCatalog", bookToEditId), bookData);
+                    showMessage('Book updated successfully!', 'success');
+                } else { // Creating
+                    // When creating, available copies should equal total copies
+                    bookData.availableCopies = bookData.totalCopies;
+                    await addDoc(collection(db, "libraryCatalog"), bookData);
+                    showMessage('Book added successfully!', 'success');
+                }
+                closeModal(bookModal);
+                await loadLibraryCatalog();
+            } catch (error) {
+                console.error("Error saving book:", error);
+                showMessage('Failed to save book.', 'error');
+            }
+        });
+
+        async function deleteBook(bookId) {
+            try {
+                await deleteDoc(doc(db, "libraryCatalog", bookId));
+                showMessage('Book deleted successfully.', 'success');
+                await loadLibraryCatalog();
+            } catch (error) {
+                console.error("Error deleting book:", error);
+                showMessage('Failed to delete book.', 'error');
+            }
+        }
+
+        // --- Loan Management Logic ---
+        const loanStudentSearch = document.getElementById('loanStudentSearch');
+        const loanSearchResults = document.getElementById('loanSearchResults');
+        const loanDetailsContainer = document.getElementById('loanDetailsContainer');
+        const studentLoansTableBody = document.getElementById('studentLoansTableBody');
+
+        loanStudentSearch.addEventListener('input', () => {
+            const searchTerm = loanStudentSearch.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                loanSearchResults.innerHTML = '';
+                loanSearchResults.style.display = 'none';
+                return;
+            }
+            const results = allStudents.filter(s => s.name.toLowerCase().includes(searchTerm) || s.studentId.toLowerCase().includes(searchTerm)).slice(0, 5);
+            loanSearchResults.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${student.name} (${student.studentId})`;
+                    div.addEventListener('click', () => selectStudentForLoans(student.id));
+                    loanSearchResults.appendChild(div);
+                });
+                loanSearchResults.style.display = 'block';
+            } else {
+                loanSearchResults.style.display = 'none';
+            }
+        });
+
+        async function selectStudentForLoans(studentId) {
+            selectedLoanStudent = allStudents.find(s => s.id === studentId);
+            loanStudentSearch.value = `${selectedLoanStudent.name} (${selectedLoanStudent.studentId})`;
+            loanSearchResults.style.display = 'none';
+            loanDetailsContainer.style.display = 'block';
+            document.getElementById('loanStudentName').textContent = `Loans for: ${selectedLoanStudent.name}`;
+            await renderStudentLoans(studentId);
+        }
+
+        async function renderStudentLoans(studentId) {
+            studentLoansTableBody.innerHTML = '<tr><td colspan="5">Loading loans...</td></tr>';
+            const loansCol = collection(db, "users", studentId, "libraryLoans");
+            const q = query(loansCol, where("status", "!=", "Returned")); // Only show active loans
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                studentLoansTableBody.innerHTML = '<tr><td colspan="5">This student has no active loans.</td></tr>';
+                return;
+            }
+
+            studentLoansTableBody.innerHTML = '';
+            snapshot.forEach(doc => {
+                const loan = { id: doc.id, ...doc.data() };
+                let fine = 0;
+                let dueDateText = 'N/A';
+                if (loan.status === 'Checked Out' && loan.dueDate) {
+                    const dueDate = loan.dueDate.toDate();
+                    dueDateText = dueDate.toLocaleDateString();
+                    if (new Date() > dueDate) {
+                        const daysOverdue = Math.floor((new Date() - dueDate) / (1000 * 60 * 60 * 24));
+                        fine = daysOverdue * 10;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${loan.title}</td>
+                    <td><span class="ticket-status ${loan.status === 'Checked Out' ? 'status--not-cleared' : 'status--pending'}">${loan.status}</span></td>
+                    <td>${dueDateText}</td>
+                    <td>${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(fine)}</td>
+                    <td>
+                        ${loan.status === 'Reserved' ? `<button class="action-btn checkout-btn" data-loan-id="${loan.id}">Confirm Pickup</button>` : ''}
+                        ${loan.status === 'Checked Out' ? `<button class="action-btn return-btn" data-loan-id="${loan.id}" data-book-id="${loan.bookId}">Mark Returned</button>` : ''}
+                    </td>
+                `;
+                studentLoansTableBody.appendChild(tr);
+            });
+        }
+
+        studentLoansTableBody.addEventListener('click', async (e) => {
+            const target = e.target;
+            const loanId = target.dataset.loanId;
+            if (!loanId || !selectedLoanStudent) return;
+
+            const loanDocRef = doc(db, "users", selectedLoanStudent.id, "libraryLoans", loanId);
+
+            if (target.classList.contains('checkout-btn')) {
+                const newDueDate = new Date();
+                newDueDate.setDate(newDueDate.getDate() + 7); // 7-day loan period
+                await updateDoc(loanDocRef, {
+                    status: 'Checked Out',
+                    checkoutDate: new Date(),
+                    dueDate: newDueDate
+                });
+                showMessage('Book checked out. Due date is in 7 days.', 'success');
+                await renderStudentLoans(selectedLoanStudent.id);
+            }
+
+            if (target.classList.contains('return-btn')) {
+                const bookId = target.dataset.bookId;
+                await updateDoc(loanDocRef, {
+                    status: 'Returned',
+                    returnDate: new Date()
+                });
+
+                // Increment available copies in master catalog
+                const bookDocRef = doc(db, "libraryCatalog", bookId);
+                const bookSnap = await getDoc(bookDocRef);
+                if (bookSnap.exists()) {
+                    const currentCopies = bookSnap.data().availableCopies || 0;
+                    await updateDoc(bookDocRef, { availableCopies: currentCopies + 1 });
+                }
+                showMessage('Book marked as returned.', 'success');
+                await renderStudentLoans(selectedLoanStudent.id);
+            }
+        });
+
+        // --- Hostel Management Logic ---
+        const hostelRoomForm = document.getElementById('hostelRoomForm');
+
+        async function loadHostelRooms() {
+            const roomsBody = document.getElementById('hostelRoomsTableBody');
+            roomsBody.innerHTML = '<tr><td colspan="5">Loading hostel rooms...</td></tr>';
+            try {
+                const roomsCollection = collection(db, "hostelRooms");
+                const roomSnapshot = await getDocs(roomsCollection);
+                const allHostelRooms = roomSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderHostelRoomsTable(allHostelRooms);
+            } catch (error) {
+                console.error("Error loading hostel rooms:", error);
+                roomsBody.innerHTML = `<tr><td colspan="5" style="color: var(--color-error);">Error loading rooms.</td></tr>`;
+            }
+        }
+
+        function renderHostelRoomsTable(rooms) {
+            const roomsBody = document.getElementById('hostelRoomsTableBody');
+            roomsBody.innerHTML = '';
+            if (rooms.length === 0) {
+                roomsBody.innerHTML = '<tr><td colspan="5">No hostel rooms found.</td></tr>';
+                return;
+            }
+            rooms.forEach(room => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${room.name || 'N/A'}</td>
+                    <td>${room.capacity || 'N/A'}</td>
+                    <td>${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(room.cost || 0)}</td>
+                    <td>${room.available || 0}</td>
+                    <td>
+                        <button class="action-btn edit-hostel-btn" data-id="${room.id}">Edit</button>
+                        <button class="action-btn delete delete-hostel-btn" data-id="${room.id}">Delete</button>
+                    </td>
+                `;
+                roomsBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('createHostelRoomBtn').addEventListener('click', () => {
+            hostelRoomToEditId = null;
+            document.getElementById('hostelRoomModalTitle').textContent = 'Add New Room';
+            hostelRoomForm.reset();
+            openModal(hostelRoomModal);
+        });
+
+        document.getElementById('hostelRoomsTableBody').addEventListener('click', async (e) => {
+            const target = e.target;
+            if (target.classList.contains('edit-hostel-btn')) {
+                hostelRoomToEditId = target.dataset.id;
+                const roomDoc = await getDoc(doc(db, "hostelRooms", hostelRoomToEditId));
+                if (roomDoc.exists()) {
+                    const room = roomDoc.data();
+                    document.getElementById('hostelRoomModalTitle').textContent = 'Edit Room';
+                    document.getElementById('hostelRoomName').value = room.name || '';
+                    document.getElementById('hostelRoomCapacity').value = room.capacity || 0;
+                    document.getElementById('hostelRoomCost').value = room.cost || 0;
+                    document.getElementById('hostelRoomAvailable').value = room.available || 0;
+                    document.getElementById('hostelRoomImageUrl').value = room.imageUrl || '';
+                    openModal(hostelRoomModal);
+                }
+            } else if (target.classList.contains('delete-hostel-btn')) {
+                if (confirm('Are you sure you want to delete this hostel room?')) {
+                    await deleteDoc(doc(db, "hostelRooms", target.dataset.id));
+                    showMessage('Room deleted successfully.', 'success');
+                    loadHostelRooms();
+                }
+            }
+        });
+
+        hostelRoomForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const roomData = {
+                name: document.getElementById('hostelRoomName').value.trim(),
+                capacity: parseInt(document.getElementById('hostelRoomCapacity').value) || 0,
+                cost: parseFloat(document.getElementById('hostelRoomCost').value) || 0,
+                available: parseInt(document.getElementById('hostelRoomAvailable').value) || 0,
+                imageUrl: document.getElementById('hostelRoomImageUrl').value.trim()
+            };
+
+            try {
+                if (hostelRoomToEditId) { // Editing
+                    await updateDoc(doc(db, "hostelRooms", hostelRoomToEditId), roomData);
+                    showMessage('Room updated successfully!', 'success');
+                } else { // Creating
+                    await addDoc(collection(db, "hostelRooms"), roomData);
+                    showMessage('Room added successfully!', 'success');
+                }
+                closeModal(hostelRoomModal);
+                loadHostelRooms();
+            } catch (error) {
+                console.error("Error saving hostel room:", error);
+                showMessage('Failed to save room.', 'error');
+            }
+        });
+
+        // --- Hostel Booking Management ---
+        const hostelBookingStudentSearch = document.getElementById('hostelBookingStudentSearch');
+        const hostelBookingSearchResults = document.getElementById('hostelBookingSearchResults');
+        const hostelBookingDetailsContainer = document.getElementById('hostelBookingDetailsContainer');
+        const studentHostelBookingsTableBody = document.getElementById('studentHostelBookingsTableBody');
+
+        hostelBookingStudentSearch.addEventListener('input', () => {
+            const searchTerm = hostelBookingStudentSearch.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                hostelBookingSearchResults.innerHTML = '';
+                hostelBookingSearchResults.style.display = 'none';
+                return;
+            }
+            const results = allStudents.filter(s => s.name.toLowerCase().includes(searchTerm) || s.studentId.toLowerCase().includes(searchTerm)).slice(0, 5);
+            hostelBookingSearchResults.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${student.name} (${student.studentId})`;
+                    div.addEventListener('click', () => selectStudentForHostelBookings(student.id));
+                    hostelBookingSearchResults.appendChild(div);
+                });
+                hostelBookingSearchResults.style.display = 'block';
+            } else {
+                hostelBookingSearchResults.style.display = 'none';
+            }
+        });
+
+        async function selectStudentForHostelBookings(studentId) {
+            selectedBookingStudent = allStudents.find(s => s.id === studentId);
+            hostelBookingStudentSearch.value = `${selectedBookingStudent.name} (${selectedBookingStudent.studentId})`;
+            hostelBookingSearchResults.style.display = 'none';
+            hostelBookingDetailsContainer.style.display = 'block';
+            document.getElementById('hostelBookingStudentName').textContent = `Bookings for: ${selectedBookingStudent.name}`;
+            
+            // Add a "Book Room" button
+            const header = hostelBookingDetailsContainer.querySelector('.card-title');
+            if (!header.querySelector('#adminBookRoomBtn')) {
+                header.insertAdjacentHTML('afterend', `<button id="adminBookRoomBtn" class="btn btn--primary" style="width: auto; margin-top: 1rem;">Book a Room for Student</button>`);
+            }
+            await renderStudentHostelBookings(studentId);
+        }
+
+        async function renderStudentHostelBookings(studentId) {
+            studentHostelBookingsTableBody.innerHTML = '<tr><td colspan="4">Loading bookings...</td></tr>';
+            const bookingsCol = collection(db, "users", studentId, "hostelApplications");
+            const q = query(bookingsCol, where("status", "!=", "Revoked")); // Show all non-revoked bookings
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                studentHostelBookingsTableBody.innerHTML = '<tr><td colspan="4">This student has no active hostel bookings.</td></tr>';
+                return;
+            }
+
+            studentHostelBookingsTableBody.innerHTML = '';
+            snapshot.forEach(doc => {
+                const booking = { id: doc.id, ...doc.data() };
+                const statusClass = `status--${booking.status.toLowerCase().replace(/ /g, '-')}`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${booking.roomName}</td>
+                    <td>${booking.date}</td>
+                    <td><span class="ticket-status ${statusClass}">${booking.status}</span></td>
+                    <td>
+                        ${booking.status === 'Booked - Awaiting Payment' ? `<button class="action-btn mark-paid-btn" data-booking-id="${booking.id}" data-student-id="${studentId}">Mark Paid</button>` : ''}
+                        ${booking.status !== 'Revoked' ? `<button class="action-btn delete revoke-booking-btn" data-booking-id="${booking.id}" data-student-id="${studentId}" data-room-id="${booking.roomId}">Revoke</button>` : ''}
+                    </td>
+                `;
+                studentHostelBookingsTableBody.appendChild(tr);
+            });
+        }
+
+        studentHostelBookingsTableBody.addEventListener('click', async (e) => {
+            const target = e.target;
+            const bookingId = target.dataset.bookingId;
+            const studentId = target.dataset.studentId;
+            if (!bookingId || !studentId) return;
+
+            const bookingDocRef = doc(db, "users", studentId, "hostelApplications", bookingId);
+
+            if (target.classList.contains('mark-paid-btn')) {
+                try {
+                    await updateDoc(bookingDocRef, { status: 'Paid & Confirmed' });
+                    showMessage('Booking marked as paid.', 'success');
+                    await renderStudentHostelBookings(studentId);
+                } catch (error) {
+                    showMessage('Failed to update booking status.', 'error');
+                }
+            }
+
+            if (target.classList.contains('revoke-booking-btn')) {
+                if (!confirm('Are you sure you want to revoke this booking? This will make the room spot available again.')) return;
+
+                const roomId = target.dataset.roomId;
+                const roomDocRef = doc(db, "hostelRooms", roomId);
+
+                try {
+                    await updateDoc(bookingDocRef, { status: 'Revoked' });
+
+                    // Increment room availability
+                    const roomSnap = await getDoc(roomDocRef);
+                    if (roomSnap.exists()) {
+                        const currentAvailable = roomSnap.data().available || 0;
+                        await updateDoc(roomDocRef, { available: currentAvailable + 1 });
+                    }
+
+                    showMessage('Booking has been revoked.', 'success');
+                    await renderStudentHostelBookings(studentId);
+                } catch (error) {
+                    showMessage('Failed to revoke booking.', 'error');
+                }
+            }
+        });
+
+        document.getElementById('manageHostelBookingsView').addEventListener('click', async (e) => {
+            if (e.target.id === 'adminBookRoomBtn') {
+                if (!selectedBookingStudent) {
+                    showMessage('Please select a student first.', 'error');
+                    return;
+                }
+                await populateAdminHostelBookingModal();
+                openModal(document.getElementById('adminBookHostelModal'));
+            }
+        });
+
+        async function populateAdminHostelBookingModal() {
+            const roomListBody = document.getElementById('adminHostelRoomList');
+            roomListBody.innerHTML = '<tr><td colspan="3">Loading available rooms...</td></tr>';
+
+            const roomsCollection = collection(db, "hostelRooms");
+            const q = query(roomsCollection, where("available", ">", 0));
+            const roomsSnapshot = await getDocs(q);
+
+            if (roomsSnapshot.empty) {
+                roomListBody.innerHTML = '<tr><td colspan="3">No rooms with available spots.</td></tr>';
+                return;
+            }
+
+            roomListBody.innerHTML = '';
+            roomsSnapshot.forEach(roomDoc => {
+                const room = { id: roomDoc.id, ...roomDoc.data() };
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${room.name}</td>
+                    <td>${room.available}</td>
+                    <td><button class="btn btn--primary book-for-student-btn" data-room-id="${room.id}">Book Now</button></td>
+                `;
+                roomListBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('adminHostelRoomList').addEventListener('click', async (e) => {
+            if (e.target.classList.contains('book-for-student-btn')) {
+                const roomId = e.target.dataset.roomId;
+                const roomDocRef = doc(db, "hostelRooms", roomId);
+                const roomSnap = await getDoc(roomDocRef);
+                if (!roomSnap.exists()) return;
+
+                const room = roomSnap.data();
+                const newApplication = {
+                    studentId: selectedBookingStudent.studentId, roomId: roomId, roomName: room.name,
+                    date: new Date().toISOString().split('T')[0], status: 'Booked - Awaiting Payment'
+                };
+                await addDoc(collection(db, "users", selectedBookingStudent.id, "hostelApplications"), newApplication);
+                await updateDoc(roomDocRef, { available: room.available - 1 });
+                showMessage(`Room '${room.name}' booked for ${selectedBookingStudent.name}.`, 'success');
+                closeModal(document.getElementById('adminBookHostelModal'));
+                await renderStudentHostelBookings(selectedBookingStudent.id);
+            }
+        });
+
+        // --- Communications Hub Logic ---
+        const supportTicketsListEl = document.getElementById('supportTicketsList');
+        const ticketDetailsViewEl = document.getElementById('ticketDetailsView');
+        let allSupportTickets = [];
+        let selectedNotificationRecipient = null;
+
+        async function loadAllSupportTickets() {
+            supportTicketsListEl.innerHTML = '<p style="padding: 1rem;">Loading tickets...</p>';
+            allSupportTickets = [];
+            try {
+                for (const student of allStudents) {
+                    const ticketsCol = collection(db, "users", student.id, "supportTickets");
+                    const ticketSnapshot = await getDocs(ticketsCol);
+                    ticketSnapshot.forEach(doc => {
+                        allSupportTickets.push({
+                            ticketId: doc.id,
+                            studentId: student.id,
+                            studentName: student.name,
+                            ...doc.data()
+                        });
+                    });
+                }
+                allSupportTickets.sort((a, b) => b.date.localeCompare(a.date)); // Sort newest first
+                renderSupportTicketsList(allSupportTickets);
+            } catch (error) {
+                console.error("Error loading support tickets:", error);
+                supportTicketsListEl.innerHTML = '<p style="padding: 1rem; color: var(--color-error);">Failed to load tickets.</p>';
+            }
+        }
+
+        function renderSupportTicketsList(tickets) {
+            supportTicketsListEl.innerHTML = '';
+            if (tickets.length === 0) {
+                supportTicketsListEl.innerHTML = '<p style="padding: 1rem; text-align: center;">No support tickets found.</p>';
+                return;
+            }
+            tickets.forEach(ticket => {
+                const item = document.createElement('div');
+                item.className = 'ticket-list-item';
+                item.dataset.ticketId = ticket.ticketId;
+                item.dataset.studentId = ticket.studentId;
+                item.innerHTML = `
+                    <div>
+                        <div class="ticket-list-item-student">${ticket.studentName}</div>
+                        <div class="ticket-list-item-meta">${ticket.subject}</div>
+                    </div>
+                    <span class="ticket-status status--${ticket.status.toLowerCase()}">${ticket.status}</span>
+                `;
+                item.addEventListener('click', () => selectTicket(ticket.ticketId, ticket.studentId));
+                supportTicketsListEl.appendChild(item);
+            });
+        }
+
+        function selectTicket(ticketId, studentId) {
+            const ticket = allSupportTickets.find(t => t.ticketId === ticketId && t.studentId === studentId);
+            if (!ticket) return;
+
+            // Highlight active ticket
+            document.querySelectorAll('.ticket-list-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.ticket-list-item[data-ticket-id="${ticketId}"]`).classList.add('active');
+
+            let commentsHtml = '';
+            ticket.comments.forEach(comment => {
+                commentsHtml += `<div class="comment" style="background: var(--color-bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p><strong>${comment.author}:</strong></p>
+                    <p>${comment.text.replace(/\n/g, '<br>')}</p>
+                </div>`;
+            });
+
+            ticketDetailsViewEl.innerHTML = `
+                <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);">
+                    <h3>${ticket.subject}</h3>
+                    <p style="color: var(--color-text-muted); font-size: 0.9rem;">From: ${ticket.studentName}</p>
+                </div>
+                <div style="flex-grow: 1; overflow-y: auto; padding: 1rem 0;">${commentsHtml}</div>
+                <form id="ticketReplyForm">
+                    <textarea id="replyText" placeholder="Type your reply..." required style="width: 100%; min-height: 80px; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--color-border); margin-bottom: 0.5rem;"></textarea>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <select id="ticketStatusSelect">
+                            <option value="Open" ${ticket.status === 'Open' ? 'selected' : ''}>Open</option>
+                            <option value="Pending" ${ticket.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Closed" ${ticket.status === 'Closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                        <button type="submit" class="btn btn--primary" style="width: auto;">Post Reply & Update</button>
+                    </div>
+                </form>
+            `;
+
+            document.getElementById('ticketReplyForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const replyText = document.getElementById('replyText').value.trim();
+                const newStatus = document.getElementById('ticketStatusSelect').value;
+                const ticketDocRef = doc(db, "users", studentId, "supportTickets", ticketId);
+
+                const updateData = { status: newStatus };
+                if (replyText) {
+                    updateData.comments = arrayUnion({ author: 'Admin Support', text: replyText, timestamp: new Date() });
+                }
+
+                try {
+                    await updateDoc(ticketDocRef, updateData);
+                    showMessage('Ticket updated successfully.', 'success');
+                    loadAllSupportTickets(); // Refresh list
+                    ticketDetailsViewEl.innerHTML = '<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);"><p>Select a ticket to view details.</p></div>';
+                } catch (error) {
+                    showMessage('Failed to update ticket.', 'error');
+                }
+            });
+        }
+
+        document.getElementById('sendNotificationBtn').addEventListener('click', () => {
+            document.getElementById('notificationForm').reset();
+            selectedNotificationRecipient = null;
+            openModal(notificationModal);
+        });
+
+        document.getElementById('notificationTo').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const resultsEl = document.getElementById('notificationStudentResults');
+            if (searchTerm.length < 2 || searchTerm === 'all students') {
+                resultsEl.innerHTML = '';
+                resultsEl.style.display = 'none';
+                return;
+            }
+            const results = allStudents.filter(s => s.name.toLowerCase().includes(searchTerm) || s.studentId.toLowerCase().includes(searchTerm)).slice(0, 5);
+            resultsEl.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${student.name} (${student.studentId})`;
+                    div.addEventListener('click', () => {
+                        document.getElementById('notificationTo').value = `${student.name} (${student.studentId})`;
+                        selectedNotificationRecipient = student;
+                        resultsEl.style.display = 'none';
+                    });
+                    resultsEl.appendChild(div);
+                });
+                resultsEl.style.display = 'block';
+            } else {
+                resultsEl.style.display = 'none';
+            }
+        });
+
+        document.getElementById('notificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const to = document.getElementById('notificationTo').value.toLowerCase();
+            const subject = document.getElementById('notificationSubject').value;
+            const body = document.getElementById('notificationBody').value;
+            const newMessage = { subject, content: body, sender: 'University Administration', read: false, timestamp: new Date() };
+
+            try {
+                if (to === 'all students') {
+                    for (const student of allStudents) {
+                        await addDoc(collection(db, "users", student.id, "messages"), newMessage);
+                    }
+                    showMessage('Message sent to all students.', 'success');
+                } else if (selectedNotificationRecipient) {
+                    await addDoc(collection(db, "users", selectedNotificationRecipient.id, "messages"), newMessage);
+                    showMessage(`Message sent to ${selectedNotificationRecipient.name}.`, 'success');
+                } else {
+                    showMessage('Please select a valid recipient.', 'error');
+                    return;
+                }
+                closeModal(notificationModal);
+            } catch (error) {
+                console.error("Error sending notification:", error);
+                showMessage('Failed to send message.', 'error');
+            }
+        });
+
+        // --- Clearance Management Logic ---
+        const clearanceStudentSearch = document.getElementById('clearanceStudentSearch');
+        const clearanceSearchResults = document.getElementById('clearanceSearchResults');
+        const clearanceDetailsContainer = document.getElementById('clearanceDetailsContainer');
+        const studentClearanceTableBody = document.getElementById('studentClearanceTableBody');
+        const DEPARTMENTS = { library: 'Library', finance: 'Finance', hostel: 'Hostel', department: 'Academic Dept.' };
+
+        clearanceStudentSearch.addEventListener('input', () => {
+            const searchTerm = clearanceStudentSearch.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                clearanceSearchResults.innerHTML = '';
+                clearanceSearchResults.style.display = 'none';
+                return;
+            }
+            const results = allStudents.filter(s => s.name.toLowerCase().includes(searchTerm) || s.studentId.toLowerCase().includes(searchTerm)).slice(0, 5);
+            clearanceSearchResults.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.textContent = `${student.name} (${student.studentId})`;
+                    div.addEventListener('click', () => selectStudentForClearance(student.id));
+                    clearanceSearchResults.appendChild(div);
+                });
+                clearanceSearchResults.style.display = 'block';
+            } else {
+                clearanceSearchResults.style.display = 'none';
+            }
+        });
+
+        async function selectStudentForClearance(studentId) {
+            selectedClearanceStudent = allStudents.find(s => s.id === studentId);
+            clearanceStudentSearch.value = `${selectedClearanceStudent.name} (${selectedClearanceStudent.studentId})`;
+            clearanceSearchResults.style.display = 'none';
+            clearanceDetailsContainer.style.display = 'block';
+            document.getElementById('clearanceStudentName').textContent = `Clearance Status for: ${selectedClearanceStudent.name}`;
+            await renderStudentClearance(studentId);
+        }
+
+        async function renderStudentClearance(studentId) {
+            studentClearanceTableBody.innerHTML = '<tr><td colspan="4">Loading clearance status...</td></tr>';
+            const clearanceDocRef = doc(db, "users", studentId, "clearanceStatus", "status");
+            const clearanceSnap = await getDoc(clearanceDocRef);
+            const clearanceStatus = clearanceSnap.exists() ? clearanceSnap.data() : {};
+
+            studentClearanceTableBody.innerHTML = '';
+            for (const key in DEPARTMENTS) {
+                const dept = clearanceStatus[key] || { status: 'Not Requested', remarks: 'N/A' };
+                const statusClass = `status--${dept.status.toLowerCase().replace(/ /g, '-')}`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${DEPARTMENTS[key]}</td>
+                    <td><span class="ticket-status ${statusClass}">${dept.status}</span></td>
+                    <td>${dept.remarks || 'N/A'}</td>
+                    <td>
+                        ${dept.status === 'Pending' ? `
+                            <button class="action-btn approve-clearance-btn" data-dept="${key}">Approve</button>
+                            <button class="action-btn delete reject-clearance-btn" data-dept="${key}">Reject</button>
+                        ` : ''}
+                    </td>
+                `;
+                studentClearanceTableBody.appendChild(tr);
+            }
+        }
+
+        studentClearanceTableBody.addEventListener('click', async (e) => {
+            const target = e.target;
+            const deptKey = target.dataset.dept;
+            if (!deptKey || !selectedClearanceStudent) return;
+
+            const clearanceDocRef = doc(db, "users", selectedClearanceStudent.id, "clearanceStatus", "status");
+
+            if (target.classList.contains('approve-clearance-btn')) {
+                const updateData = {
+                    [`${deptKey}.status`]: 'Cleared',
+                    [`${deptKey}.remarks`]: 'Cleared by administration.'
+                };
+                try {
+                    await updateDoc(clearanceDocRef, updateData);
+                    showMessage(`${DEPARTMENTS[deptKey]} clearance approved.`, 'success');
+                    await renderStudentClearance(selectedClearanceStudent.id);
+                } catch (error) { showMessage('Failed to approve clearance.', 'error'); }
+            }
+
+            if (target.classList.contains('reject-clearance-btn')) {
+                const remarks = prompt(`Please provide a reason for rejecting clearance for ${DEPARTMENTS[deptKey]}:`);
+                if (remarks) {
+                    const updateData = {
+                        [`${deptKey}.status`]: 'Not Cleared',
+                        [`${deptKey}.remarks`]: remarks
+                    };
+                    try {
+                        await updateDoc(clearanceDocRef, updateData);
+                        showMessage(`${DEPARTMENTS[deptKey]} clearance rejected.`, 'success');
+                        await renderStudentClearance(selectedClearanceStudent.id);
+                    } catch (error) { showMessage('Failed to reject clearance.', 'error'); }
+                }
+            }
+        });
+
+        // --- Graduation Management Logic ---
+        async function loadGraduationApplications() {
+            const appsBody = document.getElementById('graduationAppsTableBody');
+            appsBody.innerHTML = '<tr><td colspan="5">Loading applications...</td></tr>';
+            let allApplications = [];
+
+            try {
+                for (const student of allStudents) {
+                    const appDocRef = doc(db, "users", student.id, "graduationApplication", "status");
+                    const appSnapshot = await getDoc(appDocRef);
+                    if (appSnapshot.exists()) {
+                        allApplications.push({
+                            studentId: student.id,
+                            studentName: student.name,
+                            studentRegId: student.studentId,
+                            ...appSnapshot.data()
+                        });
+                    }
+                }
+
+                allApplications.sort((a, b) => b.date.localeCompare(a.date));
+                renderGraduationAppsTable(allApplications);
+            } catch (error) {
+                console.error("Error loading graduation applications:", error);
+                appsBody.innerHTML = '<tr><td colspan="5" style="color: var(--color-error);">Failed to load applications.</td></tr>';
+            }
+        }
+
+        function renderGraduationAppsTable(applications) {
+            const appsBody = document.getElementById('graduationAppsTableBody');
+            appsBody.innerHTML = '';
+            if (applications.length === 0) {
+                appsBody.innerHTML = '<tr><td colspan="5">No graduation applications found.</td></tr>';
+                return;
+            }
+
+            applications.forEach(app => {
+                const statusClass = `status--${app.status.toLowerCase().replace(/ /g, '-')}`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${app.studentName}</td>
+                    <td>${app.studentRegId}</td>
+                    <td>${app.date}</td>
+                    <td><span class="ticket-status ${statusClass}">${app.status}</span></td>
+                    <td>
+                        ${app.status === 'Pending Review' ? `
+                            <button class="action-btn approve-grad-btn" data-student-id="${app.studentId}">Approve</button>
+                            <button class="action-btn delete reject-grad-btn" data-student-id="${app.studentId}">Reject</button>
+                        ` : 'Processed'}
+                    </td>
+                `;
+                appsBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('graduationAppsTableBody').addEventListener('click', async (e) => {
+            const target = e.target;
+            const studentId = target.dataset.studentId;
+            if (!studentId) return;
+
+            const appDocRef = doc(db, "users", studentId, "graduationApplication", "status");
+
+            if (target.classList.contains('approve-grad-btn')) {
+                await updateDoc(appDocRef, { status: 'Approved' });
+                showMessage('Application approved.', 'success');
+                loadGraduationApplications();
+            }
+
+            if (target.classList.contains('reject-grad-btn')) {
+                await updateDoc(appDocRef, { status: 'Rejected' });
+                showMessage('Application rejected.', 'success');
+                loadGraduationApplications();
+            }
+        });
+
+        // --- Timetable Management Logic ---
+        async function loadTimetableEntries() {
+            const tableBody = document.getElementById('timetablesTableBody');
+            tableBody.innerHTML = '<tr><td colspan="6">Loading timetable...</td></tr>';
+            try {
+                const entriesCol = collection(db, "timetables");
+                // Fetch without complex sorting to avoid needing an index
+                const snapshot = await getDocs(entriesCol);
+                const allEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Sort the data on the client-side
+                const dayOrder = { "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5 };
+                allEntries.sort((a, b) => {
+                    const dayComparison = (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
+                    if (dayComparison !== 0) return dayComparison;
+                    return a.startTime.localeCompare(b.startTime);
+                });
+
+                renderTimetableEntries(allEntries);
+            } catch (error) {
+                console.error("Error loading timetable entries:", error);
+                tableBody.innerHTML = `<tr><td colspan="6" style="color: var(--color-error);">Failed to load timetable.</td></tr>`;
+            }
+        }
+
+        function renderTimetableEntries(entries) {
+            const tableBody = document.getElementById('timetablesTableBody');
+            tableBody.innerHTML = '';
+            if (entries.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6">No timetable entries found.</td></tr>';
+                return;
+            }
+            entries.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${entry.course}</td>
+                    <td>${entry.day}</td>
+                    <td>${entry.startTime} - ${entry.endTime}</td>
+                    <td>${entry.location}</td>
+                    <td>Y${entry.yearOfStudy}, ${entry.semester}</td>
+                    <td>
+                        <button class="action-btn edit-timetable-btn" data-id="${entry.id}">Edit</button>
+                        <button class="action-btn delete delete-timetable-btn" data-id="${entry.id}">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('createTimetableEntryBtn').addEventListener('click', async () => {
+            timetableEntryToEditId = null;
+            document.getElementById('timetableModalTitle').textContent = 'Add Timetable Entry';
+            timetableForm.reset();
+
+            // Populate course dropdown
+            const courseSelect = document.getElementById('timetableCourse');
+            courseSelect.innerHTML = '<option value="">Loading courses...</option>';
+            if (allMasterCourses.length === 0) await loadCourses();
+            courseSelect.innerHTML = '<option value="">Select Course...</option>';
+            allMasterCourses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = `${course.code} - ${course.title}`;
+                option.textContent = `${course.code} - ${course.title}`;
+                courseSelect.appendChild(option);
+            });
+
+            openModal(timetableModal);
+        });
+
+        document.getElementById('timetablesTableBody').addEventListener('click', async (e) => {
+            const target = e.target;
+            if (target.classList.contains('edit-timetable-btn')) {
+                timetableEntryToEditId = target.dataset.id;
+                const entryDoc = await getDoc(doc(db, "timetables", timetableEntryToEditId));
+                if (entryDoc.exists()) {
+                    const entry = entryDoc.data();
+                    document.getElementById('timetableModalTitle').textContent = 'Edit Timetable Entry';
+                    document.getElementById('timetableCourse').value = entry.course;
+                    document.getElementById('timetableDay').value = entry.day;
+                    document.getElementById('timetableStartTime').value = entry.startTime;
+                    document.getElementById('timetableEndTime').value = entry.endTime;
+                    document.getElementById('timetableLocation').value = entry.location;
+                    document.getElementById('timetableYear').value = entry.yearOfStudy;
+                    document.getElementById('timetableSemester').value = entry.semester;
+                    openModal(timetableModal);
+                }
+            } else if (target.classList.contains('delete-timetable-btn')) {
+                if (confirm('Are you sure you want to delete this timetable entry?')) {
+                    await deleteDoc(doc(db, "timetables", target.dataset.id));
+                    showMessage('Entry deleted successfully.', 'success');
+                    loadTimetableEntries();
+                }
+            }
+        });
+
+        timetableForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const entryData = {
+                course: document.getElementById('timetableCourse').value,
+                day: document.getElementById('timetableDay').value,
+                startTime: document.getElementById('timetableStartTime').value,
+                endTime: document.getElementById('timetableEndTime').value,
+                location: document.getElementById('timetableLocation').value,
+                yearOfStudy: parseInt(document.getElementById('timetableYear').value),
+                semester: document.getElementById('timetableSemester').value
+            };
+            try {
+                if (timetableEntryToEditId) {
+                    await updateDoc(doc(db, "timetables", timetableEntryToEditId), entryData);
+                } else {
+                    await addDoc(collection(db, "timetables"), entryData);
+                }
+                showMessage('Timetable entry saved successfully!', 'success');
+                closeModal(timetableModal);
+                loadTimetableEntries();
+            } catch (error) { showMessage('Failed to save timetable entry.', 'error'); }
+        });
+
+        // --- Admin Settings Logic ---
+        const adminLightThemeBtn = document.getElementById('adminLightThemeBtn');
+        const adminDarkThemeBtn = document.getElementById('adminDarkThemeBtn');
+
+        function setAdminTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.body.setAttribute('data-theme', theme);
+            adminLightThemeBtn.classList.toggle('active', theme === 'light');
+            adminDarkThemeBtn.classList.toggle('active', theme === 'dark');
+            // In a real app, you might save this preference to the admin's profile
+        }
+
+        adminLightThemeBtn.addEventListener('click', () => {
+            setAdminTheme('light');
+            showMessage('Theme changed to Light.', 'success');
+        });
+        adminDarkThemeBtn.addEventListener('click', () => {
+            setAdminTheme('dark');
+            showMessage('Theme changed to Dark.', 'success');
+        });
+        setAdminTheme(localStorage.getItem('adminTheme') || 'light'); // Load saved theme
+
+        setupModals();
+
+    </script>
+</body>
+</html>

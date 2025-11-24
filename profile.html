@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Prince Alex University</title>
+    <!--
+    ====================================================================================================
+    FILE: profile.html
+    PURPOSE: Displays the student's detailed personal and academic profile information.
+    ====================================================================================================
+    -->
+    <style>
+        /* --- CSS Variables for Theming (Same as dashboard.html) --- */
+        :root, [data-theme="light"] {
+            --color-primary: #1A237E; --color-primary-light: #303F9F; --color-accent: #FFC107; --color-accent-hover: #FFA000; --color-text: #212121; --color-text-muted: #757575; --color-bg: #F5F5F5; --color-surface: #FFFFFF; --color-border: #E0E0E0; --color-error: #D32F2F; --color-success: #388E3C; --color-info: #1976D2; --color-warning: #FFA000;
+            --font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --shadow-sm: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 3px 6px rgba(0,0,0,0.12); --border-radius: 8px; --transition-speed: 0.3s;
+        }
+        [data-theme="dark"] {
+            --color-primary: #9FA8DA; --color-primary-light: #7986CB; --color-accent: #FFCA28; --color-accent-hover: #FFD54F; --color-text: #E0E0E0; --color-text-muted: #9E9E9E; --color-bg: #121212; --color-surface: #1E1E1E; --color-border: #424242;
+        }
+
+        /* --- Global Styles & Resets (Same as dashboard.html) --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            font-family: var(--font-family); background-color: var(--color-bg); color: var(--color-text); transition: background-color var(--transition-speed), color var(--transition-speed);
+            display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr auto;
+            grid-template-areas: "sidebar header" "sidebar main" "sidebar footer"; min-height: 100vh;
+        }
+        a { color: var(--color-primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        img { max-width: 100%; display: block; }
+
+        /* --- Layout Components (Same as dashboard.html) --- */
+        .header { grid-area: header; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; }
+        .sidebar { grid-area: sidebar; background-color: var(--color-primary); color: #E8EAF6; padding: 1.5rem 0; display: flex; flex-direction: column; position: fixed; height: 100%; width: 250px; transition: transform var(--transition-speed) ease; }
+        .main-content { grid-area: main; padding: 2rem; }
+        .footer { grid-area: footer; padding: 1rem 2rem; text-align: center; font-size: 0.8rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+
+        /* --- Header & Sidebar Components (Same as dashboard.html) --- */
+        .header__title { font-size: 1.5rem; font-weight: 600; }
+        .header__actions { display: flex; align-items: center; gap: 1.5rem; }
+        .notification-bell { position: relative; cursor: pointer; }
+        .notification-badge { position: absolute; top: -5px; right: -8px; background-color: var(--color-error); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; justify-content: center; align-items: center; font-weight: 600; }
+        .user-menu { position: relative; }
+        .user-menu__avatar { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        .user-menu__dropdown { display: none; position: absolute; right: 0; top: 50px; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--border-radius); box-shadow: var(--shadow-md); width: 180px; z-index: 110; }
+        .user-menu__dropdown a { display: block; padding: 0.75rem 1rem; color: var(--color-text); }
+        .user-menu__dropdown a:hover { background-color: var(--color-bg); }
+        .user-menu.active .user-menu__dropdown { display: block; }
+        .sidebar__logo { font-size: 1.5rem; font-weight: 700; text-align: center; padding: 0 1rem 1.5rem; color: white; }
+        .sidebar__logo .accent { color: var(--color-accent); }
+        .sidebar__nav { overflow-y: auto; }
+        .sidebar__nav ul { list-style: none; }
+        .sidebar__nav-item a { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.5rem; color: #C5CAE9; transition: background-color var(--transition-speed), color var(--transition-speed); border-left: 4px solid transparent; }
+        .sidebar__nav-item a:hover { background-color: rgba(0,0,0,0.2); color: white; }
+        .sidebar__nav-item.active a { background-color: rgba(0,0,0,0.3); color: white; font-weight: 600; border-left-color: var(--color-accent); }
+        .sidebar__nav-icon { width: 20px; height: 20px; }
+        .hamburger-menu { display: none; cursor: pointer; z-index: 102; }
+
+        /* --- General UI Components --- */
+        .card { background-color: var(--color-surface); border-radius: var(--border-radius); box-shadow: var(--shadow-sm); padding: 1.5rem; margin-bottom: 2rem; }
+        .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+
+        /* --- Page-Specific Styles: Profile --- */
+        .profile-header-card {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--color-surface);
+            box-shadow: var(--shadow-md);
+        }
+        .profile-avatar-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+        #uploadAvatarBtn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .profile-summary__name { font-size: 2rem; font-weight: 700; }
+        .profile-summary__program { font-size: 1.1rem; color: var(--color-text-muted); }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .detail-item { margin-bottom: 1rem; }
+        .detail-item dt {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .detail-item dd {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-left: 0;
+        }
+        .detail-item dd a {
+            font-weight: 500;
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 1024px) {
+            body { grid-template-columns: 1fr; grid-template-areas: "header" "main" "footer"; }
+            .sidebar { transform: translateX(-100%); z-index: 200; }
+            .sidebar.open { transform: translateX(0); box-shadow: 5px 0 15px rgba(0,0,0,0.2); }
+            .hamburger-menu { display: block; padding: 0.5rem; }
+            .header { padding: 1rem; }
+        }
+        @media (max-width: 768px) {
+            .main-content { padding: 1rem; }
+            .profile-header-card { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <header class="header">
+        <div class="hamburger-menu" id="hamburgerMenu" aria-label="Open navigation menu" role="button" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </div>
+        <h1 class="header__title">My Profile</h1>
+        <div class="header__actions">
+            <div class="notification-bell" id="notificationBell">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span class="notification-badge" id="notificationCount"></span>
+            </div>
+            <div class="user-menu" id="userMenu">
+                <img src="https://i.pravatar.cc/150?u=alexdoe" alt="User Avatar" class="user-menu__avatar" id="userAvatar">
+                <div class="user-menu__dropdown">
+                    <a href="profile.html">Profile</a>
+                    <a href="settings.html">Settings</a>
+                    <a href="index.html" id="logoutBtn">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar__logo">Prince Alex <span class="accent">U.</span></div>
+        <nav class="sidebar__nav">
+            <ul>
+                <li class="sidebar__nav-item" id="nav-dashboard"><a href="dashboard.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span>Dashboard</span>
+                </a></li>
+                <li class="sidebar__nav-item active" id="nav-profile"><a href="profile.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Profile</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-my-courses"><a href="my-courses.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    <span>My Courses</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-results"><a href="results.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>My Results</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-fee-statement"><a href="fee-statement.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span>Fee Statement</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-timetable"><a href="timetable.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>Timetable</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-library"><a href="library.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    <span>Library</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-hostel"><a href="hostel.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                    <span>Hostel</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-messages"><a href="messages.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <span>Messages</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-support"><a href="support.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>Support</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-graduation"><a href="graduation.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v10.5M12 22v-1.5M12 12.5a4.5 4.5 0 0 0 4.5-4.5c0-2.49-2.02-4.5-4.5-4.5s-4.5 2.01-4.5 4.5A4.5 4.5 0 0 0 12 12.5zM12 12.5a4.5 4.5 0 0 1-4.5 4.5c0 2.49 2.02 4.5 4.5 4.5s4.5-2.01 4.5-4.5A4.5 4.5 0 0 1 12 12.5z"></path></svg>
+                    <span>Graduation</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-clearance"><a href="clearance.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    <span>Clearance</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-settings"><a href="settings.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="card profile-header-card">
+            <div class="profile-avatar-container">
+                <img src="" alt="Student Avatar" id="profileAvatar" class="profile-avatar">
+                <input type="file" id="avatarUploadInput" accept="image/png, image/jpeg" style="display: none;">
+                <button id="uploadAvatarBtn" class="btn btn--primary" aria-label="Upload new avatar"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>
+            </div>
+            <div class="profile-summary">
+                <h1 id="profileName" class="profile-summary__name"></h1>
+                <p id="profileProgram" class="profile-summary__program"></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Personal & Contact Information</h2>
+            <dl class="details-grid">
+                <div class="detail-item"><dt>Student ID</dt><dd id="detailStudentId"></dd></div>
+                <div class="detail-item"><dt>Date of Birth</dt><dd id="detailDob"></dd></div>
+                <div class="detail-item"><dt>Gender</dt><dd id="detailGender"></dd></div>
+                <div class="detail-item"><dt>National ID / Passport</dt><dd id="detailNationalId"></dd></div>
+                <div class="detail-item"><dt>Primary Contact</dt><dd id="detailPhone"></dd></div>
+                <div class="detail-item"><dt>University Email</dt><dd id="detailUniEmail"></dd></div>
+                <div class="detail-item"><dt>Personal Email</dt><dd id="detailPersonalEmail"></dd></div>
+                <div class="detail-item"><dt>Home Address</dt><dd id="detailAddress"></dd></div>
+            </dl>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Academic Information</h2>
+            <dl class="details-grid">
+                <div class="detail-item"><dt>School / Faculty</dt><dd id="detailSchool"></dd></div>
+                <div class="detail-item"><dt>Department</dt><dd id="detailDepartment"></dd></div>
+                <div class="detail-item"><dt>Year of Study</dt><dd id="detailYear"></dd></div>
+                <div class="detail-item"><dt>Current Semester</dt><dd id="detailSemester"></dd></div>
+                <div class="detail-item"><dt>Admission Date</dt><dd id="detailAdmissionDate"></dd></div>
+                <div class="detail-item"><dt>Mode of Study</dt><dd id="detailMode"></dd></div>
+                <div class="detail-item"><dt>Student Status</dt><dd id="detailStatus"></dd></div>
+                <div class="detail-item"><dt>Campus</dt><dd id="detailCampus"></dd></div>
+            </dl>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Ancillary Information</h2>
+            <dl class="details-grid">
+                <div class="detail-item"><dt>Academic Advisor</dt><dd id="detailAdvisor"></dd></div>
+                <div class="detail-item"><dt>Emergency Contact</dt><dd id="detailEmergencyContact"></dd></div>
+            </dl>
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 Prince Alex University. All Rights Reserved. | Portal Version 1.0</p>
+    </footer>
+
+    <!-- Message Overlay -->
+    <div id="messageOverlay" class="message-overlay" style="display:none;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.5);justify-content:center;align-items:center;">
+        <div id="messageOverlayContent" style="background-color:var(--color-surface);padding:2rem;border-radius:var(--border-radius);box-shadow:var(--shadow-md);width:90%;max-width:400px;text-align:center;">
+            <p id="messageOverlayText" style="margin-bottom:1.5rem;font-size:1.1rem;line-height:1.5;"></p>
+            <button id="messageOverlayClose" class="btn btn--primary">OK</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+            authDomain: "universityweb-19e1e.firebaseapp.com",
+            projectId: "universityweb-19e1e",
+            storageBucket: "universityweb-19e1e.firebasestorage.app",
+            messagingSenderId: "401942926589",
+            appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            const userProfile = userDocSnap.exists() ? userDocSnap.data() : {};
+            initializePage(user, userProfile);
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+
+    async function initializePage(user, userProfile) {
+        // --- Common UI Setup ---
+        const sidebar = document.getElementById('sidebar');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) hamburgerMenu.addEventListener('click', () => sidebar.classList.toggle('open'));
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) userMenu.addEventListener('click', (e) => { e.stopPropagation(); userMenu.classList.toggle('active'); });
+        document.addEventListener('click', () => { if (userMenu && userMenu.classList.contains('active')) userMenu.classList.remove('active'); });
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.addEventListener('click', async (e) => { e.preventDefault(); await signOut(auth); });
+
+        const currentTheme = userProfile?.theme || 'light';
+        
+        // Add overlay styles dynamically for dark theme
+        const overlayStyle = document.createElement('style');
+        overlayStyle.innerHTML = `
+            .message-overlay.show { display: flex; }
+            .message-overlay-content.success { border-top: 4px solid var(--color-success); }
+            .message-overlay-content.error { border-top: 4px solid var(--color-error); }
+        `;
+        document.head.appendChild(overlayStyle);
+
+        const messageOverlayClose = document.getElementById('messageOverlayClose');
+        if(messageOverlayClose) {
+            messageOverlayClose.addEventListener('click', () => {
+                document.getElementById('messageOverlay').classList.remove('show');
+            });
+        }
+        document.body.setAttribute('data-theme', currentTheme);
+        const currentPage = window.location.pathname.split('/').pop();
+        const navId = 'nav-' + currentPage.replace('.html', '');
+        const activeNavItem = document.getElementById(navId);
+        if (activeNavItem) {
+            document.querySelectorAll('.sidebar__nav-item').forEach(item => item.classList.remove('active'));
+            activeNavItem.classList.add('active');
+        }
+        const userAvatar = document.getElementById('userAvatar');
+        if (userAvatar && userProfile) {
+            userAvatar.src = userProfile.avatar;
+            userAvatar.alt = `${userProfile.name}'s avatar`;
+        }
+
+        const messagesCol = collection(db, "users", user.uid, "messages");
+        const unreadMessagesSnapshot = await getDocs(query(messagesCol, where("read", "==", false)));
+        const notificationCountEl = document.getElementById('notificationCount');
+        if (notificationCountEl) {
+            const unreadCount = unreadMessagesSnapshot.size;
+            if (unreadCount > 0) {
+                notificationCountEl.textContent = unreadCount;
+                notificationCountEl.style.display = 'flex';
+            } else {
+                notificationCountEl.style.display = 'none';
+            }
+        }
+
+        // --- PROFILE-SPECIFIC SCRIPT ---
+        const sanitize = (str) => {
+            if (str === null || typeof str === 'undefined') return 'N/A';
+            const temp = document.createElement('div');
+            temp.textContent = String(str);
+            return temp.innerHTML;
+        };
+
+        // --- Populate Profile Header ---
+        document.getElementById('profileAvatar').src = userProfile.avatar || 'https://i.pravatar.cc/150?u=a-user';
+        document.getElementById('profileAvatar').alt = `${userProfile.name || 'User'}'s Avatar`;
+        document.getElementById('profileName').textContent = sanitize(userProfile.name);
+        document.getElementById('profileProgram').textContent = sanitize(userProfile.program);
+
+        // --- Populate Personal & Contact Information ---
+        document.getElementById('detailStudentId').textContent = sanitize(userProfile.studentId);
+        document.getElementById('detailDob').textContent = sanitize(userProfile.dateOfBirth);
+        document.getElementById('detailGender').textContent = sanitize(userProfile.gender);
+        document.getElementById('detailNationalId').textContent = sanitize(userProfile.nationalId);
+        document.getElementById('detailPhone').textContent = sanitize(userProfile.phone);
+        document.getElementById('detailUniEmail').innerHTML = `<a href="mailto:${sanitize(userProfile.email)}">${sanitize(userProfile.email)}</a>`;
+        document.getElementById('detailPersonalEmail').innerHTML = `<a href="mailto:${sanitize(userProfile.personalEmail)}">${sanitize(userProfile.personalEmail)}</a>`;
+        document.getElementById('detailAddress').textContent = sanitize(userProfile.homeAddress);
+
+        // --- Populate Academic Information ---
+        document.getElementById('detailSchool').textContent = sanitize(userProfile.school);
+        document.getElementById('detailDepartment').textContent = sanitize(userProfile.department);
+        const yearSuffix = { 1: 'st', 2: 'nd', 3: 'rd' }
+        const yearText = `${userProfile.yearOfStudy}${yearSuffix[userProfile.yearOfStudy] || 'th'} Year`;
+        document.getElementById('detailYear').textContent = yearText;
+        document.getElementById('detailSemester').textContent = sanitize(userProfile.currentSemester);
+        document.getElementById('detailAdmissionDate').textContent = sanitize(userProfile.admissionDate);
+        document.getElementById('detailMode').textContent = sanitize(userProfile.modeOfStudy);
+        document.getElementById('detailStatus').textContent = sanitize(userProfile.studentStatus);
+        document.getElementById('detailCampus').textContent = sanitize(userProfile.campus);
+
+        // --- Populate Ancillary Information ---
+        if (userProfile.advisor) {
+            document.getElementById('detailAdvisor').innerHTML = `${sanitize(userProfile.advisor.name)} (<a href="mailto:${sanitize(userProfile.advisor.email)}">${sanitize(userProfile.advisor.email)}</a>)`;
+        }
+        if (userProfile.emergencyContact) {
+            const ec = userProfile.emergencyContact;
+            document.getElementById('detailEmergencyContact').innerHTML = `${sanitize(ec.name)} (${sanitize(ec.relationship)}) - <a href="tel:${sanitize(ec.phone)}">${sanitize(ec.phone)}</a>`;
+        }
+
+        // --- Avatar Upload Logic ---
+        const uploadAvatarBtn = document.getElementById('uploadAvatarBtn');
+        const avatarUploadInput = document.getElementById('avatarUploadInput');
+
+        uploadAvatarBtn.addEventListener('click', () => {
+            avatarUploadInput.click();
+        });
+
+        avatarUploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show uploading state
+            uploadAvatarBtn.disabled = true;
+            uploadAvatarBtn.innerHTML = '...'; // Simple spinner
+
+            const storageRef = ref(storage, `avatars/${user.uid}`);
+
+            try {
+                // Upload file
+                const snapshot = await uploadBytes(storageRef, file);
+                // Get download URL
+                const downloadURL = await getDownloadURL(snapshot.ref);
+
+                // Update user document in Firestore
+                const userDocRef = doc(db, "users", user.uid);
+                await updateDoc(userDocRef, { avatar: downloadURL });
+
+                // Update UI immediately
+                document.getElementById('profileAvatar').src = downloadURL;
+                document.getElementById('userAvatar').src = downloadURL; // Update header avatar too
+
+                showMessage('Avatar updated successfully!', 'success');
+            } catch (error) {
+                console.error("Error uploading avatar:", error);
+                showMessage('Failed to upload avatar. Please try again.', 'error');
+            } finally {
+                uploadAvatarBtn.disabled = false;
+                uploadAvatarBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`;
+            }
+        });
+    }
+    </script>
+
+</body>
+</html>

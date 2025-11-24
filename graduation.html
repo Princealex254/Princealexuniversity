@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graduation - Prince Alex University</title>
+    <!--
+    ====================================================================================================
+    FILE: graduation.html
+    PURPOSE: Allows students to check graduation eligibility and submit an application.
+    ====================================================================================================
+    -->
+    <style>
+        /* --- CSS Variables for Theming (Same as dashboard.html) --- */
+        :root, [data-theme="light"] {
+            --color-primary: #1A237E; --color-primary-light: #303F9F; --color-accent: #FFC107; --color-accent-hover: #FFA000; --color-text: #212121; --color-text-muted: #757575; --color-bg: #F5F5F5; --color-surface: #FFFFFF; --color-border: #E0E0E0; --color-error: #D32F2F; --color-success: #388E3C; --color-info: #1976D2; --color-warning: #FFA000;
+            --font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --shadow-sm: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 3px 6px rgba(0,0,0,0.12); --border-radius: 8px; --transition-speed: 0.3s;
+        }
+        [data-theme="dark"] {
+            --color-primary: #9FA8DA; --color-primary-light: #7986CB; --color-accent: #FFCA28; --color-accent-hover: #FFD54F; --color-text: #E0E0E0; --color-text-muted: #9E9E9E; --color-bg: #121212; --color-surface: #1E1E1E; --color-border: #424242;
+        }
+
+        /* --- Global Styles & Resets (Same as dashboard.html) --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            font-family: var(--font-family); background-color: var(--color-bg); color: var(--color-text); transition: background-color var(--transition-speed), color var(--transition-speed);
+            display: grid; grid-template-columns: 250px 1fr; grid-template-rows: auto 1fr auto;
+            grid-template-areas: "sidebar header" "sidebar main" "sidebar footer"; min-height: 100vh;
+        }
+        a { color: var(--color-primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        img { max-width: 100%; display: block; }
+
+        /* --- Layout Components (Same as dashboard.html) --- */
+        .header { grid-area: header; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; }
+        .sidebar { grid-area: sidebar; background-color: var(--color-primary); color: #E8EAF6; padding: 1.5rem 0; display: flex; flex-direction: column; position: fixed; height: 100%; width: 250px; transition: transform var(--transition-speed) ease; }
+        .main-content { grid-area: main; padding: 2rem; }
+        .footer { grid-area: footer; padding: 1rem 2rem; text-align: center; font-size: 0.8rem; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
+
+        /* --- Header & Sidebar Components (Same as dashboard.html) --- */
+        .header__title { font-size: 1.5rem; font-weight: 600; }
+        .header__actions { display: flex; align-items: center; gap: 1.5rem; }
+        .notification-bell { position: relative; cursor: pointer; }
+        .notification-badge { position: absolute; top: -5px; right: -8px; background-color: var(--color-error); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; justify-content: center; align-items: center; font-weight: 600; }
+        .user-menu { position: relative; }
+        .user-menu__avatar { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        .user-menu__dropdown { display: none; position: absolute; right: 0; top: 50px; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--border-radius); box-shadow: var(--shadow-md); width: 180px; z-index: 110; }
+        .user-menu__dropdown a { display: block; padding: 0.75rem 1rem; color: var(--color-text); }
+        .user-menu__dropdown a:hover { background-color: var(--color-bg); }
+        .user-menu.active .user-menu__dropdown { display: block; }
+        .sidebar__logo { font-size: 1.5rem; font-weight: 700; text-align: center; padding: 0 1rem 1.5rem; color: white; }
+        .sidebar__logo .accent { color: var(--color-accent); }
+        .sidebar__nav { overflow-y: auto; }
+        .sidebar__nav ul { list-style: none; }
+        .sidebar__nav-item a { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.5rem; color: #C5CAE9; transition: background-color var(--transition-speed), color var(--transition-speed); border-left: 4px solid transparent; }
+        .sidebar__nav-item a:hover { background-color: rgba(0,0,0,0.2); color: white; }
+        .sidebar__nav-item.active a { background-color: rgba(0,0,0,0.3); color: white; font-weight: 600; border-left-color: var(--color-accent); }
+        .sidebar__nav-icon { width: 20px; height: 20px; }
+        .hamburger-menu { display: none; cursor: pointer; z-index: 102; }
+
+        /* --- General UI Components --- */
+        .card { background-color: var(--color-surface); border-radius: var(--border-radius); box-shadow: var(--shadow-sm); padding: 1.5rem; }
+        .btn { display: inline-block; padding: 0.8rem 1.5rem; font-size: 1rem; font-weight: 600; text-align: center; border-radius: var(--border-radius); cursor: pointer; transition: all var(--transition-speed); border: 1px solid transparent; }
+        .btn--primary { background-color: var(--color-primary); color: white; }
+        .btn--primary:hover { background-color: var(--color-primary-light); }
+        .btn--accent { background-color: var(--color-accent); color: var(--color-text); }
+        .btn--accent:hover { background-color: var(--color-accent-hover); }
+        .btn:disabled { background-color: var(--color-text-muted); cursor: not-allowed; opacity: 0.7; }
+
+        /* --- Page-Specific Styles: Graduation --- */
+        .status-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+        }
+        .status-icon--success { color: var(--color-success); }
+        .status-icon--pending { color: var(--color-info); }
+        .status-icon--error { color: var(--color-error); }
+        .status-title { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
+        .status-message { font-size: 1.1rem; color: var(--color-text-muted); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+        
+        .requirements-list {
+            list-style: none;
+            text-align: left;
+            max-width: 400px;
+            margin: 0 auto 2rem;
+        }
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 0;
+        }
+        .requirement-item svg { width: 24px; height: 24px; flex-shrink: 0; }
+        .requirement-item--met { color: var(--color-success); }
+        .requirement-item--unmet { color: var(--color-error); }
+
+        /* --- Modal-specific detail list --- */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        .detail-item dt { font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.25rem; }
+        .detail-item dd { font-size: 1rem; font-weight: 500; margin-left: 0; }
+        .modal-footer { margin-top: 1.5rem; text-align: right; display: flex; gap: 1rem; justify-content: flex-end; }
+        .modal-close { cursor: pointer; }
+
+
+        /* --- Message Overlay --- */
+        .message-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .message-overlay.show { display: flex; }
+        .message-overlay-content {
+            background-color: var(--color-surface); padding: 2rem; border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md); width: 90%; max-width: 400px; text-align: center;
+        }
+        .message-overlay-content p { margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.5; }
+        .message-overlay-content.success { border-top: 4px solid var(--color-success); }
+        .message-overlay-content.error { border-top: 4px solid var(--color-error); }
+        .message-overlay-content.info { border-top: 4px solid var(--color-info); }
+        [data-theme="dark"] .message-overlay-content {
+            background-color: var(--color-surface);
+            color: var(--color-text);
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 1024px) {
+            body { grid-template-columns: 1fr; grid-template-areas: "header" "main" "footer"; }
+            .sidebar { transform: translateX(-100%); z-index: 200; }
+            .sidebar.open { transform: translateX(0); box-shadow: 5px 0 15px rgba(0,0,0,0.2); }
+            .hamburger-menu { display: block; padding: 0.5rem; }
+            .header { padding: 1rem; }
+        }
+        @media (max-width: 768px) {
+            .main-content { padding: 1rem; }
+            .status-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <header class="header">
+        <div class="hamburger-menu" id="hamburgerMenu" aria-label="Open navigation menu" role="button" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </div>
+        <h1 class="header__title">Graduation</h1>
+        <div class="header__actions">
+            <div class="notification-bell" id="notificationBell">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span class="notification-badge" id="notificationCount"></span>
+            </div>
+            <div class="user-menu" id="userMenu">
+                <img src="https://i.pravatar.cc/150?u=alexdoe" alt="User Avatar" class="user-menu__avatar" id="userAvatar">
+                <div class="user-menu__dropdown">
+                    <a href="profile.html">Profile</a>
+                    <a href="settings.html">Settings</a>
+                    <a href="index.html" id="logoutBtn">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar__logo">Prince Alex <span class="accent">U.</span></div>
+        <nav class="sidebar__nav">
+            <ul>
+                <li class="sidebar__nav-item" id="nav-dashboard"><a href="dashboard.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span>Dashboard</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-profile"><a href="profile.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Profile</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-my-courses"><a href="my-courses.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    <span>My Courses</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-results"><a href="results.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>My Results</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-fee-statement"><a href="fee-statement.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span>Fee Statement</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-timetable"><a href="timetable.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>Timetable</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-library"><a href="library.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    <span>Library</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-hostel"><a href="hostel.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                    <span>Hostel</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-messages"><a href="messages.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <span>Messages</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-support"><a href="support.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>Support</span>
+                </a></li>
+                <li class="sidebar__nav-item active" id="nav-graduation"><a href="graduation.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10v6M12 2v10.5M12 22v-1.5M12 12.5a4.5 4.5 0 0 0 4.5-4.5c0-2.49-2.02-4.5-4.5-4.5s-4.5 2.01-4.5 4.5A4.5 4.5 0 0 0 12 12.5zM12 12.5a4.5 4.5 0 0 1-4.5 4.5c0 2.49 2.02 4.5 4.5 4.5s4.5-2.01 4.5-4.5A4.5 4.5 0 0 1 12 12.5z"></path></svg>
+                    <span>Graduation</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-clearance"><a href="clearance.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    <span>Clearance</span>
+                </a></li>
+                <li class="sidebar__nav-item" id="nav-settings"><a href="settings.html">
+                    <svg class="sidebar__nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="card">
+            <div class="status-container" id="statusContainer">
+                <!-- Status will be injected here by JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Graduation Confirmation Modal -->
+    <div id="graduationConfirmModal" class="message-overlay">
+        <div class="message-overlay-content" style="max-width: 500px;">
+            <div class="modal-header" style="text-align: left; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem;">
+                <h2 class="modal-title" style="font-size: 1.5rem;">Confirm Your Details</h2>
+            </div>
+            <div class="modal-body" style="text-align: left; padding: 1.5rem 0;">
+                <p style="margin-bottom: 1.5rem; color: var(--color-text-muted);">Please review your information below before submitting your application for graduation.</p>
+                <dl class="details-grid">
+                    <div class="detail-item"><dt>Full Name</dt><dd id="modalProfileName"></dd></div>
+                    <div class="detail-item"><dt>Student ID</dt><dd id="modalStudentId"></dd></div>
+                    <div class="detail-item"><dt>Program of Study</dt><dd id="modalProgram"></dd></div>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--secondary modal-close">Cancel</button>
+                <button id="confirmApplyBtn" type="button" class="btn btn--accent">Confirm & Submit</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Message Overlay -->
+    <div id="messageOverlay" class="message-overlay">
+        <div id="messageOverlayContent" class="message-overlay-content">
+            <p id="messageOverlayText"></p>
+            <button id="messageOverlayClose" class="btn btn--primary">OK</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Prince Alex University. All Rights Reserved. | Portal Version 1.0</p>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0TdBjLeGimGoYZwLxzC4fQLPBdSzrT0A",
+            authDomain: "universityweb-19e1e.firebaseapp.com",
+            projectId: "universityweb-19e1e",
+            storageBucket: "universityweb-19e1e.firebasestorage.app",
+            messagingSenderId: "401942926589",
+            appId: "1:401942926589:web:c98e8d71ae6bd396775a94"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            const userProfile = userDocSnap.exists() ? userDocSnap.data() : {};
+            initializePage(user, userProfile);
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+
+    async function initializePage(user, userProfile) {
+        // --- Common UI Setup ---
+        const sidebar = document.getElementById('sidebar');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) hamburgerMenu.addEventListener('click', () => sidebar.classList.toggle('open'));
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu) userMenu.addEventListener('click', (e) => { e.stopPropagation(); userMenu.classList.toggle('active'); });
+        document.addEventListener('click', () => { if (userMenu && userMenu.classList.contains('active')) userMenu.classList.remove('active'); });
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.addEventListener('click', async (e) => { e.preventDefault(); await signOut(auth); });
+        const currentTheme = userProfile?.theme || 'light';
+        document.body.setAttribute('data-theme', currentTheme);
+        const currentPage = window.location.pathname.split('/').pop();
+        const navId = 'nav-' + currentPage.replace('.html', '');
+        const activeNavItem = document.getElementById(navId);
+        if (activeNavItem) {
+            document.querySelectorAll('.sidebar__nav-item').forEach(item => item.classList.remove('active'));
+            activeNavItem.classList.add('active');
+        }
+        const userAvatar = document.getElementById('userAvatar');
+        if (userAvatar && userProfile) {
+            userAvatar.src = userProfile.avatar;
+            userAvatar.alt = `${userProfile.name}'s avatar`;
+        }
+        const messagesCol = collection(db, "users", user.uid, "messages");
+        const unreadMessagesSnapshot = await getDocs(query(messagesCol, where("read", "==", false)));
+        const notificationCountEl = document.getElementById('notificationCount');
+        if (notificationCountEl) {
+            const unreadCount = unreadMessagesSnapshot.size;
+            if (unreadCount > 0) {
+                notificationCountEl.textContent = unreadCount;
+                notificationCountEl.style.display = 'flex';
+            } else {
+                notificationCountEl.style.display = 'none';
+            }
+        }
+
+        // --- GRADUATION-SPECIFIC SCRIPT ---
+        const statusContainer = document.getElementById('statusContainer');
+        const appDocRef = doc(db, "users", user.uid, "graduationApplication", "status");
+        const appDocSnap = await getDoc(appDocRef);
+        const graduationApplication = appDocSnap.exists() ? appDocSnap.data() : null;
+        const MIN_GPA = 2.0;
+        const MAX_BALANCE = 0;
+
+        async function getLiveGpa() {
+            const coursesCol = collection(db, "users", user.uid, "courses");
+            const courseSnapshot = await getDocs(coursesCol);
+            const courses = courseSnapshot.docs.map(doc => doc.data());
+            
+            let totalPoints = 0;
+            let totalCredits = 0;
+            courses.forEach(course => {
+                if (course.gradePoint !== null && typeof course.gradePoint !== 'undefined' && course.credits > 0) {
+                    totalPoints += course.gradePoint * course.credits;
+                    totalCredits += course.credits;
+                }
+            });
+            return totalCredits > 0 ? (totalPoints / totalCredits) : 0;
+        }
+
+        async function getLiveBalance() {
+            const financialsCol = collection(db, "users", user.uid, "financials");
+            const snapshot = await getDocs(financialsCol);
+            let runningBalance = 0;
+            snapshot.forEach(doc => {
+                runningBalance += doc.data().amount;
+            });
+            return runningBalance;
+        }
+
+        async function checkEligibility() {
+            const currentGpa = await getLiveGpa();
+            const currentBalance = await getLiveBalance();
+            const gpaMet = currentGpa >= MIN_GPA;
+            const feesMet = currentBalance <= MAX_BALANCE;
+            return {
+                isEligible: gpaMet && feesMet,
+                metRequirements: { gpaMet, feesMet }
+            };
+        }
+
+        async function renderStatus() {
+            if (graduationApplication && graduationApplication.status) {
+                if (graduationApplication.status === 'Approved') {
+                    statusContainer.innerHTML = `
+                        <svg class="status-icon status-icon--success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <h2 class="status-title">Application Approved!</h2>
+                        <p class="status-message">Congratulations! Your application for graduation has been approved. Further details regarding the graduation ceremony will be communicated to you via your university email.</p>
+                    `;
+                } else if (graduationApplication.status === 'Rejected') {
+                     statusContainer.innerHTML = `
+                        <svg class="status-icon status-icon--error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <h2 class="status-title">Application Update</h2>
+                        <p class="status-message">Unfortunately, your application for graduation has been <strong>Rejected</strong>. Please contact the registrar's office for more information.</p>
+                    `;
+                } else { // Pending Review
+                    statusContainer.innerHTML = `
+                        <svg class="status-icon status-icon--pending" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <h2 class="status-title">Application Submitted</h2>
+                        <p class="status-message">Your application for graduation was submitted on ${graduationApplication.date}. It is currently <strong>${graduationApplication.status}</strong>. You will be notified once there is an update.</p>
+                    `;
+                }
+            } else {
+                const eligibility = await checkEligibility();
+                const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                const xIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+                if (eligibility.isEligible) {
+                    statusContainer.innerHTML = `
+                        <svg class="status-icon status-icon--success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <h2 class="status-title">Congratulations! You are eligible to graduate.</h2>
+                        <p class="status-message">All academic and financial requirements have been met. You can now submit your application for graduation.</p>
+                        <button id="applyBtn" class="btn btn--accent">Apply for Graduation</button>
+                    `;
+                    document.getElementById('applyBtn').addEventListener('click', () => openGraduationModal(userProfile));
+                } else {
+                    statusContainer.innerHTML = `
+                        <svg class="status-icon status-icon--error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <h2 class="status-title">Not Yet Eligible for Graduation</h2>
+                        <p class="status-message">You have not met all the requirements for graduation. Please see the checklist below.</p>
+                        <ul class="requirements-list">
+                            <li class="requirement-item ${eligibility.metRequirements.gpaMet ? 'requirement-item--met' : 'requirement-item--unmet'}">${eligibility.metRequirements.gpaMet ? checkIcon : xIcon}<span>Minimum GPA of ${MIN_GPA.toFixed(2)}</span></li>
+                            <li class="requirement-item ${eligibility.metRequirements.feesMet ? 'requirement-item--met' : 'requirement-item--unmet'}">${eligibility.metRequirements.feesMet ? checkIcon : xIcon}<span>No outstanding fee balance</span></li>
+                        </ul>
+                        <button id="applyBtn" class="btn btn--accent" disabled>Apply for Graduation</button>
+                    `;
+                }
+            }
+        }
+
+        function showMessage(message, type = 'success') {
+            const overlay = document.getElementById('messageOverlay');
+            const content = document.getElementById('messageOverlayContent');
+            const text = document.getElementById('messageOverlayText');
+
+            text.textContent = message;
+            content.className = 'message-overlay-content'; // Reset classes
+            content.classList.add(type); // 'success' or 'error'
+
+            overlay.classList.add('show');
+        }
+
+        function openGraduationModal(userProfile) {
+            document.getElementById('modalProfileName').textContent = userProfile.name || 'N/A';
+            document.getElementById('modalStudentId').textContent = userProfile.studentId || 'N/A';
+            document.getElementById('modalProgram').textContent = userProfile.program || 'N/A';
+            document.getElementById('graduationConfirmModal').classList.add('show');
+        }
+
+        function closeGraduationModal() {
+            document.getElementById('graduationConfirmModal').classList.remove('show');
+        }
+
+        async function handleApply(user, userProfile) {
+            const application = {
+                status: 'Pending Review',
+                date: new Date().toISOString().split('T')[0]
+            };
+            const appDocRef = doc(db, "users", user.uid, "graduationApplication", "status");
+            try {
+                await setDoc(appDocRef, application);
+                closeGraduationModal();
+                showMessage('Your application has been submitted successfully!', 'success');
+                // Reload the page after the success message is closed
+                document.getElementById('messageOverlayClose').addEventListener('click', () => window.location.reload(), { once: true });
+            } catch (error) {
+                console.error("Error submitting application: ", error);
+                showMessage("There was an error submitting your application. Please try again.", 'error');
+            }
+        }
+
+        (async () => { await renderStatus(); })();
+        document.getElementById('graduationConfirmModal').querySelector('.modal-close').addEventListener('click', closeGraduationModal);
+        document.getElementById('confirmApplyBtn').addEventListener('click', () => handleApply(user, userProfile));
+
+        document.getElementById('messageOverlayClose').addEventListener('click', () => {
+            document.getElementById('messageOverlay').classList.remove('show');
+        });
+    }
+    </script>
+
+</body>
+</html>
