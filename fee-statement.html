@@ -101,6 +101,31 @@
         .statement-table .amount-credit { text-align: right; color: var(--color-success); }
         .statement-table .amount-balance { text-align: right; font-weight: 600; }
 
+        /* --- Responsive Table --- */
+        @media screen and (max-width: 768px) {
+            .statement-table thead { display: none; }
+            .statement-table, .statement-table tbody, .statement-table tr, .statement-table td { display: block; width: 100%; }
+            .statement-table tr {
+                margin-bottom: 1rem;
+                border: 1px solid var(--color-border);
+                border-radius: var(--border-radius);
+            }
+            .statement-table td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+            }
+            .statement-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 1rem;
+                width: calc(50% - 2rem);
+                text-align: left;
+                font-weight: 600;
+                color: var(--color-text-muted);
+            }
+        }
+
         /* --- Modal Styles (Same as my-courses.html) --- */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
         .modal.open { display: flex; align-items: center; justify-content: center; }
@@ -448,11 +473,11 @@
                     else totalPaid += credit;
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${new Date(tx.date).toLocaleDateString()}</td>
-                        <td>${tx.description}</td>
-                        <td class="amount-debit">${isDebit ? formatCurrency(charge) : '-'}</td>
-                        <td class="amount-credit">${!isDebit ? formatCurrency(credit) : '-'}</td>
-                        <td class="amount-balance">${formatCurrency(runningBalance)}</td>
+                        <td data-label="Date">${new Date(tx.date).toLocaleDateString()}</td>
+                        <td data-label="Description">${tx.description}</td>
+                        <td data-label="Charges" class="amount-debit">${isDebit ? formatCurrency(charge) : '-'}</td>
+                        <td data-label="Credits" class="amount-credit">${!isDebit ? formatCurrency(credit) : '-'}</td>
+                        <td data-label="Balance" class="amount-balance">${formatCurrency(runningBalance)}</td>
                     `;
                     statementBody.appendChild(row);
                 });
